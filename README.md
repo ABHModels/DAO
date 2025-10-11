@@ -45,3 +45,6 @@ Before launching a simulation, please ensure the following data files are correc
 
 You can execute the model using the provided Python wrapper script. See User Guide for more details. 
 
+## Physics and Assumption
+
+We write a User guide, which try to include all of the model. Please see it for more details and examples.
