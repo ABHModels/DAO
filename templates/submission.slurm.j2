@@ -1,0 +1,28 @@
+#!/bin/bash
+#SBATCH --job-name={{ job_name }}
+#SBATCH --output=/dev/null
+#SBATCH --error=slurm_logs/slurm-%j.err
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --nodelist=node3
+
+# Make sure the slurm_logs directory exists
+cd /data/home/yimin2/reflection
+echo "========================================================"
+echo "Starting job: {{ job_name }}"
+echo "Job submitted on: $(date)"
+echo "Running on node: $(hostname)"
+echo "Using input file: {{ nml_input_file }}"
+echo "========================================================"
+echo ""
+
+# Execute the Fortran model
+# Ensure 'dao.x' is in your PATH or in the current directory
+./dao.x {{ nml_input_file }}
+
+echo ""
+echo "========================================================"
+echo "Job finished with exit code $?"
+echo "Job finished on: $(date)"
+echo "========================================================"
