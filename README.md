@@ -13,7 +13,7 @@ For a detailed description of the underlying physics and methodology, please ref
 You can clone the latest version of DAO using:
 
 ```bash
-git clone https://github.com/yourusername/DAO.git
+git clone https://github.com/ABHModels/DAO.git
 cd DAO
 ```
 
