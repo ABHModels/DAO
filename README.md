@@ -1,9 +1,22 @@
 # DAO: An Open-Source X-ray Reflection Model
 
-DAO is a comprehensive, open-source model for simulating X-ray reflection spectra from photoionized accretion disks. The model solves the radiative transfer equation using the robust Feautrier method and incorporates atomic data based on the powerful **XSTAR** database.
+**DAO**  a comprehensive, open-source model for simulating X-ray reflection spectra from photoionized accretion disks.
+It solves the radiative transfer equation using the robust Feautrier method and incorporates atomic data from the powerful XSTAR database.
 
-For a detailed description of the underlying physics and methodology, please refer to our accompanying paper. 
-<!-- [引用] -->
+For a detailed description of the underlying physics and methodology, please refer to our accompanying paper.  
+<!-- [citation link to be added] -->
+
+---
+
+##  Clone the Repository
+
+You can clone the latest version of DAO using:
+
+```bash
+git clone https://github.com/ABHModels/DAO.git
+cd DAO
+```
+
 
 ## Prerequisites
 
