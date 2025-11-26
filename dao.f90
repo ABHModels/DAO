@@ -31341,7 +31341,11 @@
       write (lunlog,*)'xstar version 2.59' 
 !                                                                       
 !     Test if atomic database files are available.  Abort if not.   
-      datafil4 = trim(dataenv) // '/atdb.fits'
+      if (log10(xpx).le.18) datafil4 = trim(dataenv) // '/len18/atdb.fits'
+      if ((log10(xpx).gt.18).and.(log10(xpx).le.19)) datafil4 = trim(dataenv) // '/n19/atdb.fits'
+      if ((log10(xpx).gt.19).and.(log10(xpx).le.20)) datafil4 = trim(dataenv) // '/n20/atdb.fits'
+      if ((log10(xpx).gt.20).and.(log10(xpx).le.21)) datafil4 = trim(dataenv) // '/n21/atdb.fits'
+      if ((log10(xpx).gt.21).and.(log10(xpx).le.22)) datafil4 = trim(dataenv) // '/n22/atdb.fits'
       datafil3 = trim(dataenv) // '/coheat.dat'
       inquire(file=datafil3,exist=ex3) 
       inquire(file=datafil4,exist=ex4) 
@@ -31390,6 +31394,7 @@
 !                                                                       
 !     read in                                                           
       write (lunlog,*)'Loading Atomic Database...' 
+      write (lunlog,*)'Atomic Database path: ',datafil4
       write (tmpst,*)'Loading Atomic Database...' 
       call xwrite(tmpst,10) 
                                                                         
