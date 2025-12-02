@@ -60,6 +60,7 @@
         rfcol(i) = wrftau(i)/sigth/1.21
         rfr(i) = wrftau(i)/rfnh/1.21/sigth
         rfdtemp(i) = rftemp_gas
+        rfdxi(i) = rfzeta
     enddo
 
     ! First estimation for radiation field U

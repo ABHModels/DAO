@@ -42,6 +42,7 @@
 
         xi = xlum/(rfnh*r19*r19) 
         zeta = log10(xi)
-
+        rfdxi(depstep) = zeta
+        
         return  
     end subroutine depvariant

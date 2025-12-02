@@ -135,7 +135,7 @@ module Reflection_Var
     real(8),dimension(:),allocatable::rfcol                                 ! Column density [cm^2/g]
     real(8),dimension(:),allocatable::rfr                                   ! Radius
     real(8),dimension(:),allocatable::rfdzeta                               ! Redshift
-    real(8),dimension(:),allocatable::rfdtemp                               ! Temperature gradient
+    real(8),dimension(:),allocatable::rfdtemp,rfdxi                         ! Temperature gradient
 
     ! Loop control
     logical::mainloopsw
@@ -159,6 +159,7 @@ module Reflection_Var
                  rfcol(ndrt),        rfr(ndrt),          &
                  rfdzeta(ndrt),      rfdtemp(ndrt),      &
                  u_old(ndrt,nmurt,nfrt),told(ndrt),xiold(ndrt),&
+                 rfdxi(ndrt),&
                 SOURCE = zero_r8 ) 
 
         allocate(rfind_ener(nfrt),SOURCE=zero_int)
@@ -177,7 +178,7 @@ module Reflection_Var
         deallocate(rfzero)
         deallocate(zero_old,source_old)
         deallocate(u_old)
-        deallocate(rfcol,rfr,rfdzeta,rfdtemp)
+        deallocate(rfcol,rfr,rfdzeta,rfdtemp,rfdxi)
         deallocate(told,xiold)
     end subroutine deallocate_rfglobal
 end module Reflection_Var
