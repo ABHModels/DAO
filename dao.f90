@@ -349,26 +349,16 @@
       open(newunit=io_temper,file=rfop_temp,status='unknown')
       open(newunit=io_intensity,file=rfop_inte,status='unknown')
       open(newunit=io_flux,file=rfop_spec,status='unknown')
-      open(newunit=io_emis,file=rfop_emis,status='unknown')
+      ! open(newunit=io_emis,file=rfop_emis,status='unknown')
 
       if (rfmodel.eq.1.or.rfmodel.eq.2) then
             print*, ' start pure scattering model'
-            call radiative_transfer(lunlog,mainstep)
-            write(io_temper,997) (rftau(jk),rfdtemp(jk),jk=1,ndrt)
-            write(io_temper,*) " "
-  
-            write(io_intensity, 998) (rfener(jk), (rfu(1, mm, jk), mm=1, nmurt), jk=1, nfrt)
-            write(io_intensity,*) " "
-         
-  
-            flush(io_temper)
-            flush(io_intensity)
+            call radiative_transfer(lunlog,mainstep)  
             close(iokernel)
             close(io_temper)
             close(io_intensity)
             close(io_flux)
             stop
-
       else
 
       call xstarsetup(lnerrd,nlimd,                                     &
@@ -498,16 +488,6 @@
             enddo 
 
           call radiative_transfer(lunlog,mainstep)
-
-          ! I/O
-          write(io_temper,997) (rftau(jk),rfdtemp(jk),jk=1,ndrt)
-          write(io_temper,*) " "
-
-          write(io_intensity, 998) (rfener(jk), (rfu(1, mm, jk), mm=1, nmurt), jk=1, nfrt)
-          write(io_intensity,*) " "
-
-          flush(io_temper)
-          flush(io_intensity)
       enddo     
 
       call pprint(11,jkp,trad,xlum,lwri,lpri,r,t,xpx,p,lcdd,      &
@@ -528,14 +508,10 @@
       &            cabab,elumab,elum,zrems,fline,flinel,                 &
       &            zrtmp,zrtmpcol,zrtmph,zrtmpc,rfabdfits)
 
-      997 format(2E15.7)
-      998 format(11E15.7)
-      999 format(6E15.7)
       close(iokernel)
       close(io_temper)
       close(io_intensity)
       close(io_flux)
-      close(io_emis)
 
       endif
 

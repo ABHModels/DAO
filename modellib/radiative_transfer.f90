@@ -57,19 +57,18 @@
     real(8)::theta
 
     real(8) rftem_flux
-    real(8) emerflux(nmurt,nfrt)
-    real(8) emff(nfrt),eetot,rfFx,fracFLUX
+    real(8) emerflux(nmurt,nfrt),influx(nmurt,nfrt)
+    real(8) emff(nfrt),inff(nfrt),eeout,eein,fracFLUX
 
     real(8),dimension(:),allocatable::topb,botb
 
-    real(8),dimension(:,:),allocatable::fmoment
     real(8),dimension(:),allocatable::pointu
     real(8),dimension(:,:),allocatable::skn
     real(8),dimension(:,:),allocatable::rfopak,rfopsc
     real(8),dimension(:,:),allocatable::dtauE
-    real(8),dimension(:,:),allocatable::eme
+    real(8),dimension(:,:),allocatable::emet
     real(8),dimension(:),allocatable::emei
-    real(8),dimension(:),allocatable::meantop
+    real(8),dimension(:),allocatable::meantop,meanbot
 
 
     real(8) :: tsstart
@@ -92,13 +91,13 @@
     allocate(pointu(ntau)  , skn(ntau,nener),           &
     &   rfopak(ntau,nener) , rfopsc(ntau,nener),        &
     &   topb(nener)        , botb(nener),               &
-    &   eme(nmu,nener), emei(nener), & 
+    &   emet(nmu,nener)    , emei(nener),               & 
     &   meantop(nener)     , dtauE(ntau,nener),         &
-    &   fmoment(ntau,nener),&
+    &   meanbot(nener),            &
     &   SOURCE = zero_r8)
 
 
-    ! Get compton scattering cross section
+    ! compton scattering cross section
     do d=1,ntau
         theta = rfdtemp(d)*boltz/511.d3
         call get_index(theta,file_ntemp,file_temper,ind_temp)
@@ -182,13 +181,18 @@
     call deallocate_Feautrier
 
     meantop = 0.0
+    emff = 0.0
+    inff = 0.0
     do n=1,nener    
 
         do m=1,nmu
 
-            eme(m,n) = 2*rfu(1,m,n)
-            if (m.eq.rfinmu_ind) eme(m,n) = eme(m,n)-topb(n)
-            emerflux(m,n) = (eme(m,n) + 2*rfu(ntau,m,n)-botb(n))*rfmu(m)
+            emet(m,n) = 2*rfu(1,m,n)
+            if (m.eq.rfinmu_ind) emet(m,n) = emet(m,n)-topb(n)
+            if (m.eq.rfinmu_ind) influx(m,n) = topb(n)*rfmu(m)
+            emeb(m,n) = 2*rfu(ntau,m,n)-botb(n)
+
+            emerflux(m,n) = (emet(m,n) + emeb(m,n))*rfmu(m)
         enddo
 
         select case(ity)
@@ -196,30 +200,48 @@
         case(1) 
 
             do m=1,nmu
-                meantop(n) = meantop(n) + eme(m,n)*dmu(m)
+                meantop(n) = meantop(n) + emet(m,n)*dmu(m)
+                meanbot(n) = meanbot(n) + emeb(m,n)*dmu(m)
+                emff(n) = emff(n) + emerflux(m,n)*dmu(m)
+                inff(n) = inff(n) + influx(m,n)*dmu(m)
             enddo
 
         case(2)
 
-        call trapz(nmu,eme(:,n),rfmu,meantop(n))
+        call trapz(nmu,emet(:,n),rfmu,meantop(n))
+        call trapz(nmu,emeb(:,n),rfmu,meanbot(n))
+        call trapz(nmu,emerflux(:,n),rfmu,emff(n))
+        call trapz(nmu,influx(:,n),rfmu,inff(n))
 
         end select
     enddo
 
-    call trapz(nmu,emerflux,rfmu,emff)
-    call trapz(nener,emff,rfener,eetot)
 
-    eetot = eetot*fourpi/2.*ergsev
-    rfFx = rfnh*10**rfzeta/fourpi
-    fracFLUX = eetot/rfFx
+    call trapz(nener,emff,rfener,eeout)
+    call trapz(nener,inff,rfener,eein)
+
+    fracFLUX = eeout/eein
 
     write(lun11,0926) fracFLUX
     0926 format ("Emergent total flux / Fx :",1E15.7)
 
-    write(io_flux,6666) (rfener(n),topb(n),botb(n),eme(inmuind,n),meantop(n),n=1,nener)
+    ! Energy, Top boundary intensity, bottom boundary intensity, bot mean flux, top mean intensity
+    write(io_flux,6666) (rfener(n),topb(n),botb(n),meanbot(,n),meantop(n),n=1,nener)
     write(io_flux,*) " "
-    6666 format(5E15.7)  ! Energy, Top boundary intensity, bottom boundary intensity, top eme flux, eme intensity
+    6666 format(5E15.7)  
     flush(io_flux)
+
+    ! depth,temp
+    write(io_temper,997) (rftau(jk),rfdtemp(jk),jk=1,ndrt)
+    write(io_temper,*) " "
+    997 format(2E15.7)
+    flush(io_temper)
+
+    ! energy,emergent
+    write(io_intensity, 998) (rfener(n), (emet(m,n), m=1, nmu), jn=1, nener)
+    write(io_intensity,*) " "
+    998 format(11E15.7)
+    flush(io_intensity)
 
     rffluxint = 0.0
     do d=1,ntau
@@ -227,7 +249,6 @@
             rfflux(d,n) = rfzero(d,n)*fourpi
         enddo
     enddo
-
 
     rftem_flux = 0.0
     do i=1,ndrt
@@ -237,7 +258,7 @@
      enddo
     enddo
 
-    deallocate(pointu,skn,rfopak,rfopsc,topb,botb,eme,emei,meantop,dtauE,fmoment)
+    deallocate(pointu,skn,rfopak,rfopsc,topb,botb,emet,emei,meantop,dtauE,meanbot)
     
     print*,"Main", mainstep,"RTE Done"
     end subroutine radiative_transfer

@@ -1,59 +1,14 @@
 module interface
-    use Reflection_Var
-    use globaldata
-    use ieee_arithmetic
     implicit none
-    ! integer::itf_nener,itf_ntau,itf_nmu
-    ! real(8)::itf_t         ! temperaure [K] for xstar initialization
-    ! real(8)::itf_xpx            ! density
-    ! real(8)::itf_abel(nl)
-    ! real(8),dimension(:),allocatable::itf_flux,itf_fluxint,itf_ener
-    ! real(8)::itf_xpcol
-    ! real(8)::itf_zeta
-    ! real(8)::itf_nlimd
-    ! real(8)::itf_r,itf_r19
-
     contains
-    ! subroutine itfinit(lun11)
-    !     implicit none
-    !     integer,intent(in)::lun11
-    !     itf_nener = nfrt
-    !     itf_ntau = ndrt
-    !     itf_nmu = nmurt
-    !     allocate(itf_flux(itf_nener),itf_fluxint(itf_nener),itf_ener(itf_nener))
-
-    !     itf_t = 0.0d0
-    !     itf_xpx = 0.0d0
-    !     itf_ener = 0.0d0
-    !     itf_flux = 0.0d0
-    !     itf_fluxint = 0.0d0
-    !     itf_xpcol = 0.0d0
-    !     itf_zeta = 0.0d0
-    !     itf_nlimd = 0.0d0
-    !     itf_abel(:) = 0.0d0
-    !     if (rfdebug.eq.2) then
-    !         write(lun11,*) "Interface initialized"
-    !     endif
-    ! end subroutine itfinit
-
-    ! subroutine itfconst(lun11)
-    !     ! Set depth invariant parameters
-    !     implicit none
-    !     integer,intent(in)::lun11
-    !     itf_t = rftemp_gas
-    !     itf_xpx = rfnh
-    !     itf_nlimd = rfit_temp
-    !     itf_ener(:) = rfener(:)
-    !     itf_abel(:) = rfabel(:)
-    !     print*, " Interface initialization done"
-    ! end subroutine
-
-
-    subroutine loopconstant(trad,xlum,lwri,lpri,r,t,xpx,p,lcdd,          &
+   
+     subroutine loopconstant(trad,xlum,lwri,lpri,r,t,xpx,p,lcdd,          &
         & numrec,npass,nlimd,rmax,xpxcol,xi,zeta,lfix,                     &
         & lun11,abel,cfrac,emult,taumax,xeemin,spectype,specfile,specunit, &
         & kmodelname,nloopctl,critf,vturbi,eptmp,zrtmp,numcon2,ncn2,radexp)
         ! read depth invariant parameters
+        use Reflection_Var
+        use globaldata
          implicit none                                                           
          real(8) eptmp(ncn),zrtmp(ncn),abel(nl),abel2(30) 
          character(8) stringst,kblnk8 
@@ -94,6 +49,7 @@ module interface
         &   bremsa,bremsint,zrems)
         ! Set depth dependent parameters
         use constants
+        use Reflection_Var
         implicit none
         integer,intent(in)::mainstep,depstep,ncn,ncn2,lun11
         real(8),intent(out):: r,xcol,r19,xi,zeta,xlum,t,delr
@@ -105,19 +61,7 @@ module interface
         real(8)::lumo(nfrt)
         real(8)::skse
 
-        ! ref to interface
-        ! do i =1,nfrt
-        !     itf_flux(i) = rfflux(depstep,i)       
-        !     itf_fluxint(i) = rffluxint(depstep,i)
-        ! enddo
-        ! itf_xpcol = rfcol(depstep)
-        ! itf_r = rfr(depstep)
-        ! itf_r19 = rfr19(depstep)
-        ! itf_t = rftemp_gas
-
         temp = 0.0
-        ! call trapz(nfrt,rfflux(depstep,:),rfener(:)*ergsev,temp)
-
 
         ! to xstar
         r = rfr(depstep)
