@@ -105,7 +105,7 @@
 
     case ("nthcomp")
     nth_par(1) = gamma 
-    nth_par(2) = ehcut 
+    nth_par(2) = ehcut/1e3 
     nth_par(3) = 0.1 
     nth_par(4) = 0.0
     nth_par(5) = 0.0
