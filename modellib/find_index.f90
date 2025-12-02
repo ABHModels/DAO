@@ -8,7 +8,6 @@ subroutine find_index(find,nearest_index,arr,nmaxp)
     nearest_index = 1
     n = nmaxp
 
-    ! 遍历数组找到最接近 500 的索引
     do i = 2, n
         diff = abs(arr(i) - find)
         if (diff < min_diff) then

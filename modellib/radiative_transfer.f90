@@ -39,7 +39,6 @@
 !>                     time-dependent or hydrostatic iteration).
     subroutine radiative_transfer(lun11,mainstep)
     use constants
-    use interface
     use Reflection_Var
     use feautrier
     use omp_lib
@@ -58,7 +57,10 @@
 
     real(8) rftem_flux
     real(8) emerflux(nmurt,nfrt),influx(nmurt,nfrt)
-    real(8) emff(nfrt),inff(nfrt),eeout,eein,fracFLUX
+    real(8) emff(nfrt),inff(nfrt)
+    real(8) eeout,eein,fracFLUX
+    real(8) outmu(10)
+    integer indoutmu(10)
 
     real(8),dimension(:),allocatable::topb,botb
 
@@ -66,8 +68,7 @@
     real(8),dimension(:,:),allocatable::skn
     real(8),dimension(:,:),allocatable::rfopak,rfopsc
     real(8),dimension(:,:),allocatable::dtauE
-    real(8),dimension(:,:),allocatable::emet
-    real(8),dimension(:),allocatable::emei
+    real(8),dimension(:,:),allocatable::emet,emeb
     real(8),dimension(:),allocatable::meantop,meanbot
 
 
@@ -91,9 +92,9 @@
     allocate(pointu(ntau)  , skn(ntau,nener),           &
     &   rfopak(ntau,nener) , rfopsc(ntau,nener),        &
     &   topb(nener)        , botb(nener),               &
-    &   emet(nmu,nener)    , emei(nener),               & 
+    &   emet(nmu,nener)    ,                            & 
     &   meantop(nener)     , dtauE(ntau,nener),         &
-    &   meanbot(nener),            &
+    &   meanbot(nener)     , emeb(nmurt,nfrt),          &
     &   SOURCE = zero_r8)
 
 
@@ -226,19 +227,34 @@
     0926 format ("Emergent total flux / Fx :",1E15.7)
 
     ! Energy, Top boundary intensity, bottom boundary intensity, bot mean flux, top mean intensity
-    write(io_flux,6666) (rfener(n),topb(n),botb(n),meanbot(,n),meantop(n),n=1,nener)
+    write(io_flux,6666) (rfener(n),topb(n),botb(n),meanbot(n),meantop(n),n=1,nener)
     write(io_flux,*) " "
     6666 format(5E15.7)  
     flush(io_flux)
 
     ! depth,temp
-    write(io_temper,997) (rftau(jk),rfdtemp(jk),jk=1,ndrt)
+    write(io_temper,997) (rftau(n),rfdtemp(n),n=1,ndrt)
     write(io_temper,*) " "
     997 format(2E15.7)
     flush(io_temper)
 
     ! energy,emergent
-    write(io_intensity, 998) (rfener(n), (emet(m,n), m=1, nmu), jn=1, nener)
+    if (nmu.le.10) then
+        write(io_intensity, 998) (rfener(n), (emet(m,n), m=1, nmu),n=1, nener)
+    else    
+        outmu(1) = 0.05
+        do m=2,nmurt
+            outmu(m) = outmu(m-1)+0.1
+        enddo
+
+        do m=1,nmu
+            call find_index(outmu(m),indoutmu(m),rfmu,nmu)
+        enddo
+
+        write(io_intensity, 998) (rfener(n), (emet(indoutmu(m),n), m=1, nmu),n=1, nener)
+
+    endif
+
     write(io_intensity,*) " "
     998 format(11E15.7)
     flush(io_intensity)
@@ -258,7 +274,11 @@
      enddo
     enddo
 
-    deallocate(pointu,skn,rfopak,rfopsc,topb,botb,emet,emei,meantop,dtauE,meanbot)
+    deallocate(pointu,&
+    &   skn,rfopak,rfopsc,dtauE,&
+    &   topb,botb,&
+    &   emet,emeb,&
+    &   meantop,meanbot)
     
     print*,"Main", mainstep,"RTE Done"
     end subroutine radiative_transfer

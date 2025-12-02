@@ -137,6 +137,10 @@ module Reflection_Var
     real(8),dimension(:),allocatable::rfdzeta                               ! Redshift
     real(8),dimension(:),allocatable::rfdtemp                               ! Temperature gradient
 
+    ! Loop control
+    logical::mainloopsw
+    real(8),dimension(:),allocatable::told,xiold
+
     contains
     subroutine allocate_rfglobal
         implicit none
@@ -154,7 +158,7 @@ module Reflection_Var
                  zero_old(ndrt,nfrt),source_old(ndrt,nfrt),&
                  rfcol(ndrt),        rfr(ndrt),          &
                  rfdzeta(ndrt),      rfdtemp(ndrt),      &
-                 u_old(ndrt,nmurt,nfrt),&
+                 u_old(ndrt,nmurt,nfrt),told(ndrt),xiold(ndrt),&
                 SOURCE = zero_r8 ) 
 
         allocate(rfind_ener(nfrt),SOURCE=zero_int)
@@ -174,5 +178,6 @@ module Reflection_Var
         deallocate(zero_old,source_old)
         deallocate(u_old)
         deallocate(rfcol,rfr,rfdzeta,rfdtemp)
+        deallocate(told,xiold)
     end subroutine deallocate_rfglobal
 end module Reflection_Var

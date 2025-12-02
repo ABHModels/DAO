@@ -73,6 +73,9 @@
     rfemis = 0.0
     rfabso = 0.0
     rfu = 0.0
+
+    call loopcontrol_initial
+    
     print*, " Reflected model initialization done"
 end subroutine
     

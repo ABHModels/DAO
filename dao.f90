@@ -5,7 +5,6 @@
       use times
       use constants
       use Reflection_Var
-      use interface
       use redistribution
       implicit none 
       integer nzones
@@ -379,6 +378,7 @@
       flush(lunlog)
 
       do mainstep=1,rfnmaxmain
+      call loopcontrol_save
       llinabs=1
       rfemis = 0.0
       rfabso = 0.0
@@ -488,6 +488,8 @@
             enddo 
 
           call radiative_transfer(lunlog,mainstep)
+          call loopcontrol_conv(mainstep,lunlog)
+          if (mainloopsw) exit
       enddo     
 
       call pprint(11,jkp,trad,xlum,lwri,lpri,r,t,xpx,p,lcdd,      &
