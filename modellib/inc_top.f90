@@ -110,8 +110,6 @@
     nth_par(4) = 0.0
     nth_par(5) = 0.0
 
-    print*,nth_par
-
     do i=0,nener-1
         Ear(i) = ener(i+1)/1e3
     enddo
