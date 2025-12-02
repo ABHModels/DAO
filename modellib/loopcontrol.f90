@@ -1,7 +1,6 @@
 subroutine loopcontrol_initial 
     use Reflection_Var
     implicit none
-    allocate(told(ndrt),xiold(ndrt))
     mainloopsw =.False.
     told = rfdtemp
     xiold = rfzeta
