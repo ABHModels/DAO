@@ -121,32 +121,22 @@ module feautrier
     do d=1,ntau
 
         do n=1,nener
-
-            abso(n) = meanJ(d,n)
-            emis(n) = source(d,n)
-
             difsu(n) = abs(source(d,n)-source_old(d,n))
             difsd(n) = source_old(d,n)
-
         enddo
 
-        call trapz(nener,abso,ener,ab)
-        call trapz(nener,emis,ener,em)
         call trapz(nener,difsu,ener,su)
         call trapz(nener,difsd,ener,sd)
-        ratio(d) = em/ab
         cirS(d) = su/sd
         meancir = meancir+cirS(d)
-        meanratio = meanratio + ratio(d)
     enddo
 
     meancir = meancir/ntau
-    meanratio = meanratio/ntau
     if (meancir.lt.cirt) conv = .True.
 
     call cpu_time(tend)
-    write(lun11,*) "Main step: ",mainstep,"Iteration: ",itestep,"E[RATIO]",meanratio,"E[c]",meancir,"Time",tend-tstart
-    print*, "Main step: ",mainstep,"Iteration: ",itestep,"E[RATIO]",meanratio,"E[c]",meancir,"Time",tend-tstart
+    write(lun11,*) "Main step: ",mainstep,"Iteration: ",itestep,"E[c]",meancir,"Time",tend-tstart
+    print*, "Main step: ",mainstep,"Iteration: ",itestep,"E[c]",meancir,"Time",tend-tstart
     
     flush(lun11)
     end subroutine checkconvergence
