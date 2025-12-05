@@ -45,7 +45,7 @@
     
     ! First guess of radiation field
     do i=1,ndrt
-     rfflux(i,:) = rfi_inc(:)
+     rfflux(i,:) = rfI_inc(:)+rfI_bot(:)
     enddo
 
     rftem_flux = 0.0
