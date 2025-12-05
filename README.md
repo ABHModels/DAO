@@ -35,6 +35,7 @@ The model uses a `Makefile` to simplify the compilation process. Please follow t
 2.  **Compile the Code:**
     From the root directory of the project, run the `make` command:
     ```bash
+    mkdir mods
     make
     ```
     If the compilation is successful, an executable file (e.g., `dao.x`) will be created in the main directory.
