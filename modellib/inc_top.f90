@@ -19,8 +19,8 @@
     
 
     ! Loacl
-    integer,parameter::nth_np = 5
-    real nth_par(nth_np)
+    integer,parameter::nth_np = 5,comptt_np=5
+    real nth_par(nth_np),comptt_par(comptt_np)
     integer::ifl
     real Ear(0:nener),Earout(nener)
     real Photar(nener),Photer(nener)
@@ -125,7 +125,24 @@
     enddo
     
     case("comptt")
-    stop "comptt incident hasn't been incorporated now"
+    comptt_par(1) = 0.0         ! Red shift
+    comptt_par(2) = gamma/1e3   ! Wien temperature (keV) 
+    comptt_par(3) = hcut/1e3    ! plasma temperature (keV)
+    comptt_par(4) = 1.0         ! Optical depth
+    comptt_par(5) = 1.0         ! Depth geometry
+
+    do i=0,nener-1
+        Ear(i) = ener(i+1)/1e3
+    enddo
+    Ear(nener) = 1.001d3
+
+    ifl=1
+    call XSTITG(Ear,nener,comptt_par,ifl,Photar,Photer)  
+    do i = 1,nener
+        Earout(i) = (Ear(i-1)+Ear(i))*0.5
+        zremsi(i) = Photar(i)
+    enddo
+
     end select
 
     ! _Normalization_
