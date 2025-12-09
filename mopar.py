@@ -144,7 +144,11 @@ MODEL_PARAMETERS = [
     },
     {
         'py_name': 'hcut',          'type': float, 'default': 1000000.0,
-        'help': 'High energy cut-off for cut-off power law illumination'
+        'help': 'High energy cut-off for cut-off power law illumination or electrons temperture'
+    },
+    {
+        'py_name': 'ktbb_nth',      'type': float,  'default':0.1e3,
+        'help': 'Blackbody temperature when incident type is Comptonization source'
     },
     {
         'py_name': 'inmu',          'type': float, 'default': 0.7,
@@ -253,6 +257,7 @@ PARAM_MAP = {
     'ktbb':          'rfktbb',
     'fx_frac':       'rffx_frac',
     'zeta':          'rfzeta',
+    "ktbb_nth":      'ktb_nthcomp',
 
     # --- Elemental Abundances ---
     'h':   'rfh',    'he':  'rfhe',   'li':  'rfli',   'be':  'rfbe',

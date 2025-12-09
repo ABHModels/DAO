@@ -106,7 +106,7 @@
     case ("nthcomp")
     nth_par(1) = gamma 
     nth_par(2) = ehcut/1e3 
-    nth_par(3) = 0.1 
+    nth_par(3) = ktb_nthcomp/1e3
     nth_par(4) = 0.0
     nth_par(5) = 0.0
 
@@ -123,6 +123,9 @@
         Earout(i) = (Ear(i-1)+Ear(i))*0.5
         zremsi(i) = Photar(i)
     enddo
+    
+    case("comptt")
+    stop "comptt incident hasn't been incorporated now"
     end select
 
     ! _Normalization_

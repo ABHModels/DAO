@@ -27,6 +27,7 @@ module Reflection_Var
     !-------------------------------------------------------
     integer::rfsbot                                             ! Bottom illumination swith
     real(8)::rfgamma,rfhcut,rfinmu,rfFx_frac                    ! Corona illumination Photon Index,High Cut, incident angle (deg)
+    real(8)::ktb_nthcomp                                        ! Nthcomp blackbody temperature in eV
     character(80)::rfinci_file                                  ! Corona illumination file
     character(80)::rfstinci                                     ! Corona illumination type (blackbody, powlaw, cutoff)
 

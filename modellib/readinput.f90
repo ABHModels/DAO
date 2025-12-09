@@ -17,7 +17,7 @@ subroutine readinput(lun11)
 
     &   rfit_temp,rftemp_gas,rftemp_gas_unit,&
     &   rfgamma,rfhcut,rfinmu,rfstinci,rfinci_file,&
-    &   rfsbot,rfktbb,rfFx_frac,&
+    &   rfsbot,rfktbb,rfFx_frac,ktb_nthcomp&
 
     &   rfzeta,rfnh,&
     
@@ -78,9 +78,19 @@ subroutine readinput(lun11)
     ! --- ILLUMINATION ---
     write(lun11,'(A)') '--- [Illumination Configuration] ---'
     write(lun11,'(A55, T60, ": ", A)')      "Top Illumination Type", trim(rfstinci)
-    write(lun11,'(A55, T60, ": ", F12.4)')  "Gamma / kT_bb[eV]", rfgamma
-    write(lun11,'(A55, T60, ": ", F12.4)')  "Ecut[eV] / kT_E[eV]", rfhcut
-    write(lun11,'(A55, T60, ": ", A)')      "kT_seed [keV]", "0.1 (Fixed)" 
+    if (rfstinci.eq."file") then
+        write(lun11,'(A)') "Custm Incident Path:"
+        write(lun11,'(T5, A)') trim(rfinci_file)
+    else if ((rfstinci.eq.'powlaw').or.(rfstinci.eq.'cutoff')) then
+        write(lun11,'(A55, T60, ": ", F12.4)')  "Gamma", rfgamma
+        write(lun11,'(A55, T60, ": ", F12.4)')  "Ecut[eV]", rfhcut
+    else if (rfstinci.eq.'blackbody') then
+        write(lun11,'(A55, T60, ": ", F12.4)')  "Blackbody Temperature", rfgamma
+    else if (rfstinci.eq."nthcomp") then
+        write(lun11,'(A55, T60, ": ", F12.4)')  "Gamma", rfgamma
+        write(lun11,'(A55, T60, ": ", F12.4)')  "kT_E[eV]", rfhcut
+        write(lun11,'(A55, T60, ": ", F12.4)')  "kT_bb[eV]",ktb_nthcomp
+    endif
     write(lun11,'(A55, T60, ": ", F12.4)')  "Incidence Angle (cosine)", rfinmu
     write(lun11,'(A55, T60, ": ", I8)')     "Bottom Illumination Switch", rfsbot
     write(lun11,'(A55, T60, ": ", F12.4)')  "F(top) / F(total) Ratio", rfFx_frac   
@@ -95,8 +105,6 @@ subroutine readinput(lun11)
     write(lun11,'(A)') "Atomic Database Path:"
     write(lun11,'(T5, A)') trim(rfdataenv)
 
-    write(lun11,'(A)') "Custm Incident Path:"
-    write(lun11,'(T5, A)') trim(rfinci_file)
 
     write(lun11,'(A)') "Output Files (Spec, Temp, Inte, Fits):"
     write(lun11,'(T5, A)') trim(rfop_spec)
