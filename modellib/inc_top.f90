@@ -143,6 +143,7 @@
         zremsi(i) = Photar(i)
     enddo
 
+    print*,"It hasn't been tested."
     end select
 
     ! _Normalization_
