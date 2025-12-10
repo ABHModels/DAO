@@ -1,7 +1,7 @@
 Welcome to DAO's documentation!
 ===============================
 
-**DAO** (Data Analysis for Objects?) is a new reflection model for black hole accretion disks, designed to be compatible with XSTAR.
+**DAO** is a new and open source reflection model for black hole accretion disks.
 
 .. toctree::
    :maxdepth: 2
@@ -18,7 +18,7 @@ Welcome to DAO's documentation!
 
    modules
 
-Indices and tables
+Contents
 ==================
 
 * :ref:`genindex`
