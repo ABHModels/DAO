@@ -21,6 +21,6 @@ Welcome to DAO's documentation!
 Contents
 ==================
 
-* :ref:`genindex`
+* :ref:`Installation`
 * :ref:`modindex`
 * :ref:`search`
