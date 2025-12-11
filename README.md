@@ -9,7 +9,7 @@ accommodates arbitrary illuminating spectra, enabling applications across divers
 We investigate the spectral dependence on key physical parameters and benchmark the results against
 the widely used reflionx and xillver codes.
 
-[![Documentation Status](https://readthedocs.org/projects/dao-model/badge/?version=latest)](https://dao.readthedocs.io/en/latest/)
+[![Documentation Status](https://dao.readthedocs.io/en/latest/)](https://dao.readthedocs.io/en/latest/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
