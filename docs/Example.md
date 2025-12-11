@@ -284,7 +284,7 @@ plt.show()
 
 
 ```{figure} images/dxi.svg
-:width: 600px
+:width: 100%
 :align: center
 :name: fig-dxi
 

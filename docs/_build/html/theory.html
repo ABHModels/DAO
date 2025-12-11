@@ -14,6 +14,8 @@
       <script src="_static/documentation_options.js?v=5929fcd5"></script>
       <script src="_static/doctools.js?v=9a2dae69"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -48,7 +50,14 @@
 <li class="toctree-l1"><a class="reference internal" href="inputParameters.html">Input Parameters</a></li>
 <li class="toctree-l1"><a class="reference internal" href="OuputFiles.html">Output Files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Example.html">Example</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Theory</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Theory</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#radiative-transfer">Radiative transfer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#feautrier-method">Feautrier Method</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#boundary-condition">Boundary condition</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="version.html">Version</a></li>
 </ul>
 
@@ -78,6 +87,121 @@
              
   <section class="tex2jax_ignore mathjax_ignore" id="theory">
 <span id="id1"></span><h1>Theory<a class="headerlink" href="#theory" title="Link to this heading">¶</a></h1>
+<section id="radiative-transfer">
+<h2>Radiative transfer<a class="headerlink" href="#radiative-transfer" title="Link to this heading">¶</a></h2>
+<p>Radiative transfer is a fundamental problem in astrophysics, particularly in the study of stellar and accretion disk atmospheres. The basic form of the radiative transfer equation in plane-parallel geometry can be expressed as:</p>
+<div class="math notranslate nohighlight">
+\[
+\mu\frac{\partial I(z,\mu,\nu)}{\partial z} = \chi(z,\mu,\nu) I(z,\mu,\nu) -\eta(z,\mu,\nu)
+\]</div>
+<p>where <span class="math notranslate nohighlight">\(z\)</span>, <span class="math notranslate nohighlight">\(\mu\)</span>, and <span class="math notranslate nohighlight">\(\nu\)</span> denote the specific depth, angle cosine, and frequency (or energy), respectively. Here, <span class="math notranslate nohighlight">\(I\)</span> is the specific intensity, <span class="math notranslate nohighlight">\(\chi\)</span> is the opacity, and <span class="math notranslate nohighlight">\(\eta\)</span> is the emissivity. Photons traveling through the plasma interact with various elements, resulting in absorption and emission.</p>
+<p>Leveraging the sophisticated architecture of <code class="docutils literal notranslate"><span class="pre">XSTAR</span></code>, <code class="docutils literal notranslate"><span class="pre">DAO</span></code> accounts for a comprehensive range of atomic physics. It includes nearly all relevant processes, such as free-free, bound-free, three-body recombination, collisional excitation, and radiative recombination. These processes determine the opacity and emissivity terms in the radiative transfer equation, with Compton scattering being treated as a distinct component.</p>
+<p>When constructing the model, it is convenient to represent this equation using optical depth, defined as <span class="math notranslate nohighlight">\(d\tau(E) = \chi(E)dz\)</span>. Consequently, Eq. {eq}eq-rte can be rewritten as:</p>
+<div class="math notranslate nohighlight">
+\[
+\mu \frac{\partial I(\tau_T,\mu,\nu)}{\partial \tau(\nu)} = I(\tau_T,\mu,\nu) - S(\tau_T,\mu,\nu)
+\]</div>
+<p>(Note: We omit the explicit dependence on optical depth for brevity).</p>
+<p>It is important to note that in Eq. <code class="xref eq docutils literal notranslate"><span class="pre">eq-rte-tau</span></code>, the radiation field depends on the Thomson optical depth <span class="math notranslate nohighlight">\(\tau_T\)</span> (where <span class="math notranslate nohighlight">\(d\tau_T = n_e\sigma_T dz\)</span>), rather than the frequency-dependent optical depth <span class="math notranslate nohighlight">\(\tau\)</span>. We adopt this convention because the model calculations are performed on a fixed depth grid, and <span class="math notranslate nohighlight">\(\tau_T\)</span> provides the most stable reference for determining these grid points. Similar approaches are found in other radiative transfer models, such as <code class="docutils literal notranslate"><span class="pre">reflionx</span></code>.There are various methods to solve the radiative transfer equation, including approximate, direct, and iterative methods. Considering both accuracy and computational efficiency, we employ the Lambda-iteration method combined with the Feautrier method (hereafter FTM).</p>
+<section id="feautrier-method">
+<h3>Feautrier Method<a class="headerlink" href="#feautrier-method" title="Link to this heading">¶</a></h3>
+<p>FTM is based on second order of radiative transfer equation. First if we consider symmetric and antisymmetric averages of the specific intensity at frequency <span class="math notranslate nohighlight">\(\nu\)</span> propagating along a ray in the <span class="math notranslate nohighlight">\(\pm\mu\)</span> direction are</p>
+<div class="math notranslate nohighlight">
+\[
+    u_{\mu\nu} = \frac{1}{2} \left[I_\nu(\mu) + I_\nu(-\mu)\right] \quad \mathrm{and} \quad v_{\mu\nu} = \frac{1}{2} \left[I_\nu(\mu) - I_\nu(-\mu)\right] 
+\]</div>
+<p>The transfer equation for two directions are</p>
+<div class="math notranslate nohighlight">
+\[
+    \mu \frac{\partial I_\nu(\mu)}{\partial \tau_\nu} = I_\nu(\mu) - S_\nu(\mu) \quad \mathrm{and} \quad  \frac{\partial I_\nu(-\mu)}{\partial \tau_\nu} = I_\nu(-\mu) - S_\nu(-\mu)
+\]</div>
+<p>Adding above two equations,</p>
+<div class="math notranslate nohighlight">
+\[
+    \mu\frac{\partial v_{\mu\nu}}{\partial\tau_\nu} = u_{\mu\nu}-S_\nu \quad\mathrm{and}\quad \mu\frac{\partial u_{\mu\nu}}{\partial\tau_\nu} = v_{\mu\nu}
+\]</div>
+<p>Then substituting the expression for <span class="math notranslate nohighlight">\(v_{\mu\nu}\)</span>, we obtain \textit{Schuster’s second-order transfer equation <span id="id2">[<a class="reference internal" href="index.html#id3" title="Arthur Schuster. Radiation Through a Foggy Atmosphere. \apj , 21:1, January 1905. doi:10.1086/141186.">Schuster, 1905</a>]</span>.</p>
+<div class="math notranslate nohighlight">
+\[
+    \mu^2 \frac{\partial^2 u_{\mu\nu}}{\partial\tau_\nu^2} = u_{\mu\nu}-S_\nu
+\]</div>
+<p>where <span class="math notranslate nohighlight">\(0\leq\mu\leq1\)</span>.</p>
+<p>To numerically solve that, the discrete form could be get by finite difference. We use m,n,d represent the angle, energy, and depth points.</p>
+<div class="math notranslate nohighlight">
+\[
+    \Delta\tau_{d+\frac{1}{2},n}\equiv\tau_{d+1,n}-\tau_{d,n}
+\]</div>
+<p>Then the transfer funciton:</p>
+<div class="math notranslate nohighlight">
+\[
+    \frac{\mu^2 u_{d-1}}{\Delta\tau_{d-\frac{1}{2}}\Delta\tau_{d}} - \frac{\mu^2u_{d}}{\Delta\tau_d}\left(\frac{1}{\Delta\tau_{d-\frac{1}{2}}}+\frac{1}{\Delta\tau_{d+\frac{1}{2}}}\right)+\frac{\mu^2u_{d+1}}{\Delta\tau_{d+\frac{1}{2}}\Delta\tau_{d}} = u_d-S_d \quad (d=2,...,ND-1)
+\]</div>
+<p>where we omit the subscript of angle and energy for convenient and ND represent the maximum number of depth grids. In this expression, one need to take care for source function:</p>
+<div class="math notranslate nohighlight">
+\[
+    S_{n} = \frac{j_{n}}{\alpha_n+\alpha^c_n}\quad,\quad j_n = j^\alpha_n + \alpha^c_nJ^c_n
+\]</div>
+<p>which angle-independent. In the denominator, <span class="math notranslate nohighlight">\(\alpha\)</span> and <span class="math notranslate nohighlight">\(\alpha^c\)</span> represent opacity of absorption and scattering, respectively. And <span class="math notranslate nohighlight">\(j^\alpha_n \)</span> represent the emissivity include all possible atomic process, <span class="math notranslate nohighlight">\(J^c\)</span> represent the scattered mean-intensity,</p>
+<div class="math notranslate nohighlight">
+\[
+    J^c_n = \sum_{n'} R_{n,n'} J_{n'}w_{n'}
+\]</div>
+<p>where <span class="math notranslate nohighlight">\(R_{n,n}\)</span> is redistribution function, <span class="math notranslate nohighlight">\(J_{n'}\)</span> is mean-intensity before scattering and <span class="math notranslate nohighlight">\(w_{n'}\)</span> is integral weight. <span class="math notranslate nohighlight">\(R_{n,n'}\)</span> describe the probablity of energy redistributoin in Compton scattering process. Redistribution we used in <code class="docutils literal notranslate"><span class="pre">DAO</span></code> is calculated by complete quantum mechanism and suitable for relativistic electrons, we will discuss later in <a class="reference internal" href="#comptonscattering"><span class="xref myst">Compton scattering</span></a></p>
+<p>We consider external illumination at both of upper and bottom surface. At these boundaries, the second exact form from <span id="id3">Auer [<a class="reference internal" href="index.html#id18" title="Lawrence Auer. Improved Boundary Conditions for the Feautrier Method. \apjl , 150:L53, October 1967. doi:10.1086/180091.">1967</a>]</span> is used:</p>
+<div class="math notranslate nohighlight">
+\[
+    \mu \frac{u_2-u_1}{\Delta \tau_{3/2}} = u_1+\Delta\tau_{3/2}(u_1-S_1)/2\mu +I_{\mathrm{inc}}
+\]</div>
+<p>and the same expression could be found for lower surface.</p>
+<p>The discretized radiative transfer equation forms a block tridiagonal system:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}
+-A_du_{d-1} + B_du_d -C_du_{d+1} = L_d\\
+B_1u_1 -C_1u_{2} = L_1\\
+-A_{n_\tau} u_{{n_\tau-1}} + B_{n_\tau}u_{n_\tau} = L_{n_\tau}
+\end{split}\]</div>
+<p>where A,B,C,L are diagonal in the problem we considering. Equation \ref{eq:tridiagonal}-\ref{eq:tridiagonal_bot} could be solved by forward-elimination and back-substitution procedure. Once it’s been solved, the new radiation field will been scattered and update the source function, which named <span class="math notranslate nohighlight">\(\Lambda\)</span>-iteration.</p>
+<p>The complete iterative procedure is summarized as follows:</p>
+<ul class="simple">
+<li><p>Obtain the initial estimates of the emissivity and absorption coefficients using a naive radiation field.</p></li>
+<li><p>Re-Compute the source function using.</p></li>
+<li><p>Apply the Feautrier method to obtain an updated radiation field based on the source function from step~2.</p></li>
+<li><p>Repeat steps~2–3 until convergence is achieved.</p></li>
+</ul>
+<p>The convergence criterion adopted in <code class="docutils literal notranslate"><span class="pre">DAO</span></code> is defined as</p>
+<div class="math notranslate nohighlight">
+\[
+E_\tau\!\left[\int \frac{S_n(E)-S_{n-1}(E)}{S_{n-1}(E)}\,dE\right] &lt; \varepsilon, \qquad \varepsilon = 10^{-10}
+\]</div>
+<p>which ensures that the source function ceases to change between successive iterations.</p>
+<p>While more advanced iteration processes such as Accelerated Lambda Iteration (ALI) exist, we did not implement them due to the prohibitive memory costs associated with a large number of energy grids. ALI requires solving linear equations of the form:</p>
+<div class="math notranslate nohighlight">
+\[
+\mathbf{T}\cdot \mathbf{x} = \mathbf{b}
+\]</div>
+<p>In general, <span class="math notranslate nohighlight">\(\mathbf{T}\)</span> is a full matrix, while <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> and <span class="math notranslate nohighlight">\(\mathbf{b}\)</span> are vectors. When the complete redistribution function <span class="math notranslate nohighlight">\(R_{\nu,\nu'}\)</span> is considered, the problem becomes considerably more complex, as a <span class="math notranslate nohighlight">\(200\times5000\times5000\)</span> matrix is introduced. At each depth point, computing the inverse of a <span class="math notranslate nohighlight">\(5000\times5000\)</span> matrix would be necessary, scaling with a computational complexity of <span class="math notranslate nohighlight">\(O(n^3)\)</span>. In contrast, the method implemented in DAO scales linearly with <span class="math notranslate nohighlight">\(O(n)\)</span> complexity, although it requires more iterations to achieve convergence.</p>
+</section>
+<section id="boundary-condition">
+<h3>Boundary condition<a class="headerlink" href="#boundary-condition" title="Link to this heading">¶</a></h3>
+<p>It should be emphasized that the second-order radiative transfer equation (Eq.~\ref{eq:second-order rte}) requires the specification of the intensity as a boundary condition.
+For the upper surface, the boundary condition can be obtained from the first moment of the radiation field:</p>
+<div class="math notranslate nohighlight">
+\[
+F(E) = \int_0^1 u(E,\mu)\mu d\mu
+\]</div>
+<p>Using <span class="math notranslate nohighlight">\(I^+(E) = I_\mathrm{inc}\delta(\mu-\mu_\mathrm{inc})\)</span>, one can then derive the incident specific intensity at the incidence angle <span class="math notranslate nohighlight">\(\mu_\mathrm{inc}\)</span> as</p>
+<div class="math notranslate nohighlight">
+\[
+I_\mathrm{inc}(E) = \frac{2F(E)}{\mu_\mathrm{inc}}.
+\]</div>
+<p>For the lower surface, the reflection region receives isotropic thermal emission from the disk, which can be simply expressed as <span class="math notranslate nohighlight">\(I_\mathrm{bot}(E) = B(E)\)</span>, where <span class="math notranslate nohighlight">\(B(E)\)</span> is the blackbody spectrum corresponding to the disk temperature.</p>
+<p>In particular, if the diffusion approximation is valid at <span class="math notranslate nohighlight">\(\tau_\mathrm{max}\)</span>,then</p>
+<div class="math notranslate nohighlight">
+\[
+    I_\mathrm{bot}(E,\mu) = B(E) + \mu \frac{\partial B}{\partial \tau}_{\tau=\tau_\mathrm{max}}
+\]</div>
+</section>
+</section>
 </section>
 
 
