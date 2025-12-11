@@ -15,9 +15,12 @@ extensions = [
     'sphinx.ext.napoleon',      #
     'sphinx.ext.mathjax',       #
     'sphinx.ext.viewcode',      # 
-    'myst_parser',            
+    'myst_parser',   
+    'sphinxcontrib.bibtex'         
 ]
-
+bibtex_bibfiles = ['ref.bib']
+bibtex_reference_style = 'author_year'
+bibtex_default_style = 'unsrt'
 
 import sphinx_rtd_theme
 html_theme = 'sphinx_rtd_theme'

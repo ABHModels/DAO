@@ -1,0 +1,173 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Installation &mdash; DAO  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=92fd9be5" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Quick Start" href="QuickStart.html" />
+    <link rel="prev" title="Introduction" href="Introduction.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            DAO
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation-steps">Installation Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="QuickStart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inputParameters.html">Input Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="OuputFiles.html">Output Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="runcodewithpython.html">Run Code with Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="theory.html">Theory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="version.html">Version</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">DAO</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Installation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/Installation.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="installation">
+<span id="id1"></span><h1>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h1>
+<section id="prerequisites">
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">¶</a></h2>
+<p>Before installing DAO, please ensure your system meets the following requirements:</p>
+<ol class="arabic simple">
+<li><p><strong>Build Tools</strong>: <code class="docutils literal notranslate"><span class="pre">make</span></code>, <code class="docutils literal notranslate"><span class="pre">gfortran</span></code>, and <code class="docutils literal notranslate"><span class="pre">gcc</span></code>.</p></li>
+<li><p><strong>Python</strong>: Version 3.10 or newer.</p></li>
+<li><p><strong>Python Libraries</strong>: <code class="docutils literal notranslate"><span class="pre">f90nml</span></code>, <code class="docutils literal notranslate"><span class="pre">jinja2</span></code>, <code class="docutils literal notranslate"><span class="pre">hashlib</span></code>, <code class="docutils literal notranslate"><span class="pre">argparse</span></code>, and standard libraries (<code class="docutils literal notranslate"><span class="pre">os</span></code>, <code class="docutils literal notranslate"><span class="pre">subprocess</span></code>, <code class="docutils literal notranslate"><span class="pre">pathlib</span></code>).</p></li>
+<li><p><strong>External Software</strong>: <a class="reference external" href="https://heasarc.gsfc.nasa.gov/docs/software/lheasoft/">HEASoft</a> (High Energy Astrophysics Software).</p></li>
+</ol>
+</section>
+<section id="installation-steps">
+<h2>Installation Steps<a class="headerlink" href="#installation-steps" title="Link to this heading">¶</a></h2>
+<ol class="arabic">
+<li><p><strong>Clone the Repository</strong></p>
+<p>Download the source code from GitHub:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/ABHModels/DAO.git
+<span class="nb">cd</span><span class="w"> </span>DAO
+</pre></div>
+</div>
+</li>
+<li><p><strong>Prepare the Build Directory</strong></p>
+<p>Create a directory for module files:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>mods
+</pre></div>
+</div>
+</li>
+<li><p><strong>Configure HEASoft Paths</strong></p>
+<p>Open the <code class="docutils literal notranslate"><span class="pre">Makefile</span></code> and locate the HEADS variable. You must update this path to point to your local HEASoft installation directory.</p>
+<p><em>Example</em>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">HEADS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>/path/to/heasoft/heasoft-6.31.1/x86_64-pclinux-gnu-libc2.17
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the libraries listed in the <code class="docutils literal notranslate"><span class="pre">LIBS</span></code> section of the <code class="docutils literal notranslate"><span class="pre">Makefile</span></code> are not found at this path, please manually verify the locations of <code class="docutils literal notranslate"><span class="pre">libcfitsio</span></code>, <code class="docutils literal notranslate"><span class="pre">libxanlib</span></code>, and <code class="docutils literal notranslate"><span class="pre">libape</span></code> on your system and update the path accordingly.</p>
+</div>
+</li>
+<li><p><strong>Compile the Model</strong></p>
+<p>Run the make command to build the project:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make
+</pre></div>
+</div>
+</li>
+<li><p><strong>Before Running: Prepare Data Files</strong></p>
+<p>The model relies on the <a class="reference external" href="https://heasarc.gsfc.nasa.gov/docs/software/xstar/xstar.html">XSTAR</a> atomic database (specifically <code class="docutils literal notranslate"><span class="pre">adtb.fits</span></code> and <code class="docutils literal notranslate"><span class="pre">coheat.dat</span></code>) and pre-calculated Compton scattering redistribution functions.</p>
+<ul class="simple">
+<li><p><strong>Atomic Database</strong>: While the code can automatically locate these files if HEASoft is installed, <strong>we strongly recommend</strong> downloading them manually and configuring a custom path to ensure consistency. After v1.2.2, the model require a specific structure for atom database for adopt high density calculation (see <a class="reference internal" href="version.html#versionpage"><span class="std std-ref">version</span></a> for more details).</p></li>
+<li><p><strong>Redistribution Functions</strong>: You must ensure the pre-calculated redistribution functions are available before running the model.</p></li>
+</ul>
+<blockquote>
+<div><p><strong>Download:</strong> You can download both the required atomic database and the Compton scattering redistribution functions (500 energy bins) from <a class="reference external" href="https://zenodo.org/records/17845422">Zenodo</a>.</p>
+</div></blockquote>
+</li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Introduction.html" class="btn btn-neutral float-left" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="QuickStart.html" class="btn btn-neutral float-right" title="Quick Start" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yimin Huang.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

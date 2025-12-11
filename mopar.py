@@ -27,29 +27,29 @@ MODEL_PARAMETERS = [
         'help': 'Atomic database and Compton heating-cooling file'
     },
     {
-        'py_name': 'op_spec',       'type': str,   'default': None,
+        'py_name': 'op_spec',       'type': str,   'default': "spec.dat",
         'help': 'output spectrum file'
     },
     {
-        'py_name': 'op_temp',       'type': str,   'default': None,
+        'py_name': 'op_temp',       'type': str,   'default': "temp.dat",
         'help': 'output temperature file'
     },
     {
-        'py_name': 'op_inte',       'type': str,   'default': None,
+        'py_name': 'op_inte',       'type': str,   'default': "inte.dat",
         'help': 'output intensity file'
     },
     {
-        'py_name': 'op_log',        'type': str,   'default': None,
+        'py_name': 'op_log',        'type': str,   'default': "model.log",
         'help': 'output log file'
     },
 
     {
-        'py_name': 'op_emis',        'type': str,   'default': None,
+        'py_name': 'op_emis',        'type': str,   'default': "emis.dat",
         'help': 'output emissivity file'
     },
 
     {
-        'py_name': 'op_abund',        'type': str,   'default': None,
+        'py_name': 'op_abund',        'type': str,   'default': "abud.fits",
         'help': 'output abund file'
     },
 
@@ -109,7 +109,7 @@ MODEL_PARAMETERS = [
         'help': 'Type of angle bins and integral method for angle'
     },
     {
-        'py_name': 'debug',         'type': int,   'default': 2,
+        'py_name': 'debug',         'type': int,   'default': 0,
         'help': 'Debug switch'
     },
     {
@@ -143,7 +143,7 @@ MODEL_PARAMETERS = [
         'help': 'Photon index or Blackbody temperature in eV'
     },
     {
-        'py_name': 'hcut',          'type': float, 'default': 1000000.0,
+        'py_name': 'hcut',          'type': float, 'default': 300E3,
         'help': 'High energy cut-off for cut-off power law illumination or electrons temperture'
     },
     {
@@ -163,7 +163,7 @@ MODEL_PARAMETERS = [
         'help': 'Temperature of disk radiation'
     },
     {
-        'py_name': 'fx_frac',       'type': float, 'default': 1.0e-10,
+        'py_name': 'fx_frac',       'type': float, 'default': 1.0,
         'help': 'Flux of top illumiantion over total illumination [defined by ionizaiton parameter and hydrogen density]'
     },
     {

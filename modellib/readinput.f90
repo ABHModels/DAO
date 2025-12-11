@@ -27,6 +27,7 @@ subroutine readinput(lun11)
     &   rfal,rfsi,rfp,rfs,rfcl,rfar,rfk,rfca,rfsca,rfti,rfva,&
     &   rfcr,rfmn,rffe,rfco,rfni,rfcu,rfzn
 
+    call default_input
 
     CALL get_command_argument(1, filein)
     print*, ' infile: ', filein

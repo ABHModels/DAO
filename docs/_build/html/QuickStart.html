@@ -1,0 +1,261 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quick Start &mdash; DAO  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=92fd9be5" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Input Parameters" href="inputParameters.html" />
+    <link rel="prev" title="Installation" href="Installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            DAO
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quick Start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#run-code-with-python">Run Code with Python</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#bash-script">Bash script</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#execution-script-run-sh">Execution Script (<code class="docutils literal notranslate"><span class="pre">run.sh</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sample-output">Sample Output</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="inputParameters.html">Input Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="OuputFiles.html">Output Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="theory.html">Theory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="version.html">Version</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">DAO</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Quick Start</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/QuickStart.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="quick-start">
+<span id="quickstart-guide"></span><h1>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading">¶</a></h1>
+<p>To run <code class="docutils literal notranslate"><span class="pre">DAO</span></code>, you must provide an input file that specifies the physical parameters and grid configurations.</p>
+<p>We provide a template file located at <code class="docutils literal notranslate"><span class="pre">templates/input.nml.j2</span></code>.</p>
+<p><strong>1. Configure the Template</strong></p>
+<p>Before running a test, open the template file and change the <code class="docutils literal notranslate"><span class="pre">rfcomp_file</span></code> and <code class="docutils literal notranslate"><span class="pre">rfdataenv</span></code> parameters to match your local paths (where you downloaded the data files).</p>
+<p><strong>2. Run the Simulation</strong></p>
+<p>Execute the following command to run a simple test:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./dao.x<span class="w"> </span>templates/input.nml.j2
+</pre></div>
+</div>
+<p><strong>3. Check Results</strong>
+This task will generate four output files containing the log, intensity, mean intensity, illumination, and ion abundances.</p>
+<p>For detailed file descriptions, please refer to <a class="reference internal" href="OuputFiles.html#outputfile"><span class="std std-ref">Output Files</span></a>.</p>
+<section id="run-code-with-python">
+<span id="runcodewithpython"></span><h2>Run Code with Python<a class="headerlink" href="#run-code-with-python" title="Link to this heading">¶</a></h2>
+<p>To streamline the workflow, we provide a Python helper script (<code class="docutils literal notranslate"><span class="pre">modelrun.py</span></code>) optimized for batch processing and parameter sweeps. This tool ensures data traceability by generating a unique hash value derived from the complete set of input parameters.</p>
+<p>When combined with a user-defined <code class="docutils literal notranslate"><span class="pre">diy_tag</span></code> (see <a class="reference internal" href="#sampleoutput"><span class="std std-ref">Sample Output</span></a>), this hash creates a unique identifier for each simulation. The script uses this identifier to:</p>
+<ol class="arabic simple">
+<li><p>Generate the model input file.</p></li>
+<li><p>Archive all parameters into a JSON file for record-keeping.</p></li>
+</ol>
+<p>This mechanism ensures that output files are strictly determined by the parameter configuration and the tag, preventing accidental overwrites. The script operates in two distinct modes:</p>
+<ol class="arabic simple">
+<li><p><strong>Generation Mode</strong>:
+Generates the standard input file (<code class="docutils literal notranslate"><span class="pre">.nml</span></code>) and simultaneously archives the input parameters into a JSON file for record-keeping.</p></li>
+<li><p><strong>Slurm Submission Mode</strong>:
+Generates the input file and automatically submits the job to a computing cluster via the Slurm workload manager.</p></li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Cluster Configuration</strong></p>
+<p>If you intend to use the <strong>Slurm Submission Mode</strong>, you must first configure the submission template.</p>
+<p>Please modify <code class="docutils literal notranslate"><span class="pre">templates/submission.slurm.j2</span></code> to match your specific cluster environment (e.g., partition names, time limits, and memory requirements).</p>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">MODEL_PARAMETERS</span></code> dictionary in <code class="docutils literal notranslate"><span class="pre">mopar.py</span></code> serves as the central registry for all input parameters.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Variable Name Mapping</strong></p>
+<p>Please note that the variable names used in the Python interface differ from the internal names expected by the main Fortran program.</p>
+<p>To bridge this gap, the code implements an internal mapping system that automatically translates Python variables into the corresponding Fortran Namelist parameters during runtime.</p>
+</div>
+<section id="bash-script">
+<h3>Bash script<a class="headerlink" href="#bash-script" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> file serves as a practical example for executing the <code class="docutils literal notranslate"><span class="pre">modelrun.py</span></code> utility. This script is designed to be highly customizable to suit specific research needs.</p>
+<ul class="simple">
+<li><p><strong>Parameter Sweeps</strong>: You can extend the script by adding loops to iterate over a specific range of parameter values.</p></li>
+<li><p><strong>Extended Configuration</strong>: Users are encouraged to modify the script to include any additional parameters that are available in the <code class="docutils literal notranslate"><span class="pre">mopar.py</span></code> registry.</p></li>
+</ul>
+</section>
+<section id="execution-script-run-sh">
+<h3>Execution Script (<code class="docutils literal notranslate"><span class="pre">run.sh</span></code>)<a class="headerlink" href="#execution-script-run-sh" title="Link to this heading">¶</a></h3>
+<p>You can use this Bash script to manage parameter sweeps or single runs.</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">run.sh</span><a class="headerlink" href="#id1" title="Link to this code">¶</a></div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="ch">#!/bin/bash</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="nv">PYTHON_SCRIPT</span><span class="o">=</span><span class="s2">&quot;modelrun.py&quot;</span>
+<span class="linenos"> 4</span><span class="nv">DIY</span><span class="o">=</span><span class="s2">&quot;User_Guide&quot;</span>
+<span class="linenos"> 5</span>
+<span class="linenos"> 6</span><span class="c1"># --- Execution &amp; Model Flags ---</span>
+<span class="linenos"> 7</span><span class="nv">exec</span><span class="o">=</span><span class="m">0</span><span class="w">      </span><span class="c1"># 0: Generate files only, 1: Submit sbatch, 2: Run locally</span>
+<span class="linenos"> 8</span><span class="nv">debug</span><span class="o">=</span><span class="m">0</span><span class="w">     </span><span class="c1"># Debug switch</span>
+<span class="linenos"> 9</span><span class="nv">model</span><span class="o">=</span><span class="m">0</span><span class="w">     </span><span class="c1"># 0: Reflection, 1: Pure scattering</span>
+<span class="linenos">10</span><span class="nv">ity</span><span class="o">=</span><span class="m">2</span><span class="w">       </span><span class="c1"># Type of angle bins and integral method</span>
+<span class="linenos">11</span>
+<span class="linenos">12</span><span class="c1"># --- Computational Grids ---</span>
+<span class="linenos">13</span><span class="nv">nmaxmain</span><span class="o">=</span><span class="m">15</span><span class="w">       </span><span class="c1"># Max main iteration steps</span>
+<span class="linenos">14</span><span class="nv">nmaxrte</span><span class="o">=</span><span class="m">200</span><span class="w">       </span><span class="c1"># Max radiative transfer steps</span>
+<span class="linenos">15</span><span class="nv">ndrt</span><span class="o">=</span><span class="m">200</span><span class="w">          </span><span class="c1"># Number of depth grids (tau)</span>
+<span class="linenos">16</span><span class="nv">nfrt</span><span class="o">=</span><span class="m">5000</span><span class="w">         </span><span class="c1"># Number of energy grids</span>
+<span class="linenos">17</span>
+<span class="linenos">18</span><span class="c1"># --- Physical Parameters ---</span>
+<span class="linenos">19</span><span class="nv">temp_gas</span><span class="o">=</span>1e8<span class="w">      </span><span class="c1"># Initial gas temperature</span>
+<span class="linenos">20</span><span class="nv">inci_type</span><span class="o">=</span><span class="s2">&quot;nthcomp&quot;</span>
+<span class="linenos">21</span><span class="nv">gamma</span><span class="o">=</span><span class="m">2</span><span class="w">           </span><span class="c1"># Photon index</span>
+<span class="linenos">22</span><span class="nv">inmu</span><span class="o">=</span><span class="m">0</span>.55<span class="w">         </span><span class="c1"># Incident angle cosine</span>
+<span class="linenos">23</span><span class="nv">fe</span><span class="o">=</span><span class="m">0</span>.5<span class="w">            </span><span class="c1"># Iron abundance</span>
+<span class="linenos">24</span>
+<span class="linenos">25</span><span class="c1"># --- Loop Example ---</span>
+<span class="linenos">26</span><span class="c1"># You can uncomment loops to perform parameter sweeps</span>
+<span class="linenos">27</span><span class="c1"># for gamma in 1.0 1.2 1.4; do</span>
+<span class="linenos">28</span><span class="w">    </span>python<span class="w"> </span><span class="si">${</span><span class="nv">PYTHON_SCRIPT</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="linenos">29</span><span class="w">        </span>--exec<span class="w"> </span><span class="si">${</span><span class="nv">exec</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="linenos">30</span><span class="w">        </span>--debug<span class="w"> </span><span class="si">${</span><span class="nv">debug</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="linenos">31</span><span class="w">        </span>--model<span class="w"> </span><span class="si">${</span><span class="nv">model</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="linenos">32</span><span class="w">        </span>--ity<span class="w"> </span><span class="si">${</span><span class="nv">ity</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="linenos">33</span><span class="w">        </span>--nmaxmain<span class="w"> </span><span class="si">${</span><span class="nv">nmaxmain</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="linenos">34</span><span class="w">        </span>--nmaxrte<span class="w"> </span><span class="si">${</span><span class="nv">nmaxrte</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="linenos">35</span><span class="w">        </span>--temp-gas<span class="w"> </span><span class="si">${</span><span class="nv">temp_gas</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="linenos">36</span><span class="w">        </span>--inci-type<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">inci_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="linenos">37</span><span class="w">        </span>--gamma<span class="w"> </span><span class="si">${</span><span class="nv">gamma</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="linenos">38</span><span class="w">        </span>--inmu<span class="w"> </span><span class="si">${</span><span class="nv">inmu</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="linenos">39</span><span class="w">        </span>--fe<span class="w"> </span><span class="si">${</span><span class="nv">fe</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="linenos">40</span><span class="w">        </span>--diy<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">DIY</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="linenos">41</span><span class="c1"># done</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="sample-output">
+<span id="sampleoutput"></span><h3>Sample Output<a class="headerlink" href="#sample-output" title="Link to this heading">¶</a></h3>
+<p>When running the script, you should see output indicating the configuration loading and file generation:</p>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">Terminal Output</span><a class="headerlink" href="#id2" title="Link to this code">¶</a></div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>----------------------------------------
+Starting model run with DIY tag: User_Guide
+----------------------------------------
+
+--- Generated Unique Run ID: b912ee2e38_User_Guide ---
+
+--- Final Python Configuration ---
+==================================================
+Current Model Configuration
+==================================================
+inci_file           : incident/nthcomp_g2.0_t60.txt
+kernelpath          : kernel_exact5000
+op_spec             : out/User_Guide/spec_b912ee2e38_User_Guide.dat
+...
+nmaxmain            : 15
+temp_gas            : 100000000.0
+fe                  : 0.5
+...
+h                   : 1.0
+he                  : 1.0
+fe                  : 0.5
+ni                  : 1.0
+... (other elements omitted) ...
+==================================================
+Parsing Fortran namelist file: templates/input.nml.j2
+
+Successfully wrote updated parameters to &#39;inputFILE/inp_b912ee2e38_User_Guide.in&#39;
+
+--- Saving run metadata to JSON ---
+Successfully saved metadata to &#39;metadata/meta_b912ee2e38_User_Guide.json&#39;
+----------------------------------------
+Job submission script has finished.
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="inputParameters.html" class="btn btn-neutral float-right" title="Input Parameters" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yimin Huang.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
