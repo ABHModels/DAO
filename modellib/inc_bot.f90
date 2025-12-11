@@ -21,7 +21,7 @@ subroutine inc_bot(debug,nener,ener,ktbb,I_bot,Fx)
         else
             zremsi(n)=2.* ener(n)**3 / spol**2/(exp(ener(n)/ktbb)-1)  
         endif
-        if ((n.ge.13.6).and.(n.le.1.36e+4)) &
+        if ((ener(n).gt.0.1e3).and.(ener(n).lt.1.0e+6)) &
     &       sum=sum+(zremsi(n)+zremsi(n-1))*(ener(n)-ener(n-1))/2.
     enddo
 
