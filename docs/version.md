@@ -14,5 +14,5 @@ Standard model
 ## v1.1.3
 
 * Add `comptt` as a type of incident spectrum
-
+* When incident spectrum is `nthcomp`, the blackbody temperature is a free parameter now.
 * Fix the normalization error for bottom disk radiation. [Contributor: Lin,Gao]
