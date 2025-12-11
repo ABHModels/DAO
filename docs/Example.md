@@ -316,7 +316,7 @@ In DAO, we always calculate $F_x(E)$ first and then use above equation to derive
 
 
 ```{figure} images/dinci.svg
-:width: 800px
+:width: 100%
 :align: center
 :name: fig-dxi
 
@@ -473,7 +473,7 @@ plt.show()
 
 
 ```{figure} images/abund.svg
-:width: 800px
+:width: 100%
 :align: center
 :name: fig-abund
 
@@ -661,7 +661,7 @@ plt.show()
 </details>
 
 ```{figure} images/comhc.svg
-:width: 600px
+:width: 100%
 :align: center
 :name: fig-comhc
 
@@ -669,9 +669,37 @@ Compton heating and cooling rates
 ```
 
 ```{figure} images/PIff.svg
-:width: 600px
+:width: 100%
 :align: center
 :name: fig-PIff
 
 Photoionization and bremsstrahlung heating rates, along with the bremsstrahlung cooling rate.
 ```
+
+## Relativistic spectrum
+
+The `reldao` and `reldaoA` models are developed within the framework of `relxill` v2.5 {cite:p}`2014ApJ...782...76G,2025ApJ...989..168H` and `relxillA` {cite:p}`2025ApJ...989..168H`. Currently, as the full table models have not yet been generated, `reldao` serves as a prototype rather than a finalized relativistic reflection model. The code will be publicly released upon the completion of the `DAO` table models. Additionally, the relativistic spectrum is computed using the convolution model `relconv` {cite:p}`2010MNRAS.409.1534D` within `XSPEC` {cite:p}`1996ASPC..101...17A`, yielding the combined model `relconv*dao`.
+
+The primary distinction between the convolution model `relconv*dao` and the direct implementations, `reldao` and `reldaoA`, lies in the treatment of angular dependence. The convolution model operates on the angle-averaged flux, whereas `reldao` accounts for the full angular distribution by integrating over all local emission angles at a given incidence angle. Furthermore, `relxillA` incorporates a more comprehensive treatment of angular effects. In the specific case of `reldao`, the observed flux is calculated as:
+
+$$
+F_{obs} (E_{obs}) &= \frac{1}{D^2} \int_{R_{in}}^{R_{out}} dr_e \int_0^1 g^* \frac{\pi r_e g^2}{\sqrt{g^*(1-g^*)}} \left[f^{(1)}(g^*,r_e,\theta_{obs})+f^{(2)}(g^*,r_e,\theta_{obs})\right] \\ &\times \epsilon(r_e) \langle\bar{I_e}(E_e)\rangle
+$$
+
+and for `reldaoA`, the model calculates the observed flux as:
+
+$$
+\begin{aligned}
+F_{obs} (E_{obs}) &= \frac{1}{D^2} \sum_{i=0}^9 \int_{R_{in}}^{R_{out}}dr_e\int_0^1 dg^* \frac{\pi r_eg^2}{\sqrt{g^*(1-g^*)}}\left[f^{(1)}(g^*,r_e,\theta_{obs})+f^{(2)}(g^*,r_e,\theta_{obs})\right]  \\
+&\times\epsilon(r_e)\bar{I}(E_e,r_e,\bar{\theta_e})\Theta(\theta_e-\theta_i)\Theta(\theta_{i+1}-\theta_e)
+\end{aligned}
+$$
+
+All the physical parameters above have been explained in detail in section 2 of {cite:t}`2025ApJ...989..168H`.
+
+```{figure} images/reldaonthcomp.svg
+:name: fig-reldao
+:width: 100%
+:align: center
+
+Relativistic reflection spectra calculated with `relconv*dao` (green dash-dot line), `reldao` (blue dashed line), and `reldaoA` (red solid line). The gas is illuminated by `nthcomp` with $\Gamma = 2.4$ (left column) and $\Gamma = 1.4$ (right column). Ionization parameter is set to 3.0 for both cases. The inclination angle is $\theta_{i} = 30$ deg, and all other parameters in `relxill` framework (e.g., spin, radius, etc.) are fixed at their default values.

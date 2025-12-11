@@ -54,6 +54,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#effect-of-incidence-angle">Effect of incidence angle</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#ions-fractions">Ions Fractions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#heating-and-cooling-rate">Heating and cooling rate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#relativistic-spectrum">Relativistic spectrum</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="theory.html">Theory</a></li>
@@ -384,7 +385,7 @@ I_{\mathrm{inc}}(E) = \frac{2F_x(E)}{\mu_{\mathrm{inc}}}
 \]</div>
 <p>In DAO, we always calculate <span class="math notranslate nohighlight">\(F_x(E)\)</span> first and then use above equation to derive <span class="math notranslate nohighlight">\(I_{\mathrm{inc}}\)</span> for the boundary condition. This relation shows that the incidence angle <span class="math notranslate nohighlight">\(\mu_{\mathrm{inc}}\)</span> directly affects the illumination intensity, which in turn influences the radiative transfer solution. Consequently, a smaller <span class="math notranslate nohighlight">\(\mu_{\mathrm{inc}}\)</span> is expected to produce higher gas temperatures and a higher degree of ionization at the surface.</p>
 <figure class="align-center" id="id2">
-<a class="reference internal image-reference" href="_images/dinci.svg"><img alt="_images/dinci.svg" src="_images/dinci.svg" width="800px" /></a>
+<a class="reference internal image-reference" href="_images/dinci.svg"><img alt="_images/dinci.svg" src="_images/dinci.svg" width="100%" /></a>
 <figcaption>
 <p><span class="caption-text">Top row: Angle-averaged emergent intensity (left) and the corresponding temperature profiles (right), color-coded by the incidence angle <span class="math notranslate nohighlight">\(\cos\theta_\mathrm{inc}\)</span>. Bottom row: Spectral ratios relative to the <span class="math notranslate nohighlight">\(\theta_{\mathrm{inc}} = 45^\circ\)</span> case for all incidence angles. The incidence angles are sampled linearly in <span class="math notranslate nohighlight">\(\mu = \cos\theta_{\mathrm{inc}}\)</span> between 0 and 1 using 30 bins. The ionization parameter is <span class="math notranslate nohighlight">\(\log\xi = 2.0\)</span>, and the incident radiation field (black dashed line) is a cut-off power-law with <span class="math notranslate nohighlight">\(\Gamma = 2.0\)</span> and <span class="math notranslate nohighlight">\(E_\mathrm{cut} = 300~\mathrm{keV}\)</span>. The other parameters are set at their default values.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
 </figcaption>
@@ -537,7 +538,7 @@ I_{\mathrm{inc}}(E) = \frac{2F_x(E)}{\mu_{\mathrm{inc}}}
 </div>
 </details>
 <figure class="align-center" id="fig-abund">
-<a class="reference internal image-reference" href="_images/abund.svg"><img alt="_images/abund.svg" src="_images/abund.svg" width="800px" /></a>
+<a class="reference internal image-reference" href="_images/abund.svg"><img alt="_images/abund.svg" src="_images/abund.svg" width="100%" /></a>
 <figcaption>
 <p><span class="caption-text">Ionic fractions of iron (Fe), oxygen (O), and carbon (C) as a function of Thomson optical depth for three different ionization parameters: <span class="math notranslate nohighlight">\(\log\xi = 4.0\)</span> (top row), <span class="math notranslate nohighlight">\(\log\xi = 3.0\)</span> (middle row), and <span class="math notranslate nohighlight">\(\log\xi = 2.0\)</span> (bottom row). The other parameters are the same as in Figure~\ref{fig:xivstau}.</span><a class="headerlink" href="#fig-abund" title="Link to this image">¶</a></p>
 </figcaption>
@@ -720,15 +721,39 @@ I_{\mathrm{inc}}(E) = \frac{2F_x(E)}{\mu_{\mathrm{inc}}}
 </div>
 </details>
 <figure class="align-center" id="fig-comhc">
-<a class="reference internal image-reference" href="_images/comhc.svg"><img alt="_images/comhc.svg" src="_images/comhc.svg" width="600px" /></a>
+<a class="reference internal image-reference" href="_images/comhc.svg"><img alt="_images/comhc.svg" src="_images/comhc.svg" width="100%" /></a>
 <figcaption>
 <p><span class="caption-text">Compton heating and cooling rates</span><a class="headerlink" href="#fig-comhc" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="fig-piff">
-<a class="reference internal image-reference" href="_images/PIff.svg"><img alt="_images/PIff.svg" src="_images/PIff.svg" width="600px" /></a>
+<a class="reference internal image-reference" href="_images/PIff.svg"><img alt="_images/PIff.svg" src="_images/PIff.svg" width="100%" /></a>
 <figcaption>
 <p><span class="caption-text">Photoionization and bremsstrahlung heating rates, along with the bremsstrahlung cooling rate.</span><a class="headerlink" href="#fig-piff" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="relativistic-spectrum">
+<h2>Relativistic spectrum<a class="headerlink" href="#relativistic-spectrum" title="Link to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">reldao</span></code> and <code class="docutils literal notranslate"><span class="pre">reldaoA</span></code> models are developed within the framework of <code class="docutils literal notranslate"><span class="pre">relxill</span></code> v2.5 <span id="id3">[<a class="reference internal" href="index.html#id57" title="J. García, T. Dauser, A. Lohfink, T. R. Kallman, J. F. Steiner, J. E. McClintock, L. Brenneman, J. Wilms, W. Eikmann, C. S. Reynolds, and F. Tombesi. Improved Reflection Models of Black Hole Accretion Disks: Treating the Angular Distribution of X-Rays. \apj , 782(2):76, February 2014. arXiv:1312.3231, doi:10.1088/0004-637X/782/2/76.">García <em>et al.</em>, 2014</a>, <a class="reference internal" href="index.html#id38" title="Yimin Huang, Honghui Liu, Temurbek Mirzaev, Ningyue Fan, Cosimo Bambi, Zuobin Zhang, Thomas Dauser, Javier A. García, Adam Ingram, Jiachen Jiang, Guglielmo Mastroserio, Shafqat Riaz, and Swarnim Shashank. X-Ray Reflection Spectroscopy with Improved Calculations of the Emission Angle. \apj , 989(2):168, August 2025. arXiv:2506.00946, doi:10.3847/1538-4357/adf111.">Huang <em>et al.</em>, 2025</a>]</span> and <code class="docutils literal notranslate"><span class="pre">relxillA</span></code> <span id="id4">[<a class="reference internal" href="index.html#id38" title="Yimin Huang, Honghui Liu, Temurbek Mirzaev, Ningyue Fan, Cosimo Bambi, Zuobin Zhang, Thomas Dauser, Javier A. García, Adam Ingram, Jiachen Jiang, Guglielmo Mastroserio, Shafqat Riaz, and Swarnim Shashank. X-Ray Reflection Spectroscopy with Improved Calculations of the Emission Angle. \apj , 989(2):168, August 2025. arXiv:2506.00946, doi:10.3847/1538-4357/adf111.">Huang <em>et al.</em>, 2025</a>]</span>. Currently, as the full table models have not yet been generated, <code class="docutils literal notranslate"><span class="pre">reldao</span></code> serves as a prototype rather than a finalized relativistic reflection model. The code will be publicly released upon the completion of the <code class="docutils literal notranslate"><span class="pre">DAO</span></code> table models. Additionally, the relativistic spectrum is computed using the convolution model <code class="docutils literal notranslate"><span class="pre">relconv</span></code> <span id="id5">[<a class="reference internal" href="index.html#id64" title="T. Dauser, J. Wilms, C. S. Reynolds, and L. W. Brenneman. Broad emission lines for a negatively spinning black hole. \mnras , 409(4):1534-1540, December 2010. arXiv:1007.4937, doi:10.1111/j.1365-2966.2010.17393.x.">Dauser <em>et al.</em>, 2010</a>]</span> within <code class="docutils literal notranslate"><span class="pre">XSPEC</span></code> <span id="id6">[<a class="reference internal" href="index.html#id65" title="K. A. Arnaud. XSPEC: The First Ten Years. In George H. Jacoby and Jeannette Barnes, editors, Astronomical Data Analysis Software and Systems V, volume 101 of Astronomical Society of the Pacific Conference Series, 17. January 1996.">Arnaud, 1996</a>]</span>, yielding the combined model <code class="docutils literal notranslate"><span class="pre">relconv*dao</span></code>.</p>
+<p>The primary distinction between the convolution model <code class="docutils literal notranslate"><span class="pre">relconv*dao</span></code> and the direct implementations, <code class="docutils literal notranslate"><span class="pre">reldao</span></code> and <code class="docutils literal notranslate"><span class="pre">reldaoA</span></code>, lies in the treatment of angular dependence. The convolution model operates on the angle-averaged flux, whereas <code class="docutils literal notranslate"><span class="pre">reldao</span></code> accounts for the full angular distribution by integrating over all local emission angles at a given incidence angle. Furthermore, <code class="docutils literal notranslate"><span class="pre">relxillA</span></code> incorporates a more comprehensive treatment of angular effects. In the specific case of <code class="docutils literal notranslate"><span class="pre">reldao</span></code>, the observed flux is calculated as:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}
+F_{obs} (E_{obs}) &amp;= \frac{1}{D^2} \int_{R_{in}}^{R_{out}} dr_e \int_0^1 g^* \frac{\pi r_e g^2}{\sqrt{g^*(1-g^*)}} \left[f^{(1)}(g^*,r_e,\theta_{obs})+f^{(2)}(g^*,r_e,\theta_{obs})\right] \\ &amp;\times \epsilon(r_e) \langle\bar{I_e}(E_e)\rangle
+\end{split}\]</div>
+<p>and for <code class="docutils literal notranslate"><span class="pre">reldaoA</span></code>, the model calculates the observed flux as:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}
+\begin{aligned}
+F_{obs} (E_{obs}) &amp;= \frac{1}{D^2} \sum_{i=0}^9 \int_{R_{in}}^{R_{out}}dr_e\int_0^1 dg^* \frac{\pi r_eg^2}{\sqrt{g^*(1-g^*)}}\left[f^{(1)}(g^*,r_e,\theta_{obs})+f^{(2)}(g^*,r_e,\theta_{obs})\right]  \\
+&amp;\times\epsilon(r_e)\bar{I}(E_e,r_e,\bar{\theta_e})\Theta(\theta_e-\theta_i)\Theta(\theta_{i+1}-\theta_e)
+\end{aligned}
+\end{split}\]</div>
+<p>All the physical parameters above have been explained in detail in section 2 of <span id="id7">Huang <em>et al.</em> [<a class="reference internal" href="index.html#id38" title="Yimin Huang, Honghui Liu, Temurbek Mirzaev, Ningyue Fan, Cosimo Bambi, Zuobin Zhang, Thomas Dauser, Javier A. García, Adam Ingram, Jiachen Jiang, Guglielmo Mastroserio, Shafqat Riaz, and Swarnim Shashank. X-Ray Reflection Spectroscopy with Improved Calculations of the Emission Angle. \apj , 989(2):168, August 2025. arXiv:2506.00946, doi:10.3847/1538-4357/adf111.">2025</a>]</span>.</p>
+<figure class="align-center" id="fig-reldao">
+<a class="reference internal image-reference" href="_images/reldaonthcomp.svg"><img alt="_images/reldaonthcomp.svg" src="_images/reldaonthcomp.svg" width="100%" /></a>
+<figcaption>
+<p><span class="caption-text">Relativistic reflection spectra calculated with <code class="docutils literal notranslate"><span class="pre">relconv*dao</span></code> (green dash-dot line), <code class="docutils literal notranslate"><span class="pre">reldao</span></code> (blue dashed line), and <code class="docutils literal notranslate"><span class="pre">reldaoA</span></code> (red solid line). The gas is illuminated by <code class="docutils literal notranslate"><span class="pre">nthcomp</span></code> with <span class="math notranslate nohighlight">\(\Gamma = 2.4\)</span> (left column) and <span class="math notranslate nohighlight">\(\Gamma = 1.4\)</span> (right column). Ionization parameter is set to 3.0 for both cases. The inclination angle is <span class="math notranslate nohighlight">\(\theta_{i} = 30\)</span> deg, and all other parameters in <code class="docutils literal notranslate"><span class="pre">relxill</span></code> framework (e.g., spin, radius, etc.) are fixed at their default values.</span><a class="headerlink" href="#fig-reldao" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </section>
