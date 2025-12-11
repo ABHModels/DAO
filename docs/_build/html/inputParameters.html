@@ -14,6 +14,8 @@
       <script src="_static/documentation_options.js?v=5929fcd5"></script>
       <script src="_static/doctools.js?v=9a2dae69"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -47,6 +49,21 @@
 <li class="toctree-l1"><a class="reference internal" href="QuickStart.html">Quick Start</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Input Parameters</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#summary">Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#detailed-description">Detailed Description</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#grids">Grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#plasma">Plasma</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#illumination">Illumination</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#bottom-blackbody">Bottom blackbody</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#power-law-or-cut-off-power-law">Power law or Cut-off power law</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blackbody">Blackbody</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#nthcomp">nthcomp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#comptt">comptt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#file">file</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#abundances">Abundances</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="OuputFiles.html">Output Files</a></li>
@@ -78,12 +95,12 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="input-parameters">
+  <section class="tex2jax_ignore mathjax_ignore" id="input-parameters">
 <span id="inputparameters"></span><h1>Input Parameters<a class="headerlink" href="#input-parameters" title="Link to this heading">¶</a></h1>
 <section id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Link to this heading">¶</a></h2>
 <p>Here we list the input parameters summary</p>
-<p><strong>Grids</strong></p>
+<p><a class="reference internal" href="#grids"><span class="std std-ref"><strong>Grids</strong></span></a></p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head text-left"><p>Parameter Name</p></th>
@@ -93,39 +110,44 @@
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">debug</span></code></p></td>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="#debugmodel"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">debug</span></code></span></a></p></td>
 <td class="text-center"><p>int</p></td>
 <td class="text-left"><p>0</p></td>
 <td class="text-left"><p>Debug switch.</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">nmaxmain</span></code></p></td>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="#debugmodel"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">model</span></code></span></a></p></td>
+<td class="text-center"><p>int</p></td>
+<td class="text-left"><p>0</p></td>
+<td class="text-left"><p>Reflection model or pure scattering.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="#iterationstep"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">nmaxmain</span></code></span></a></p></td>
 <td class="text-center"><p>int</p></td>
 <td class="text-left"><p>15</p></td>
 <td class="text-left"><p>Number of maximum main iteration steps.</p></td>
 </tr>
-<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">nmaxrte</span></code></p></td>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="#iterationstep"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">nmaxrte</span></code></span></a></p></td>
 <td class="text-center"><p>int</p></td>
 <td class="text-left"><p>200</p></td>
 <td class="text-left"><p>Number of maximum radiative transfer iteration steps.</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">nfrt</span></code></p></td>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="#e-m-ngrids"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">nfrt</span></code></span></a></p></td>
 <td class="text-center"><p>int</p></td>
 <td class="text-left"><p>5000</p></td>
 <td class="text-left"><p>Number of energy bins.</p></td>
 </tr>
-<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">nmurt</span></code></p></td>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="#e-m-ngrids"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">nmurt</span></code></span></a></p></td>
 <td class="text-center"><p>int</p></td>
 <td class="text-left"><p>10</p></td>
 <td class="text-left"><p>Number of angle grids.</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ndrt</span></code></p></td>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="#e-m-ngrids"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ndrt</span></code></span></a></p></td>
 <td class="text-center"><p>int</p></td>
 <td class="text-left"><p>200</p></td>
 <td class="text-left"><p>Number of depth grids.</p></td>
 </tr>
 </tbody>
 </table>
-<p><strong>Plasma</strong></p>
+<p><a class="reference internal" href="#plasma"><span class="std std-ref"><strong>Plasma</strong></span></a></p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head text-left"><p>Parameter Name</p></th>
@@ -135,34 +157,34 @@
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">it_temp</span></code></p></td>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="#temp"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">it_temp</span></code></span></a></p></td>
 <td class="text-center"><p>int</p></td>
 <td class="text-left"><p>99</p></td>
 <td class="text-left"><p>Maximum iteration steps for thermal equilibrium.</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">temp_gas</span></code></p></td>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="#temp"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">temp_gas</span></code></span></a></p></td>
 <td class="text-center"><p>float</p></td>
 <td class="text-left"><p>1e8</p></td>
 <td class="text-left"><p>Initial gas temperature.</p></td>
 </tr>
-<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">temp_gas_unit</span></code></p></td>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="#temp"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">temp_gas_unit</span></code></span></a></p></td>
 <td class="text-center"><p>str</p></td>
 <td class="text-left"><p>‘k’</p></td>
 <td class="text-left"><p>Unit of initial gas temperature.</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">nh</span></code></p></td>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="#nh"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">nh</span></code></span></a></p></td>
 <td class="text-center"><p>float</p></td>
 <td class="text-left"><p>1.0e15</p></td>
 <td class="text-left"><p>Hydrogen density.</p></td>
 </tr>
-<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">zeta</span></code></p></td>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="#ioniza"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">zeta</span></code></span></a></p></td>
 <td class="text-center"><p>float</p></td>
 <td class="text-left"><p>3.0</p></td>
 <td class="text-left"><p>Log10 of ionization parameter.</p></td>
 </tr>
 </tbody>
 </table>
-<p><strong>Illumination</strong></p>
+<p><a class="reference internal" href="#illumination"><span class="std std-ref"><strong>Illumination</strong></span></a></p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head text-left"><p>Parameter Name</p></th>
@@ -172,49 +194,54 @@
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">inci_type</span></code></p></td>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="#illumination"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">inci_type</span></code></span></a></p></td>
 <td class="text-center"><p>str</p></td>
 <td class="text-left"><p>‘powerlaw’</p></td>
 <td class="text-left"><p>Type of corona illumination.</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">gamma</span></code></p></td>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="#illumination"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">gamma</span></code></span></a></p></td>
 <td class="text-center"><p>float</p></td>
 <td class="text-left"><p>2.0</p></td>
 <td class="text-left"><p>Photon index or Blackbody temperature in eV.</p></td>
 </tr>
-<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">hcut</span></code></p></td>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="#illumination"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">hcut</span></code></span></a></p></td>
 <td class="text-center"><p>float</p></td>
 <td class="text-left"><p>300e3</p></td>
 <td class="text-left"><p>High energy cut-off for cut-off power law or electrons temperture.</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ktbb_nth</span></code></p></td>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="#illumination"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ktbb_nth</span></code></span></a></p></td>
 <td class="text-center"><p>float</p></td>
 <td class="text-left"><p>0.1e3</p></td>
 <td class="text-left"><p>Blackbody temperature when incident type is Comptonization source.</p></td>
 </tr>
-<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">inmu</span></code></p></td>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="#illumination"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">inmu</span></code></span></a></p></td>
 <td class="text-center"><p>float</p></td>
 <td class="text-left"><p>0.7</p></td>
 <td class="text-left"><p>Incidence angle.</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">sbot</span></code></p></td>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="#illumination"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">sbot</span></code></span></a></p></td>
 <td class="text-center"><p>int</p></td>
 <td class="text-left"><p>0</p></td>
 <td class="text-left"><p>Switch of bottom illumination [Thermal disk radiation].</p></td>
 </tr>
-<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ktbb</span></code></p></td>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="#illumination"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ktbb</span></code></span></a></p></td>
 <td class="text-center"><p>float</p></td>
 <td class="text-left"><p>350.0</p></td>
 <td class="text-left"><p>Temperature of Thermal disk radiation.</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">fx_frac</span></code></p></td>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="#illumination"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">fx_frac</span></code></span></a></p></td>
 <td class="text-center"><p>float</p></td>
 <td class="text-left"><p>1.0</p></td>
 <td class="text-left"><p>Flux of top illumiantion over total illumination.</p></td>
 </tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">inci_file</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>‘incident/nthcomp_g2.0_t60.txt’</p></td>
+<td class="text-left"><p>Incident spectrum file name [Necessary for type of incident is “file”].</p></td>
+</tr>
 </tbody>
 </table>
-<p><strong>Elemental Abundances (Relative to Hydrogen)</strong></p>
+<p><a class="reference internal" href="#abundances"><span class="std std-ref"><strong>Elemental Abundances (Relative to Hydrogen)</strong></span></a></p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head text-left"><p>Parameter Name</p></th>
@@ -376,6 +403,170 @@
 </tr>
 </tbody>
 </table>
+<p><strong>Path Group</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Parameter Name</p></th>
+<th class="head text-center"><p>Type</p></th>
+<th class="head text-left"><p>Default</p></th>
+<th class="head text-left"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">kernelpath</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>‘kernel_exact5000’</p></td>
+<td class="text-left"><p>Compton scattering Redistribution function file, the energy bins need to be as same in model.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">dataenv</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>‘data’</p></td>
+<td class="text-left"><p>Atomic database and Compton heating-cooling file.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">op_spec</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>spec.dat</p></td>
+<td class="text-left"><p>Output spectrum file.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">op_temp</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>temp.dat</p></td>
+<td class="text-left"><p>Output temperature file.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">op_inte</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>inte.dat</p></td>
+<td class="text-left"><p>Output intensity file.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">op_log</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>model.log</p></td>
+<td class="text-left"><p>Output log file.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">op_emis</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>emis.dat</p></td>
+<td class="text-left"><p>Output emissivity file (not used for now).</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">op_abund</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>abud.fits</p></td>
+<td class="text-left"><p>Output abundance file.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="detailed-description">
+<h2>Detailed Description<a class="headerlink" href="#detailed-description" title="Link to this heading">¶</a></h2>
+<section id="grids">
+<span id="id1"></span><h3>Grids<a class="headerlink" href="#grids" title="Link to this heading">¶</a></h3>
+<p id="debugmodel"><strong>debug,model</strong></p>
+<p>DAO support the pure scattering model with constant gas temperature along the vertical
+depth when <code class="docutils literal notranslate"><span class="pre">model</span></code> set at 1, and normal reflection model when <code class="docutils literal notranslate"><span class="pre">model</span></code> set at 0.</p>
+<p>Debug mode is opened when <code class="docutils literal notranslate"><span class="pre">debug</span></code> switch set at 1. Energy, angle and depth grids and other useful inforamtion will be printed to a file when it’s open.</p>
+<p id="iterationstep"><strong>nmaxmain,nmaxrte</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">nmaxrte</span></code> controls the maximum iteration steps for radiative transfer. Considering the
+calculation time and convergence, we set 200 as default steps.</p>
+<p><code class="docutils literal notranslate"><span class="pre">nmaxmain</span></code> controls the maximum iteration steps between radiative transfer and XSTAR. We set 15 as default value</p>
+<p id="e-m-ngrids"><strong>nfrt,nmurt,nfrt</strong></p>
+<p>These parameters define the resolution of depth, energy, and angle grids. We don’t
+recommend user reduce the resolution of depth and energies. The photons are more
+easier to be scattered in its own energy and the line emission haven’t enough resolution
+when <code class="docutils literal notranslate"><span class="pre">nfrt</span></code> is small.</p>
+</section>
+<section id="plasma">
+<span id="id2"></span><h3>Plasma<a class="headerlink" href="#plasma" title="Link to this heading">¶</a></h3>
+<p id="temp"><strong>it_temp,temp_gas,temp_gas_unit</strong></p>
+<p>XSTAR need number of iterations to get thermal equilibrium, <code class="docutils literal notranslate"><span class="pre">it-temp</span></code> is same with <code class="docutils literal notranslate"><span class="pre">nlimd</span></code>
+in XSTAR, we don’t recommend user change this parameter. <code class="docutils literal notranslate"><span class="pre">temp-gas</span></code>, <code class="docutils literal notranslate"><span class="pre">temp-gas-unit</span></code> define the initial gas temperature and its unit, they are only important when you run constant-temperature pure scattering model.</p>
+<p id="nh"><strong>nh</strong></p>
+<p>Hydrogen density in cm−3. The DAO version 1.0 only support for density less than 10^18
+cm−3. Specify atom data table will be needed when density large than that value <span id="id3">[<a class="reference internal" href="index.html#id27" title="T. Kallman, M. Bautista, J. Deprince, J. A. García, C. Mendoza, A. Ogorzalek, P. Palmeri, and P. Quinet. Photoionization Models for High-density Gas. \apj , 908(1):94, February 2021. arXiv:2011.10603, doi:10.3847/1538-4357/abccd6.">Kallman <em>et al.</em>, 2021</a>]</span>.</p>
+<p id="ioniza"><strong>zeta</strong></p>
+<p>Initial value of the log (base 10) of the model ionization parameter at the innermost shell. The <span id="id4">[<a class="reference internal" href="index.html#id26" title="C. Bruce Tarter, Wallace H. Tucker, and Edwin E. Salpeter. The Interaction of X-Ray Sources with Optically Thin Environments. \apj , 156:943, June 1969. doi:10.1086/150026.">Tarter <em>et al.</em>, 1969</a>]</span> form is used:</p>
+<div class="math notranslate nohighlight" id="equation-eq-xi">
+<span class="eqno">(1)<a class="headerlink" href="#equation-eq-xi" title="Link to this equation">¶</a></span>\[\xi = \frac{4\pi F_x}{n_h}\]</div>
+<p>This value will be re-calculated after radiation field update.</p>
+</section>
+<section id="illumination">
+<span id="id5"></span><h3>Illumination<a class="headerlink" href="#illumination" title="Link to this heading">¶</a></h3>
+<p>There are many parameters control the illumination, and different meaning of each parameters when we assume different type of illumination. In this section, I’ll sort the parameters by differnt incident type.</p>
+<section id="bottom-blackbody">
+<h4>Bottom blackbody<a class="headerlink" href="#bottom-blackbody" title="Link to this heading">¶</a></h4>
+<p>In <code class="docutils literal notranslate"><span class="pre">DAO</span></code>, the radiation from the bottom of the disk is modeled as a blackbody source. The parameter <code class="docutils literal notranslate"><span class="pre">sbot</span></code> controls this boundary condition: if <code class="docutils literal notranslate"><span class="pre">sbot=1</span></code>, bottom illumination is enabled; otherwise, the bottom boundary is assumed to be zero.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">sbot=1</span></code>, <code class="docutils literal notranslate"><span class="pre">ktbb</span></code> defines the blackbody temperature, and <code class="docutils literal notranslate"><span class="pre">fx_frac</span></code> determines the partition of the total flux between the top and bottom surfaces. First, the total ionizing flux (Fx) is calculated via Eq. <a class="reference internal" href="#equation-eq-xi">(1)</a>. The fluxes for the top and bottom boundaries are then derived as:</p>
+<div class="math notranslate nohighlight">
+\[F_\mathrm{top} = F_x \times \mathrm{fx\_frac}, \quad F_\mathrm{bot} = F_x \times (1 - \mathrm{fx\_frac})\]</div>
+</section>
+<section id="power-law-or-cut-off-power-law">
+<h4>Power law or Cut-off power law<a class="headerlink" href="#power-law-or-cut-off-power-law" title="Link to this heading">¶</a></h4>
+<p>This formulation applies when <code class="docutils literal notranslate"><span class="pre">inci_type</span></code> is set to <code class="docutils literal notranslate"><span class="pre">powlaw</span></code> or <code class="docutils literal notranslate"><span class="pre">cutoff</span></code>. The spectral shape is defined as:</p>
+<div class="math notranslate nohighlight">
+\[F(E) = A \times E^{-\Gamma+1} \exp\left(-E/E_{cut}\right) , \quad \mathrm{or} \quad F(E) = A \times E^{-\Gamma+1} \]</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Gamma</span></code> (<span class="math notranslate nohighlight">\(\Gamma\)</span>): The photon index.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hcut</span></code> (<span class="math notranslate nohighlight">\(E_{cut}\)</span>): The high-energy cutoff.</p></li>
+<li><p>A: normalization factor, defined by Eq.<a class="reference internal" href="#equation-eq-xi">(1)</a></p></li>
+</ul>
+<p>Currently, the model does not implement a low-energy cutoff.</p>
+</section>
+<section id="blackbody">
+<h4>Blackbody<a class="headerlink" href="#blackbody" title="Link to this heading">¶</a></h4>
+<p>This formulation applies when <code class="docutils literal notranslate"><span class="pre">inci_type</span></code> is set to <code class="docutils literal notranslate"><span class="pre">blackbody</span></code>. The spectral shape is defined as a blackbody with temperature set at <code class="docutils literal notranslate"><span class="pre">Gamma</span></code> [eV].</p>
+</section>
+<section id="nthcomp">
+<h4>nthcomp<a class="headerlink" href="#nthcomp" title="Link to this heading">¶</a></h4>
+<p>This formulation applies when <code class="docutils literal notranslate"><span class="pre">inci_type</span></code> is set to <code class="docutils literal notranslate"><span class="pre">nthcomp</span></code>. The spectral shape is defined by <span id="id6">Zdziarski <em>et al.</em> [<a class="reference internal" href="index.html#id30" title="A. A. Zdziarski, W. N. Johnson, and P. Magdziarz. Broad-band \ensuremath \gamma -ray and X-ray spectra of NGC 4151 and their implications for physical processes and geometry. \mnras , 283(1):193-206, November 1996. arXiv:astro-ph/9607015, doi:10.1093/mnras/283.1.193.">1996</a>]</span>.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Gamma</span></code>: Photon index.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hcut</span></code>: Electron temperatures <span class="math notranslate nohighlight">\(kT_e\)</span> [eV].</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ktbb_nth</span></code>: Blackbody temperatures <span class="math notranslate nohighlight">\(kT_{bb}\)</span> [eV].</p></li>
+</ul>
+</section>
+<section id="comptt">
+<h4>comptt<a class="headerlink" href="#comptt" title="Link to this heading">¶</a></h4>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 1.1.3: </span>This incident spectrum type was introduced in version 1.1.3.</p>
+</div>
+<p>This formulation applies when <code class="docutils literal notranslate"><span class="pre">inci_type</span></code> is set to <code class="docutils literal notranslate"><span class="pre">comptt</span></code>. The spectral shape is defined by <span id="id7">Titarchuk [<a class="reference internal" href="index.html#id86" title="Lev Titarchuk. Generalized Comptonization Models and Application to the Recent High-Energy Observations. \apj , 434:570, October 1994. doi:10.1086/174760.">1994</a>]</span>. This configuration assumes a disk geometry with the optical depth fixed at <span class="math notranslate nohighlight">\(\tau = 1.0\)</span>.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Gamma</span></code>: Wien temperature [eV].</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hcut</span></code>: Plasma temperature [eV].</p></li>
+</ul>
+</section>
+<section id="file">
+<h4>file<a class="headerlink" href="#file" title="Link to this heading">¶</a></h4>
+<p>This mode is activated when <code class="docutils literal notranslate"><span class="pre">inci_type</span></code> is set to <code class="docutils literal notranslate"><span class="pre">file</span></code>. In this configuration, the spectral shape is determined by an external user-provided file.</p>
+<p>Consequently, the <code class="docutils literal notranslate"><span class="pre">inci_file</span></code> parameter is <strong>mandatory</strong> and must specify a valid path to your spectrum file.</p>
+<p><strong>File Format Specification</strong></p>
+<p>The spectrum file must consist of a <strong>3-line header</strong> followed by the data rows (total <span class="math notranslate nohighlight">\(3+n\)</span> rows).</p>
+<p><strong>1. Header Lines (First 3 rows)</strong></p>
+<ul class="simple">
+<li><p><strong>Row 1</strong>: Number of energy bins (<span class="math notranslate nohighlight">\(n\)</span>).</p></li>
+<li><p><strong>Row 2</strong>: Spectrum Unit Flag.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code>: <span class="math notranslate nohighlight">\(\mathrm{erg \cdot cm^{-2} \cdot s^{-1} \cdot erg^{-1}}\)</span></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code>: <span class="math notranslate nohighlight">\(\mathrm{photons \cdot cm^{-2} \cdot s^{-1} \cdot erg^{-1}}\)</span></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">2</span></code>: <span class="math notranslate nohighlight">\(\mathrm{erg^2 \cdot cm^{-2} \cdot s^{-1} \cdot erg^{-1}}\)</span> (<span class="math notranslate nohighlight">\(E F_E\)</span>)</p></li>
+</ul>
+</li>
+<li><p><strong>Row 3</strong>: Energy Unit Flag.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code>: eV</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code>: keV</p></li>
+</ul>
+</li>
+</ul>
+<p><strong>2. Data Block</strong></p>
+<p>Following the header, the file must contain <strong>2 columns</strong> (Energy, Flux) for the remaining <span class="math notranslate nohighlight">\(n\)</span> rows.</p>
+</section>
+</section>
+<section id="abundances">
+<span id="id8"></span><h3>Abundances<a class="headerlink" href="#abundances" title="Link to this heading">¶</a></h3>
+<p>Atomic abundances for elements H through Zn are initialized using a predefined table. The adopted values are based on <span id="id9">Grevesse <em>et al.</em> [<a class="reference internal" href="index.html#id23" title="N. Grevesse, A. Noels, and A. J. Sauval. Standard Abundances. In Stephen S. Holt and George Sonneborn, editors, Cosmic Abundances, volume 99 of Astronomical Society of the Pacific Conference Series, 117. January 1996.">1996</a>]</span>.</p>
+<p>The user can change the abundance of individual elements, relative to that table.</p>
+</section>
 </section>
 </section>
 

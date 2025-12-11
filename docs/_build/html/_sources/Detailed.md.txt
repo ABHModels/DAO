@@ -1,0 +1,145 @@
+(Detailed)=
+## Detailed Description
+
+(Grids)=
+### Grids 
+
+(debugmodel)=
+**debug,model**
+
+DAO support the pure scattering model with constant gas temperature along the vertical
+depth when `model` set at 1, and normal reflection model when `model` set at 0.
+
+Debug mode is opened when `debug` switch set at 1. Energy, angle and depth grids and other useful inforamtion will be printed to a file when it’s open.
+
+(ITERATIONstep)=
+**nmaxmain,nmaxrte**
+
+`nmaxrte` controls the maximum iteration steps for radiative transfer. Considering the
+calculation time and convergence, we set 200 as default steps.
+
+`nmaxmain` controls the maximum iteration steps between radiative transfer and XSTAR. We set 15 as default value
+
+
+(e,m,ngrids)=
+**nfrt,nmurt,nfrt**
+
+These parameters define the resolution of depth, energy, and angle grids. We don’t
+recommend user reduce the resolution of depth and energies. The photons are more
+easier to be scattered in its own energy and the line emission haven’t enough resolution
+when `nfrt` is small.
+
+(temp)=
+**it_temp,temp_gas,temp_gas_unit**
+
+XSTAR need number of iterations to get thermal equilibrium, `it-temp` is same with `nlimd`
+in XSTAR, we don't recommend user change this parameter. `temp-gas`, `temp-gas-unit` define the initial gas temperature and its unit, they are only important when you run constant-temperature pure scattering model. 
+
+(nh)=
+**nh**
+
+Hydrogen density in cm−3. The DAO version 1.0 only support for density less than 10^18
+cm−3. Specify atom data table will be needed when density large than that value {cite:p}`2021ApJ...908...94K`.
+
+(ioniza)=
+**zeta**
+
+Initial value of the log (base 10) of the model ionization parameter at the innermost shell. The {cite:p}`1969ApJ...156..943T` form is used: 
+
+```{math}
+:label: eq-xi
+\xi = \frac{4\pi F_x}{n_h}
+```
+
+This value will be re-calculated after radiation field update.
+
+
+(illumination)=
+### Illumination
+
+There are many parameters control the illumination, and different meaning of each parameters when we assume different type of illumination. In this section, I'll sort the parameters by differnt incident type.
+
+#### Bottom blackbody
+
+In `DAO`, the radiation from the bottom of the disk is modeled as a blackbody source. The parameter `sbot` controls this boundary condition: if `sbot=1`, bottom illumination is enabled; otherwise, the bottom boundary is assumed to be zero.
+
+When `sbot=1`, `ktbb` defines the blackbody temperature, and `fx_frac` determines the partition of the total flux between the top and bottom surfaces. First, the total ionizing flux (Fx) is calculated via Eq. {eq}`eq-xi`. The fluxes for the top and bottom boundaries are then derived as:
+
+```{math}
+F_\mathrm{top} = F_x \times \mathrm{fx\_frac}, \quad F_\mathrm{bot} = F_x \times (1 - \mathrm{fx\_frac})
+```
+
+#### Power law or Cut-off power law
+
+This formulation applies when `inci_type` is set to `powlaw` or `cutoff`. The spectral shape is defined as:
+
+```{math}
+F(E) = A \times E^{-\Gamma+1} \exp\left(-E/E_{cut}\right) , \quad \mathrm{or} \quad F(E) = A \times E^{-\Gamma+1} 
+```
+
+where: 
+
+* `Gamma` ($\Gamma$): The photon index.
+
+* `hcut` ($E_{cut}$): The high-energy cutoff.
+
+* A: normalization factor, defined by Eq.{eq}`eq-xi`
+
+Currently, the model does not implement a low-energy cutoff.
+
+#### Blackbody
+
+This formulation applies when `inci_type` is set to `blackbody`. The spectral shape is defined as a blackbody with temperature set at `Gamma` [eV].
+
+#### nthcomp
+
+This formulation applies when `inci_type` is set to `nthcomp`. The spectral shape is defined by {cite:t}`1996MNRAS.283..193Z`.
+
+* `Gamma`: Photon index.
+
+* `hcut`: Electron temperatures $kT_e$ [eV].
+
+* `ktbb_nth`: Blackbody temperatures $kT_{bb}$ [eV].
+
+#### comptt
+```{versionadded} 1.1.3
+This incident spectrum type was introduced in version 1.1.3. 
+```
+This formulation applies when `inci_type` is set to `comptt`. The spectral shape is defined by {cite:t}`1994ApJ...434..570T`. This configuration assumes a disk geometry with the optical depth fixed at $\tau = 1.0$.
+
+* `Gamma`: Wien temperature [eV].
+
+* `hcut`: Plasma temperature [eV].
+
+
+#### file
+
+This mode is activated when `inci_type` is set to `file`. In this configuration, the spectral shape is determined by an external user-provided file.
+
+Consequently, the `inci_file` parameter is **mandatory** and must specify a valid path to your spectrum file.
+
+**File Format Specification**
+
+The spectrum file must consist of a **3-line header** followed by the data rows (total $3+n$ rows).
+
+**1. Header Lines (First 3 rows)**
+
+* **Row 1**: Number of energy bins ($n$).
+* **Row 2**: Spectrum Unit Flag.
+    * `0`: $\mathrm{erg \cdot cm^{-2} \cdot s^{-1} \cdot erg^{-1}}$
+    * `1`: $\mathrm{photons \cdot cm^{-2} \cdot s^{-1} \cdot erg^{-1}}$
+    * `2`: $\mathrm{erg^2 \cdot cm^{-2} \cdot s^{-1} \cdot erg^{-1}}$ ($E F_E$)
+* **Row 3**: Energy Unit Flag.
+    * `0`: eV
+    * `1`: keV
+
+**2. Data Block**
+
+Following the header, the file must contain **2 columns** (Energy, Flux) for the remaining $n$ rows.
+
+(abundances)=
+### Abundances
+
+Atomic abundances for elements H through Zn are initialized using a predefined table. The adopted values are based on {cite:t}`1996ASPC...99..117G`.
+
+The user can change the abundance of individual elements, relative to that table.

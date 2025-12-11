@@ -1,0 +1,83 @@
+(summary)=
+## Summary
+
+Here we list the input parameters summary
+
+[**Grids**](Grids)
+| Parameter Name | Type    | Default | Description |
+| :---           | :---:   | :---    | :--- |
+| [`debug`](debugmodel)           | int   | 0   | Debug switch. |
+| [`model`](debugmodel)           | int   | 0   | Reflection model or pure scattering. |
+| [`nmaxmain`](ITERATIONstep)     | int  | 15       | Number of maximum main iteration steps. |
+| [`nmaxrte`](ITERATIONstep)    | int  | 200       | Number of maximum radiative transfer iteration steps. |
+| [`nfrt`](e,m,ngrids)           | int | 5000     | Number of energy bins. |
+| [`nmurt`](e,m,ngrids)            | int   | 10   | Number of angle grids. |
+| [`ndrt`](e,m,ngrids)            | int   | 200   | Number of depth grids. |
+
+**Plasma**
+| Parameter Name | Type    | Default | Description |
+| :---           | :---:   | :---    | :--- |
+| [`it_temp`](temp)           | int   | 99   | Maximum iteration steps for thermal equilibrium. |
+| [`temp_gas`](temp)           | float   | 1e8   | Initial gas temperature. |
+| [`temp_gas_unit`](temp)          | str   | 'k'   | Unit of initial gas temperature. |
+| [`nh`](nh)          | float   | 1.0e15   | Hydrogen density. |
+| [`zeta`](ioniza)           | float   | 3.0  | Log10 of ionization parameter. |
+
+**Illumination**
+| Parameter Name | Type    | Default | Description |
+| :---           | :---:   | :---    | :--- |
+| [`inci_type`](illumination)           | str   | 'powerlaw'   | Type of corona illumination. |
+| [`gamma`](illumination)            | float   | 2.0   | Photon index or Blackbody temperature in eV. |
+| [`hcut`](illumination)            | float   | 300e3   | High energy cut-off for cut-off power law or electrons temperture. |
+| [`ktbb_nth`](illumination)            | float   | 0.1e3   | Blackbody temperature when incident type is Comptonization source. |
+| [`inmu`](illumination)            | float   | 0.7  | Incidence angle. |
+| [`sbot`](illumination)            | int   | 0  | Switch of bottom illumination [Thermal disk radiation]. |
+| [`ktbb`](illumination)            | float   | 350.0  | Temperature of Thermal disk radiation. |
+| [`fx_frac`](illumination)           | float   | 1.0  | Flux of top illumiantion over total illumination. |
+| `inci_file` | str | 'incident/nthcomp_g2.0_t60.txt' | Incident spectrum file name [Necessary for type of incident is "file"]. |
+
+[**Elemental Abundances (Relative to Hydrogen)**](abundances)
+| Parameter Name | Type    | Default | Description |
+| :---           | :---:   | :---    | :--- |
+| `h` | float | 1.0 | Abundance of Hydrogen. This is the reference element. |
+| `he` | float | 1.0 | Abundance of Helium relative to Hydrogen. |
+| `li` | float | 0.0 | Abundance of Lithium relative to Hydrogen. |
+| `be` | float | 0.0 | Abundance of Beryllium relative to Hydrogen. |
+| `ba` | float | 0.0 | Abundance of Barium relative to Hydrogen. |
+| `c` | float | 1.0 | Abundance of Carbon relative to Hydrogen. |
+| `n` | float | 1.0 | Abundance of Nitrogen relative to Hydrogen. |
+| `o` | float | 1.0 | Abundance of Oxygen relative to Hydrogen. |
+| `f` | float | 0.0 | Abundance of Fluorine relative to Hydrogen. |
+| `ne` | float | 1.0 | Abundance of Neon relative to Hydrogen. |
+| `na` | float | 0.0 | Abundance of Sodium relative to Hydrogen. |
+| `mg` | float | 1.0 | Abundance of Magnesium relative to Hydrogen. |
+| `al` | float | 0.0 | Abundance of Aluminum relative to Hydrogen. |
+| `si` | float | 1.0 | Abundance of Silicon relative to Hydrogen. |
+| `p` | float | 0.0 | Abundance of Phosphorus relative to Hydrogen. |
+| `s` | float | 1.0 | Abundance of Sulfur relative to Hydrogen. |
+| `cl` | float | 0.0 | Abundance of Chlorine relative to Hydrogen. |
+| `ar` | float | 1.0 | Abundance of Argon relative to Hydrogen. |
+| `k` | float | 0.0 | Abundance of Potassium relative to Hydrogen. |
+| `ca` | float | 1.0 | Abundance of Calcium relative to Hydrogen. |
+| `sca` | float | 0.0 | Abundance of Scandium relative to Hydrogen. |
+| `ti` | float | 0.0 | Abundance of Titanium relative to Hydrogen. |
+| `va` | float | 0.0 | Abundance of Vanadium relative to Hydrogen. |
+| `cr` | float | 0.0 | Abundance of Chromium relative to Hydrogen. |
+| `mn` | float | 0.0 | Abundance of Manganese relative to Hydrogen. |
+| `fe` | float | 1.0 | Abundance of Iron relative to Hydrogen. |
+| `co` | float | 0.0 | Abundance of Cobalt relative to Hydrogen. |
+| `ni` | float | 1.0 | Abundance of Nickel relative to Hydrogen. |
+| `cu` | float | 0.0 | Abundance of Copper relative to Hydrogen. |
+| `zn` | float | 0.0 | Abundance of Zinc relative to Hydrogen. |
+
+**Path Group**
+| Parameter Name | Type    | Default | Description |
+| :---           | :---:   | :---    | :--- |
+| `kernelpath` | str | 'kernel_exact5000' | Compton scattering Redistribution function file, the energy bins need to be as same in model. |
+| `dataenv` | str | 'data' | Atomic database and Compton heating-cooling file. |
+| `op_spec` | str | spec.dat | Output spectrum file. |
+| `op_temp` | str | temp.dat | Output temperature file. |
+| `op_inte` | str | inte.dat | Output intensity file. |
+| `op_log` | str | model.log | Output log file. |
+| `op_emis` | str | emis.dat | Output emissivity file (not used for now). |
+| `op_abund` | str | abud.fits | Output abundance file. |

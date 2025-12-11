@@ -22,6 +22,11 @@ bibtex_bibfiles = ['ref.bib']
 bibtex_reference_style = 'author_year'
 bibtex_default_style = 'unsrt'
 
+myst_enable_extensions = [
+    "dollarmath", 
+    "amsmath",
+]
+
 import sphinx_rtd_theme
 html_theme = 'sphinx_rtd_theme'
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]

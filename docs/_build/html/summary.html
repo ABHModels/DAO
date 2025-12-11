@@ -1,0 +1,464 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Summary &mdash; DAO  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=92fd9be5" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            DAO
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="QuickStart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inputParameters.html">Input Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="OuputFiles.html">Output Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="theory.html">Theory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="version.html">Version</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">DAO</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Summary</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/summary.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="summary">
+<span id="id1"></span><h1>Summary<a class="headerlink" href="#summary" title="Link to this heading">¶</a></h1>
+<p>Here we list the input parameters summary</p>
+<p><a class="reference internal" href="Detailed.html#grids"><span class="std std-ref"><strong>Grids</strong></span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Parameter Name</p></th>
+<th class="head text-center"><p>Type</p></th>
+<th class="head text-left"><p>Default</p></th>
+<th class="head text-left"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="Detailed.html#debugmodel"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">debug</span></code></span></a></p></td>
+<td class="text-center"><p>int</p></td>
+<td class="text-left"><p>0</p></td>
+<td class="text-left"><p>Debug switch.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="Detailed.html#debugmodel"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">model</span></code></span></a></p></td>
+<td class="text-center"><p>int</p></td>
+<td class="text-left"><p>0</p></td>
+<td class="text-left"><p>Reflection model or pure scattering.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="Detailed.html#iterationstep"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">nmaxmain</span></code></span></a></p></td>
+<td class="text-center"><p>int</p></td>
+<td class="text-left"><p>15</p></td>
+<td class="text-left"><p>Number of maximum main iteration steps.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="Detailed.html#iterationstep"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">nmaxrte</span></code></span></a></p></td>
+<td class="text-center"><p>int</p></td>
+<td class="text-left"><p>200</p></td>
+<td class="text-left"><p>Number of maximum radiative transfer iteration steps.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="Detailed.html#e-m-ngrids"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">nfrt</span></code></span></a></p></td>
+<td class="text-center"><p>int</p></td>
+<td class="text-left"><p>5000</p></td>
+<td class="text-left"><p>Number of energy bins.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="Detailed.html#e-m-ngrids"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">nmurt</span></code></span></a></p></td>
+<td class="text-center"><p>int</p></td>
+<td class="text-left"><p>10</p></td>
+<td class="text-left"><p>Number of angle grids.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="Detailed.html#e-m-ngrids"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ndrt</span></code></span></a></p></td>
+<td class="text-center"><p>int</p></td>
+<td class="text-left"><p>200</p></td>
+<td class="text-left"><p>Number of depth grids.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Plasma</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Parameter Name</p></th>
+<th class="head text-center"><p>Type</p></th>
+<th class="head text-left"><p>Default</p></th>
+<th class="head text-left"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="Detailed.html#temp"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">it_temp</span></code></span></a></p></td>
+<td class="text-center"><p>int</p></td>
+<td class="text-left"><p>99</p></td>
+<td class="text-left"><p>Maximum iteration steps for thermal equilibrium.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="Detailed.html#temp"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">temp_gas</span></code></span></a></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>1e8</p></td>
+<td class="text-left"><p>Initial gas temperature.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="Detailed.html#temp"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">temp_gas_unit</span></code></span></a></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>‘k’</p></td>
+<td class="text-left"><p>Unit of initial gas temperature.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="Detailed.html#nh"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">nh</span></code></span></a></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>1.0e15</p></td>
+<td class="text-left"><p>Hydrogen density.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="Detailed.html#ioniza"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">zeta</span></code></span></a></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>3.0</p></td>
+<td class="text-left"><p>Log10 of ionization parameter.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Illumination</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Parameter Name</p></th>
+<th class="head text-center"><p>Type</p></th>
+<th class="head text-left"><p>Default</p></th>
+<th class="head text-left"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="Detailed.html#illumination"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">inci_type</span></code></span></a></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>‘powerlaw’</p></td>
+<td class="text-left"><p>Type of corona illumination.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="Detailed.html#illumination"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">gamma</span></code></span></a></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>2.0</p></td>
+<td class="text-left"><p>Photon index or Blackbody temperature in eV.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="Detailed.html#illumination"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">hcut</span></code></span></a></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>300e3</p></td>
+<td class="text-left"><p>High energy cut-off for cut-off power law or electrons temperture.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="Detailed.html#illumination"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ktbb_nth</span></code></span></a></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.1e3</p></td>
+<td class="text-left"><p>Blackbody temperature when incident type is Comptonization source.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="Detailed.html#illumination"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">inmu</span></code></span></a></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.7</p></td>
+<td class="text-left"><p>Incidence angle.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="Detailed.html#illumination"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">sbot</span></code></span></a></p></td>
+<td class="text-center"><p>int</p></td>
+<td class="text-left"><p>0</p></td>
+<td class="text-left"><p>Switch of bottom illumination [Thermal disk radiation].</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="Detailed.html#illumination"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">ktbb</span></code></span></a></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>350.0</p></td>
+<td class="text-left"><p>Temperature of Thermal disk radiation.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="Detailed.html#illumination"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">fx_frac</span></code></span></a></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>1.0</p></td>
+<td class="text-left"><p>Flux of top illumiantion over total illumination.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">inci_file</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>‘incident/nthcomp_g2.0_t60.txt’</p></td>
+<td class="text-left"><p>Incident spectrum file name [Necessary for type of incident is “file”].</p></td>
+</tr>
+</tbody>
+</table>
+<p><a class="reference internal" href="Detailed.html#abundances"><span class="std std-ref"><strong>Elemental Abundances (Relative to Hydrogen)</strong></span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Parameter Name</p></th>
+<th class="head text-center"><p>Type</p></th>
+<th class="head text-left"><p>Default</p></th>
+<th class="head text-left"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">h</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>1.0</p></td>
+<td class="text-left"><p>Abundance of Hydrogen. This is the reference element.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">he</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>1.0</p></td>
+<td class="text-left"><p>Abundance of Helium relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">li</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Lithium relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">be</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Beryllium relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ba</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Barium relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">c</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>1.0</p></td>
+<td class="text-left"><p>Abundance of Carbon relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">n</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>1.0</p></td>
+<td class="text-left"><p>Abundance of Nitrogen relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">o</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>1.0</p></td>
+<td class="text-left"><p>Abundance of Oxygen relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">f</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Fluorine relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ne</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>1.0</p></td>
+<td class="text-left"><p>Abundance of Neon relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">na</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Sodium relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">mg</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>1.0</p></td>
+<td class="text-left"><p>Abundance of Magnesium relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">al</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Aluminum relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">si</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>1.0</p></td>
+<td class="text-left"><p>Abundance of Silicon relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">p</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Phosphorus relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>1.0</p></td>
+<td class="text-left"><p>Abundance of Sulfur relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">cl</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Chlorine relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ar</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>1.0</p></td>
+<td class="text-left"><p>Abundance of Argon relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">k</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Potassium relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ca</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>1.0</p></td>
+<td class="text-left"><p>Abundance of Calcium relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">sca</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Scandium relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ti</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Titanium relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">va</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Vanadium relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">cr</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Chromium relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">mn</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Manganese relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">fe</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>1.0</p></td>
+<td class="text-left"><p>Abundance of Iron relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">co</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Cobalt relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">ni</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>1.0</p></td>
+<td class="text-left"><p>Abundance of Nickel relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">cu</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Copper relative to Hydrogen.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">zn</span></code></p></td>
+<td class="text-center"><p>float</p></td>
+<td class="text-left"><p>0.0</p></td>
+<td class="text-left"><p>Abundance of Zinc relative to Hydrogen.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Path Group</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Parameter Name</p></th>
+<th class="head text-center"><p>Type</p></th>
+<th class="head text-left"><p>Default</p></th>
+<th class="head text-left"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">kernelpath</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>‘kernel_exact5000’</p></td>
+<td class="text-left"><p>Compton scattering Redistribution function file, the energy bins need to be as same in model.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">dataenv</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>‘data’</p></td>
+<td class="text-left"><p>Atomic database and Compton heating-cooling file.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">op_spec</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>spec.dat</p></td>
+<td class="text-left"><p>Output spectrum file.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">op_temp</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>temp.dat</p></td>
+<td class="text-left"><p>Output temperature file.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">op_inte</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>inte.dat</p></td>
+<td class="text-left"><p>Output intensity file.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">op_log</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>model.log</p></td>
+<td class="text-left"><p>Output log file.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">op_emis</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>emis.dat</p></td>
+<td class="text-left"><p>Output emissivity file (not used for now).</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">op_abund</span></code></p></td>
+<td class="text-center"><p>str</p></td>
+<td class="text-left"><p>abud.fits</p></td>
+<td class="text-left"><p>Output abundance file.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yimin Huang.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

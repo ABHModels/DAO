@@ -14,9 +14,13 @@
       <script src="_static/documentation_options.js?v=5929fcd5"></script>
       <script src="_static/doctools.js?v=9a2dae69"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Theory" href="theory.html" />
+    <link rel="prev" title="Input Parameters" href="inputParameters.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -39,10 +43,25 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Table of Contents:</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="QuickStart.html">Quick Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="inputParameters.html">Input Parameters</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Output Files</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#summary">Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#detailed-description">Detailed Description</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#spec-dat">spec.dat</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#temp-dat">temp.dat</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inte-dat">inte.dat</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model-log">model.log</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#abund-fits">abund.fits</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="theory.html">Theory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="version.html">Version</a></li>
 </ul>
 
         </div>
@@ -69,14 +88,84 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="output-files">
+  <section class="tex2jax_ignore mathjax_ignore" id="output-files">
 <span id="outputfile"></span><h1>Output Files<a class="headerlink" href="#output-files" title="Link to this heading">¶</a></h1>
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading">¶</a></h2>
+<p>Here we list the input parameters summary. We use the example in <a class="reference internal" href="QuickStart.html#sampleoutput"><span class="std std-ref">Sample Output</span></a></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>File Name</p></th>
+<th class="head text-left"><p>description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">[out/User_Guide/spec_b912ee2e38_User_Guide.dat](spec.dat)</span></code></p></td>
+<td class="text-left"><p>energy, top illumination, bottom illumination and angle averaged intensity at top and bottom layer</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">[out/User_Guide/temp_b912ee2e38_User_Guide.dat](temp.dat)</span></code></p></td>
+<td class="text-left"><p>Thomson optical depth, temperature</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="#inte-dat"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">out/User_Guide/inte_b912ee2e38_User_Guide.dat</span></code></span></a></p></td>
+<td class="text-left"><p>energy, intensity for 10 angle bins</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><a class="reference internal" href="#log-log"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">out/User_Guide/model_b912ee2e38_User_Guide.log</span></code></span></a></p></td>
+<td class="text-left"><p>model log</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><a class="reference internal" href="#abund-fits"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">out/User_Guide/abund_b912ee2e38_User_Guide.fits</span></code></span></a></p></td>
+<td class="text-left"><p>same with XSTAR <a class="reference external" href="https://heasarc.gsfc.nasa.gov/docs/software/xstar/docs/sphinx/xstardoc/docs/build/html/xstaroutput.html#the-abundances-data-file-xout-abund1-fits">xout_abund1.fits</a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="detailed-description">
+<h2>Detailed Description<a class="headerlink" href="#detailed-description" title="Link to this heading">¶</a></h2>
+<section id="spec-dat">
+<span id="id1"></span><h3>spec.dat<a class="headerlink" href="#spec-dat" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Column 1</strong>: Energy grid values [ev].</p></li>
+<li><p><strong>Column 2</strong>: The external illuminaiton at upper surface [erg/cm2/s/erg/ster].</p></li>
+<li><p><strong>Column 3</strong>: The external illuminaiton at lower surface [erg/cm2/s/erg/ster].</p></li>
+<li><p><strong>Column 4</strong>: The emergent angle-averaged spectrum at lower surface [erg/cm2/s/erg].</p></li>
+<li><p><strong>Column 5</strong>: The emergent angle-averaged spectrum at upper surface [erg/cm2/s/erg].</p></li>
+</ul>
+<p>We record these data for each iterations.</p>
+</section>
+<section id="temp-dat">
+<span id="id2"></span><h3>temp.dat<a class="headerlink" href="#temp-dat" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Column 1</strong>: Thomson optical depth.</p></li>
+<li><p><strong>Column 2</strong>: Plasma temperature at each depth [K].</p></li>
+</ul>
+<p>We record these data for each iterations.</p>
+</section>
+<section id="inte-dat">
+<span id="id3"></span><h3>inte.dat<a class="headerlink" href="#inte-dat" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Column 1</strong>: Energy grid values [ev].</p></li>
+<li><p><strong>Column 2 through 111</strong>: The emergent specific intensity [erg/cm2/s/erg/ster] for each of 10 angle bins [0.05 to 0.95 with linear grids]. Column 2 contains the intensity for the first angle (<span class="math notranslate nohighlight">\(\mu_1\)</span>), Column 3 for the second angle (<span class="math notranslate nohighlight">\(\mu_2\)</span>), and so on.</p></li>
+</ul>
+<p>We record these data for each iterations.</p>
+</section>
+<section id="model-log">
+<span id="log-log"></span><h3>model.log<a class="headerlink" href="#model-log" title="Link to this heading">¶</a></h3>
+<p>Model log file</p>
+</section>
+<section id="abund-fits">
+<span id="id4"></span><h3>abund.fits<a class="headerlink" href="#abund-fits" title="Link to this heading">¶</a></h3>
+<p>This ASCII FITS file contains ion abundances as well as heating and cooling rates. Only ions with fractional abundance (relative to its parent element) greater than <span class="math notranslate nohighlight">\(10^{-10}\)</span> (relative to its parent element) are recorded. The elements are ordered by increasing nuclear charge, ions by increasing free charge. See <a class="reference external" href="https://heasarc.gsfc.nasa.gov/docs/software/xstar/docs/sphinx/xstardoc/docs/build/html/xstaroutput.html#the-abundances-data-file-xout-abund1-fits">The Abundances Data File: xout_abund1.fits</a> for more details.</p>
+<p>We record these data for final results.</p>
+</section>
+</section>
 </section>
 
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="inputParameters.html" class="btn btn-neutral float-left" title="Input Parameters" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="theory.html" class="btn btn-neutral float-right" title="Theory" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 
