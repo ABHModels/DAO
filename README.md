@@ -9,7 +9,7 @@ accommodates arbitrary illuminating spectra, enabling applications across divers
 We investigate the spectral dependence on key physical parameters and benchmark the results against
 the widely used reflionx and xillver codes.
 
-[![Documentation Status](https://dao.readthedocs.io/en/latest/)](https://dao.readthedocs.io/en/latest/)
+[![Documentation Status](https://readthedocs.org/projects/dao/badge/?version=latest)](https://dao.readthedocs.io/en/latest/?badge=latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
@@ -48,3 +48,16 @@ HEADS = /path/to/heasoft/heasoft-6.31.1/x86_64-pclinux-gnu-libc2.17
 ```bash
 make
 ```
+
+## 🏃 Running the Model
+We provide a Python automation script (`modelrun.py`) to manage parameter configuration and batch processing.
+
+Important Data Requirements: Before running the model, you must download or prepare:
+
+* Atomic Database: Derived from XSTAR (`adtb.fits`, `coheat.dat`).
+
+* Compton Redistribution File: Pre-calculated redistribution functions.
+
+⚠️ Critical Note: The energy grid used in the Compton redistribution file must match the energy grid defined in your simulation parameters.
+
+For a step-by-step tutorial on running your first simulation, please refer to the Quick Start Guide in our documentation.
