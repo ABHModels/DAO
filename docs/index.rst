@@ -12,7 +12,6 @@ Welcome to DAO's documentation!
    QuickStart
    inputParameters
    OuputFiles
-   runcodewithpython
    Example
    theory
    version

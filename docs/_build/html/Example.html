@@ -1,0 +1,768 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Example &mdash; DAO  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=92fd9be5" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Theory" href="theory.html" />
+    <link rel="prev" title="Output Files" href="OuputFiles.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            DAO
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="QuickStart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="inputParameters.html">Input Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="OuputFiles.html">Output Files</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#effect-of-ionization-parameters">Effect of ionization parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#effect-of-incidence-angle">Effect of incidence angle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ions-fractions">Ions Fractions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#heating-and-cooling-rate">Heating and cooling rate</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="theory.html">Theory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="version.html">Version</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">DAO</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Example</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/Example.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="example">
+<span id="id1"></span><h1>Example<a class="headerlink" href="#example" title="Link to this heading">¶</a></h1>
+<section id="effect-of-ionization-parameters">
+<h2>Effect of ionization parameters<a class="headerlink" href="#effect-of-ionization-parameters" title="Link to this heading">¶</a></h2>
+<p>The Python interface is particularly powerful for running a grid of models on a cluster. The example <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> script, shown in Listing follows, is configured to demonstrate this by looping over 16 different values of the ionization parameter, <code class="docutils literal notranslate"><span class="pre">zeta</span></code>.</p>
+<details>
+<summary>Click to expand run.sh script</summary>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">PYTHON_SCRIPT</span><span class="o">=</span><span class="s2">&quot;modelrun.py&quot;</span><span class="w"> </span><span class="c1"># &lt;-- Make sure this is your main Python script name</span>
+<span class="nv">DIY</span><span class="o">=</span><span class="s2">&quot;dxi5000&quot;</span>
+
+<span class="c1"># --- Execution &amp; Model Flags ---</span>
+<span class="nv">exec</span><span class="o">=</span><span class="m">1</span><span class="w">      </span><span class="c1"># (0: Generate files only, 1: Submit with sbatch, 2: Run locally)</span>
+<span class="nv">debug</span><span class="o">=</span><span class="m">0</span><span class="w">     </span><span class="c1"># Debug switch</span>
+<span class="nv">model</span><span class="o">=</span><span class="m">0</span><span class="w">     </span><span class="c1"># (0: Reflection, 1: Pure scattering)</span>
+<span class="nv">ity</span><span class="o">=</span><span class="m">2</span><span class="w">       </span><span class="c1"># Type of angle bins and integral method</span>
+
+<span class="c1"># --- Computational Grids ---</span>
+<span class="nv">nmaxmain</span><span class="o">=</span><span class="m">15</span><span class="w">        </span><span class="c1"># Number of maximum main iteration steps</span>
+<span class="nv">nmaxrte</span><span class="o">=</span><span class="m">100</span><span class="w">        </span><span class="c1"># Number of maximum radiative transfer iteration steps</span>
+<span class="nv">ndrt</span><span class="o">=</span><span class="m">200</span><span class="w">           </span><span class="c1"># Number of depth grids (tau)</span>
+<span class="nv">nfrt</span><span class="o">=</span><span class="m">5000</span><span class="w">          </span><span class="c1"># Number of energy grids [Must match kernel file]</span>
+<span class="nv">nmurt</span><span class="o">=</span><span class="m">10</span><span class="w">           </span><span class="c1"># Number of angle grids (mu)</span>
+<span class="nv">ppemin</span><span class="o">=</span><span class="m">0</span>.1<span class="w">         </span><span class="c1"># Minimum energy of the grid [eV]</span>
+<span class="nv">ppemax</span><span class="o">=</span>9e5<span class="w">         </span><span class="c1"># Before maximum energy of the grid [eV]</span>
+<span class="nv">ppemax2</span><span class="o">=</span>1e6<span class="w">        </span><span class="c1"># Maximum energy of the grid [eV]</span>
+<span class="nv">taumin</span><span class="o">=</span>1e-4<span class="w">        </span><span class="c1"># Minimum Thomson optical depth of the grid</span>
+<span class="nv">taumaxrt</span><span class="o">=</span><span class="m">10</span>.0<span class="w">      </span><span class="c1"># Maximum Thomson optical depth of the grid</span>
+<span class="nv">mumin</span><span class="o">=</span><span class="m">0</span>.05<span class="w">         </span><span class="c1"># Minimum mu value for the angular grid (&gt; 0)</span>
+<span class="nv">mumax</span><span class="o">=</span><span class="m">0</span>.95<span class="w">         </span><span class="c1"># Maximum mu value for the angular grid (&lt; 1)</span>
+
+<span class="c1"># --- Temperature &amp; Equilibrium ---</span>
+<span class="nv">it_temp</span><span class="o">=</span><span class="m">99</span><span class="w">         </span><span class="c1"># Maximum iteration steps for thermal equilibrium</span>
+<span class="nv">temp_gas</span><span class="o">=</span>1e8<span class="w">       </span><span class="c1"># Initial gas temperature</span>
+<span class="nv">temp_gas_unit</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="w">  </span><span class="c1"># Unit of the initial temperature (&#39;k&#39; or &#39;ev&#39;)</span>
+
+<span class="c1"># --- Incident Spectrum Parameters ---</span>
+<span class="nv">inci_type</span><span class="o">=</span><span class="s2">&quot;file&quot;</span><span class="w">               </span><span class="c1"># Type of corona illumination (&#39;powerlaw&#39;, &#39;file&#39;, &#39;cutoff&#39;)</span>
+<span class="nv">gamma</span><span class="o">=</span>1e3<span class="w">                           </span><span class="c1"># Photon index or Blackbody temperature in eV</span>
+<span class="nv">hcut</span><span class="o">=</span>300e3<span class="w">                       </span><span class="c1"># High energy cut-off for cut-off power law illumination [eV]</span>
+<span class="nv">inmu</span><span class="o">=</span><span class="m">0</span>.7<span class="w">                         </span><span class="c1"># Cosine of the incident illumination angle</span>
+<span class="nv">inci_file</span><span class="o">=</span><span class="s2">&quot;incident/nthcomp_g2.4_t60.txt&quot;</span><span class="w"> </span><span class="c1"># Path to incident spectrum file</span>
+
+<span class="c1"># --- Bottom Illumination (Disk) ---</span>
+<span class="nv">sbot</span><span class="o">=</span><span class="m">0</span><span class="w">              </span><span class="c1"># Switch for bottom illumination (0: off, 1: on)</span>
+<span class="nv">ktbb</span><span class="o">=</span><span class="m">350</span>.0<span class="w">          </span><span class="c1"># Temperature of the bottom blackbody source [eV]</span>
+<span class="nv">fx_frac</span><span class="o">=</span>1e-10<span class="w">       </span><span class="c1"># Flux ratio of top illumination to total illumination</span>
+
+<span class="c1"># --- Atmosphere Properties ---</span>
+<span class="nv">zeta</span><span class="o">=</span><span class="m">3</span>.0<span class="w">            </span><span class="c1"># Log10 of ionization parameter (xi)</span>
+<span class="nv">nh</span><span class="o">=</span>1e15<span class="w">             </span><span class="c1"># Hydrogen number density [cm^-3]</span>
+<span class="nv">fe</span><span class="o">=</span><span class="m">1</span>.0<span class="w">              </span><span class="c1"># Iron abundance relative to Hydrogen</span>
+
+<span class="c1"># --- Paths ---</span>
+<span class="nv">kernelpath</span><span class="o">=</span><span class="s2">&quot;kernel_exact5000&quot;</span><span class="w"> </span><span class="c1"># Path to the Compton scattering redistribution file</span>
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;----------------------------------------&quot;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Starting model run with DIY tag: </span><span class="si">${</span><span class="nv">DIY</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;----------------------------------------&quot;</span>
+
+<span class="c1"># Example loop: You can loop over any parameter.</span>
+<span class="c1"># Here, we loop over the incident angle &#39;inmu&#39;.</span>
+<span class="k">for</span><span class="w"> </span>zeta<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">1</span>.0<span class="w"> </span><span class="m">1</span>.2<span class="w"> </span><span class="m">1</span>.4<span class="w"> </span><span class="m">1</span>.6<span class="w"> </span><span class="m">1</span>.8<span class="w"> </span><span class="m">2</span>.0<span class="w"> </span><span class="m">2</span>.2<span class="w"> </span><span class="m">2</span>.4<span class="w"> </span><span class="m">2</span>.6<span class="w"> </span><span class="m">2</span>.8<span class="w"> </span><span class="m">3</span>.0<span class="w"> </span><span class="m">3</span>.2<span class="w"> </span><span class="m">3</span>.4<span class="w"> </span><span class="m">3</span>.6<span class="w"> </span><span class="m">3</span>.8<span class="w"> </span><span class="m">4</span>.0
+<span class="k">for</span><span class="w"> </span>inci_file<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;incident/nthcomp_g2.4_t60.txt&quot;</span><span class="w"> </span><span class="s2">&quot;incident/nthcomp_g1.4_t60.txt&quot;</span>
+<span class="k">do</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Running with nh = </span><span class="si">${</span><span class="nv">zeta</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="w">    </span>
+<span class="w">    </span>python<span class="w"> </span><span class="si">${</span><span class="nv">PYTHON_SCRIPT</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--exec<span class="w"> </span><span class="si">${</span><span class="nv">exec</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--debug<span class="w"> </span><span class="si">${</span><span class="nv">debug</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--model<span class="w"> </span><span class="si">${</span><span class="nv">model</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--ity<span class="w"> </span><span class="si">${</span><span class="nv">ity</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--nmaxmain<span class="w"> </span><span class="si">${</span><span class="nv">nmaxmain</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--nmaxrte<span class="w"> </span><span class="si">${</span><span class="nv">nmaxrte</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--ndrt<span class="w"> </span><span class="si">${</span><span class="nv">ndrt</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--nfrt<span class="w"> </span><span class="si">${</span><span class="nv">nfrt</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--nmurt<span class="w"> </span><span class="si">${</span><span class="nv">nmurt</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--ppemin<span class="w"> </span><span class="si">${</span><span class="nv">ppemin</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--ppemax<span class="w"> </span><span class="si">${</span><span class="nv">ppemax</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--ppemax2<span class="w"> </span><span class="si">${</span><span class="nv">ppemax2</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--taumin<span class="w"> </span><span class="si">${</span><span class="nv">taumin</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--taumaxrt<span class="w"> </span><span class="si">${</span><span class="nv">taumaxrt</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--mumin<span class="w"> </span><span class="si">${</span><span class="nv">mumin</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--mumax<span class="w"> </span><span class="si">${</span><span class="nv">mumax</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--it-temp<span class="w"> </span><span class="si">${</span><span class="nv">it_temp</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--temp-gas<span class="w"> </span><span class="si">${</span><span class="nv">temp_gas</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--temp-gas-unit<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">temp_gas_unit</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--inci-type<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">inci_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--gamma<span class="w"> </span><span class="si">${</span><span class="nv">gamma</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--hcut<span class="w"> </span><span class="si">${</span><span class="nv">hcut</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--inmu<span class="w"> </span><span class="si">${</span><span class="nv">inmu</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--inci-file<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">inci_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--sbot<span class="w"> </span><span class="si">${</span><span class="nv">sbot</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--ktbb<span class="w"> </span><span class="si">${</span><span class="nv">ktbb</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--fx-frac<span class="w"> </span><span class="si">${</span><span class="nv">fx_frac</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--zeta<span class="w"> </span><span class="si">${</span><span class="nv">zeta</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--nh<span class="w"> </span><span class="si">${</span><span class="nv">nh</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--fe<span class="w"> </span><span class="si">${</span><span class="nv">fe</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--kernelpath<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">kernelpath</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--diy<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">DIY</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;----------------------------------------&quot;</span>
+<span class="k">done</span>
+<span class="k">done</span>
+</pre></div>
+</div>
+</details>
+<details>
+<summary>Click to expand plot script</summary>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span> 
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span> 
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span> 
+<span class="kn">from</span> <span class="nn">rdata</span> <span class="kn">import</span> <span class="n">read_spec</span><span class="p">,</span><span class="n">read_spec5000</span> 
+<span class="kn">from</span> <span class="nn">matplotlib.colors</span> <span class="kn">import</span> <span class="n">Normalize</span>
+<span class="kn">from</span> <span class="nn">matplotlib.cm</span> <span class="kn">import</span> <span class="n">ScalarMappable</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">time</span>
+<span class="k">def</span> <span class="nf">normtopflux</span><span class="p">(</span><span class="n">zeta</span><span class="p">,</span><span class="n">nh</span><span class="p">,</span><span class="n">top</span><span class="p">,</span><span class="n">ener</span><span class="p">):</span>
+    <span class="n">fx</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**</span><span class="n">zeta</span><span class="o">*</span><span class="n">nh</span><span class="o">/</span><span class="mi">4</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+    <span class="n">integral</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">top</span><span class="p">,</span><span class="n">ener</span><span class="p">)</span>
+    <span class="n">normfactor</span> <span class="o">=</span> <span class="n">integral</span><span class="o">/</span><span class="n">fx</span>
+    <span class="k">return</span> <span class="n">top</span><span class="o">*</span><span class="n">normfactor</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;seaborn-v0_8-ticks&#39;</span><span class="p">)</span>
+<span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;text.usetex&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;text.latex.preamble&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;\usepackage</span><span class="si">{mathptmx}</span><span class="s1">&#39;</span> 
+<span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;font.family&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;serif&#39;</span>
+<span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;font.size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">20</span>
+
+<span class="n">ERGSEV</span> <span class="o">=</span> <span class="mf">1.60217662e-12</span> 
+
+<span class="c1"># All metadata data</span>
+<span class="n">METADATA_DIR</span> <span class="o">=</span> <span class="s1">&#39;metadata&#39;</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">METADATA_DIR</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;no &#39;</span><span class="si">{</span><span class="n">METADATA_DIR</span><span class="si">}</span><span class="s2">&#39; file&quot;</span><span class="p">)</span>
+<span class="n">datas</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">METADATA_DIR</span><span class="p">)</span>
+
+<span class="c1"># get all data</span>
+<span class="n">plot_data_list</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">data_filename</span> <span class="ow">in</span> <span class="n">datas</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">METADATA_DIR</span><span class="p">,</span> <span class="n">data_filename</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;parameters&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;diy_tag&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;dxi5000&#39;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">ener</span><span class="p">,</span><span class="n">top</span><span class="p">,</span><span class="n">bot</span><span class="p">,</span><span class="n">inte</span><span class="p">,</span><span class="n">flux</span> <span class="o">=</span> <span class="n">read_spec5000</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;op_spec&#39;</span><span class="p">])</span>
+                    <span class="n">task_info</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s1">&#39;zeta&#39;</span> <span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;zeta&#39;</span><span class="p">]),</span>
+                        <span class="s1">&#39;ener&#39;</span><span class="p">:</span> <span class="n">ener</span><span class="p">,</span> 
+                        <span class="s1">&#39;eemo&#39;</span><span class="p">:</span> <span class="n">flux</span><span class="p">,</span>
+                        <span class="s1">&#39;top&#39;</span><span class="p">:</span> <span class="n">normtopflux</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1e15</span><span class="p">,</span> <span class="n">top</span><span class="p">,</span> <span class="n">ener</span><span class="p">),</span>
+                        <span class="s1">&#39;Afe&#39;</span><span class="p">:</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;fe&#39;</span><span class="p">],</span>
+                        <span class="s1">&#39;incident&#39;</span><span class="p">:</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;inci_file&#39;</span><span class="p">]</span>
+                    <span class="p">}</span>
+                    <span class="n">plot_data_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">task_info</span><span class="p">)</span>  
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="k">continue</span>   
+        <span class="k">except</span> <span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Warning: skip </span><span class="si">{</span><span class="n">data_filename</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+<span class="k">if</span> <span class="ow">not</span> <span class="n">plot_data_list</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;no &#39;diy_tag: dxi&#39; &quot;</span><span class="p">)</span>
+    <span class="n">exit</span><span class="p">()</span>
+
+<span class="n">plot_data_list</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;zeta&#39;</span><span class="p">])</span>
+<span class="n">zeta_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;zeta&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">plot_data_list</span><span class="p">]</span>
+<span class="n">inci_files</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;incident/nthcomp_g1.4_t60.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;incident/nthcomp_g2.4_t60.txt&#39;</span><span class="p">]</span>
+
+<span class="n">cmap</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s1">&#39;viridis&#39;</span><span class="p">)</span>
+<span class="n">norm</span> <span class="o">=</span> <span class="n">Normalize</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">zeta_values</span><span class="p">),</span> <span class="n">vmax</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">zeta_values</span><span class="p">))</span>
+<span class="n">sm</span> <span class="o">=</span> <span class="n">ScalarMappable</span><span class="p">(</span><span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="n">norm</span><span class="p">)</span>
+<span class="n">sm</span><span class="o">.</span><span class="n">set_array</span><span class="p">([])</span> 
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span>
+    <span class="nb">len</span><span class="p">(</span><span class="n">inci_files</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span>           
+    <span class="n">sharex</span><span class="o">=</span><span class="s1">&#39;col&#39;</span><span class="p">,</span>
+    <span class="n">sharey</span><span class="o">=</span><span class="s1">&#39;row&#39;</span><span class="p">,</span>
+    <span class="n">constrained_layout</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">gridspec_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;width_ratios&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">]}</span>  
+<span class="p">)</span>
+
+<span class="n">main_ax</span> <span class="o">=</span> <span class="n">ax</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+<span class="n">zoom_ax</span> <span class="o">=</span> <span class="n">ax</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+
+<span class="n">fig</span><span class="o">.</span><span class="n">supylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$E J_E \quad [\mathrm</span><span class="si">{erg}</span><span class="s1">^</span><span class="si">{2}</span><span class="s1">  \cdot \mathrm</span><span class="si">{cm}</span><span class="s1">^{-2}  \cdot \mathrm</span><span class="si">{s}</span><span class="s1">^{-1} \cdot  \mathrm</span><span class="si">{erg}</span><span class="s1">^{-1}]$&#39;</span><span class="p">)</span>
+
+<span class="n">top_plotted</span> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]</span>
+<span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">plot_data_list</span><span class="p">:</span>
+    <span class="n">color</span> <span class="o">=</span> <span class="n">cmap</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;zeta&#39;</span><span class="p">]))</span>
+    <span class="n">energ</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;ener&#39;</span><span class="p">]</span>
+    <span class="n">flux</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;eemo&#39;</span><span class="p">]</span>
+    <span class="n">top</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;top&#39;</span><span class="p">]</span>
+    
+    <span class="n">lw</span> <span class="o">=</span> <span class="mf">1.0</span> 
+
+    <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;incident&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">inci_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">main_ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">energ</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="n">lw</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">top_plotted</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">axs</span> <span class="o">=</span> <span class="n">main_ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">axs</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="sa">rf</span><span class="s1">&#39;$\Gamma$ = 1.4&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">axs</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+                     <span class="n">va</span><span class="o">=</span><span class="s1">&#39;top&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+            <span class="n">main_ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">energ</span><span class="p">,</span> <span class="n">top</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                              <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Incident&#39;</span><span class="p">)</span>
+            <span class="n">top_plotted</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;incident&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">inci_files</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">main_ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">energ</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="n">lw</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">top_plotted</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">axs</span> <span class="o">=</span> <span class="n">main_ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">axs</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="sa">rf</span><span class="s1">&#39;$\Gamma$ = 2.4&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">axs</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+                     <span class="n">va</span><span class="o">=</span><span class="s1">&#39;top&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+            <span class="n">main_ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">energ</span><span class="p">,</span> <span class="n">top</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                              <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Incident&#39;</span><span class="p">)</span>
+            <span class="n">top_plotted</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">axis</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">main_ax</span><span class="p">):</span>
+    <span class="n">axis</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="mf">1e3</span><span class="p">)</span>
+    <span class="n">axis</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="mf">6.5</span><span class="p">,</span> <span class="mf">1e15</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">handles</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">axis</span><span class="o">.</span><span class="n">get_legend_handles_labels</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">handles</span><span class="p">:</span>  
+            <span class="n">axis</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;lower right&#39;</span><span class="p">)</span>
+
+<span class="n">main_ax</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Energy [keV]&#39;</span><span class="p">)</span>
+<span class="n">xticks</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1e-3</span><span class="p">,</span> <span class="mf">1e-2</span><span class="p">,</span> <span class="mf">1e-1</span><span class="p">,</span> <span class="mf">1e0</span><span class="p">,</span> <span class="mf">1e1</span><span class="p">,</span> <span class="mf">1e2</span><span class="p">,</span> <span class="mf">1e3</span><span class="p">]</span>
+<span class="n">xticklabels</span> <span class="o">=</span> <span class="p">[</span><span class="sa">r</span><span class="s1">&#39;$10^{-3}$&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$10^{-2}$&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$10^{-1}$&#39;</span><span class="p">,</span>
+               <span class="sa">r</span><span class="s1">&#39;$1$&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$10^</span><span class="si">{1}</span><span class="s1">$&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$10^</span><span class="si">{2}</span><span class="s1">$&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$10^</span><span class="si">{3}</span><span class="s1">$&#39;</span><span class="p">]</span>
+<span class="n">main_ax</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">xticks</span><span class="p">)</span>
+<span class="n">main_ax</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">xticklabels</span><span class="p">)</span>
+
+
+<span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]:</span>
+    <span class="n">axz</span> <span class="o">=</span> <span class="n">zoom_ax</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+    
+    <span class="n">zoom_flux_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">zoom_ener_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">plot_data_list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;incident&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">inci_files</span><span class="p">[</span><span class="n">idx</span><span class="p">]:</span>
+            <span class="n">color</span> <span class="o">=</span> <span class="n">cmap</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;zeta&#39;</span><span class="p">]))</span>
+            <span class="n">ener</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;ener&#39;</span><span class="p">])</span>
+            <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;eemo&#39;</span><span class="p">])</span>
+            
+            <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">ener</span> <span class="o">&gt;=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">ener</span> <span class="o">&lt;=</span> <span class="mf">10.0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                <span class="n">axz</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">ener</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">flux</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+                <span class="n">zoom_flux_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flux</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+                <span class="n">zoom_ener_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ener</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+
+    <span class="n">axz</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">zoom_flux_list</span><span class="p">:</span>
+        <span class="n">ymin</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">zoom_flux_list</span><span class="p">)</span>
+        <span class="n">ymax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">zoom_flux_list</span><span class="p">)</span>
+        <span class="n">axz</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">ymin</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">*</span> <span class="mf">1.2</span><span class="p">)</span>
+
+
+    <span class="n">axz</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span> <span class="n">labelleft</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">axz</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="s1">&#39;1–10 keV&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">axz</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+             <span class="n">va</span><span class="o">=</span><span class="s1">&#39;top&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+
+
+<span class="n">zoom_ax</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Energy [keV]&#39;</span><span class="p">)</span>
+<span class="n">zoom_ax</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="mf">1e0</span><span class="p">,</span> <span class="mf">1e1</span><span class="p">])</span>
+<span class="n">zoom_ax</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([</span><span class="sa">r</span><span class="s1">&#39;$1$&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;$10$&#39;</span><span class="p">])</span>
+<span class="n">zoom_ax</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;minor&#39;</span><span class="p">,</span> <span class="n">labelbottom</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">cbar</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">sm</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">location</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="n">shrink</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+<span class="n">cbar</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;log$\xi$&#39;</span><span class="p">)</span>
+<span class="n">cbar</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">labelsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</details>
+<figure class="align-center" id="fig-dxi">
+<a class="reference internal image-reference" href="_images/dxi.svg"><img alt="_images/dxi.svg" src="_images/dxi.svg" width="600px" /></a>
+<figcaption>
+<p><span class="caption-text">Angle-averaged reflection spectra for various ionization parameters (<span class="math notranslate nohighlight">\(\log\xi\)</span>), distinguished by color. The <code class="docutils literal notranslate"><span class="pre">nthcomp</span></code> incident spectra are obtained from <code class="docutils literal notranslate"><span class="pre">xillvercp</span></code> by setting <code class="docutils literal notranslate"><span class="pre">refl_frac</span></code> = 0 and <span class="math notranslate nohighlight">\(kT_E = 60\)</span>keV, with <span class="math notranslate nohighlight">\(\Gamma = 1.4\)</span> (top panel) and <span class="math notranslate nohighlight">\(\Gamma = 2.4\)</span> (bottom panel). Other parameters are set at their default values. The incident spectrum is shown as a black dashed line for comparison.</span><a class="headerlink" href="#fig-dxi" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="effect-of-incidence-angle">
+<h2>Effect of incidence angle<a class="headerlink" href="#effect-of-incidence-angle" title="Link to this heading">¶</a></h2>
+<p>In <code class="docutils literal notranslate"><span class="pre">DAO</span></code>, the coronal illumination field is specified by a single incidence angle. The <span class="math notranslate nohighlight">\(I_\mathrm{inc}\)</span> at the top boundary of the second-order radiative transfer equation is set to zero everywhere except at <span class="math notranslate nohighlight">\(\mu_{\mathrm{inc}}\)</span>.</p>
+<p>Since the flux is defined as the first moment of the intensity:</p>
+<div class="math notranslate nohighlight">
+\[F_x(\tau,E) = \int_0^1 u(\tau,E,\mu) \mu d\mu\]</div>
+<p>where <span class="math notranslate nohighlight">\(\mu = \cos\theta\)</span>. We adopt</p>
+<div class="math notranslate nohighlight">
+\[I = I_\mathrm{inc}\delta(\mu-\mu_\mathrm{inc})\]</div>
+<p>The incident intensity at the top boundary can then be evaluated as:</p>
+<div class="math notranslate nohighlight">
+\[
+I_{\mathrm{inc}}(E) = \frac{2F_x(E)}{\mu_{\mathrm{inc}}}
+\]</div>
+<p>In DAO, we always calculate <span class="math notranslate nohighlight">\(F_x(E)\)</span> first and then use above equation to derive <span class="math notranslate nohighlight">\(I_{\mathrm{inc}}\)</span> for the boundary condition. This relation shows that the incidence angle <span class="math notranslate nohighlight">\(\mu_{\mathrm{inc}}\)</span> directly affects the illumination intensity, which in turn influences the radiative transfer solution. Consequently, a smaller <span class="math notranslate nohighlight">\(\mu_{\mathrm{inc}}\)</span> is expected to produce higher gas temperatures and a higher degree of ionization at the surface.</p>
+<figure class="align-center" id="id2">
+<a class="reference internal image-reference" href="_images/dinci.svg"><img alt="_images/dinci.svg" src="_images/dinci.svg" width="800px" /></a>
+<figcaption>
+<p><span class="caption-text">Top row: Angle-averaged emergent intensity (left) and the corresponding temperature profiles (right), color-coded by the incidence angle <span class="math notranslate nohighlight">\(\cos\theta_\mathrm{inc}\)</span>. Bottom row: Spectral ratios relative to the <span class="math notranslate nohighlight">\(\theta_{\mathrm{inc}} = 45^\circ\)</span> case for all incidence angles. The incidence angles are sampled linearly in <span class="math notranslate nohighlight">\(\mu = \cos\theta_{\mathrm{inc}}\)</span> between 0 and 1 using 30 bins. The ionization parameter is <span class="math notranslate nohighlight">\(\log\xi = 2.0\)</span>, and the incident radiation field (black dashed line) is a cut-off power-law with <span class="math notranslate nohighlight">\(\Gamma = 2.0\)</span> and <span class="math notranslate nohighlight">\(E_\mathrm{cut} = 300~\mathrm{keV}\)</span>. The other parameters are set at their default values.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="ions-fractions">
+<h2>Ions Fractions<a class="headerlink" href="#ions-fractions" title="Link to this heading">¶</a></h2>
+<p>We will run two simulations with different ionization parameters to compare the resulting ionic fractions. The primary physical parameters are set as follows:</p>
+<ul class="simple">
+<li><p>Ionization Parameter (log<span class="math notranslate nohighlight">\(\xi\)</span>): Three separate runs are performed, one with zeta
+= 3.0 ,2.0 and 4.0.</p></li>
+<li><p>Incident Spectrum: The illumination is an <code class="docutils literal notranslate"><span class="pre">nthcomp</span></code> spectrum, with a photon index <span class="math notranslate nohighlight">\(\Gamma\)</span> = 2.0 and an electron temperature <span class="math notranslate nohighlight">\(kT_e\)</span> = 60 keV and blackbody temperture at <span class="math notranslate nohighlight">\(0.05\)</span> keV</p></li>
+</ul>
+<details>
+<summary>Click to expand plot script</summary>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span> 
+<span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">matplotlib.colors</span> <span class="k">as</span> <span class="nn">colors</span>
+<span class="kn">from</span> <span class="nn">matplotlib.ticker</span> <span class="kn">import</span> <span class="n">FixedLocator</span><span class="p">,</span> <span class="n">FixedFormatter</span>
+<span class="kn">from</span> <span class="nn">matplotlib.colors</span> <span class="kn">import</span> <span class="n">Normalize</span><span class="p">,</span><span class="n">LogNorm</span>
+<span class="kn">from</span> <span class="nn">matplotlib.cm</span> <span class="kn">import</span> <span class="n">ScalarMappable</span>
+<span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;text.usetex&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;seaborn-v0_8-ticks&#39;</span><span class="p">)</span>
+<span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;font.family&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;serif&#39;</span>
+<span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;font.serif&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Computer Modern&#39;</span>
+<span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;font.size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="n">colormap</span> <span class="o">=</span> <span class="s1">&#39;viridis&#39;</span>
+<span class="k">def</span> <span class="nf">to_roman</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts an integer to a Roman numeral string.&quot;&quot;&quot;</span>
+    <span class="n">val_syms</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="s2">&quot;X&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="s2">&quot;IX&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="s2">&quot;V&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;IV&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;I&quot;</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">roman_num</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">tens</span> <span class="o">=</span> <span class="n">num</span> <span class="o">//</span> <span class="mi">10</span>
+    <span class="n">roman_num</span> <span class="o">+=</span> <span class="s2">&quot;X&quot;</span> <span class="o">*</span> <span class="n">tens</span>
+    <span class="n">num</span> <span class="o">%=</span> <span class="mi">10</span>
+    <span class="k">for</span> <span class="n">val</span><span class="p">,</span> <span class="n">sym</span> <span class="ow">in</span> <span class="n">val_syms</span><span class="p">:</span>
+        <span class="k">while</span> <span class="n">num</span> <span class="o">&gt;=</span> <span class="n">val</span><span class="p">:</span>
+            <span class="n">roman_num</span> <span class="o">+=</span> <span class="n">sym</span>
+            <span class="n">num</span> <span class="o">-=</span> <span class="n">val</span>
+    <span class="k">return</span> <span class="n">roman_num</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;./temp_a7f0a841e1_dxi5000_abund.dat&#39;</span><span class="p">,</span><span class="n">sep</span><span class="o">=</span><span class="s2">&quot;\s+&quot;</span><span class="p">,</span><span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">200</span><span class="p">:]</span>
+<span class="n">tau</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">errors</span><span class="o">=</span><span class="s1">&#39;coerce&#39;</span><span class="p">))</span>
+<span class="n">log_tau</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span>
+<span class="n">midpoints</span> <span class="o">=</span> <span class="p">(</span><span class="n">log_tau</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">log_tau</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span> <span class="o">/</span> <span class="mf">2.0</span>
+<span class="n">first_boundary</span> <span class="o">=</span> <span class="n">log_tau</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">midpoints</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">log_tau</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">last_boundary</span> <span class="o">=</span> <span class="n">log_tau</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">log_tau</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">midpoints</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">boundaries_log</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([[</span><span class="n">first_boundary</span><span class="p">],</span> <span class="n">midpoints</span><span class="p">,</span> <span class="p">[</span><span class="n">last_boundary</span><span class="p">]])</span>
+<span class="n">tau_boundaries</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**</span><span class="n">boundaries_log</span>
+
+<span class="k">def</span> <span class="nf">loadabund</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="n">hdul</span><span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">abund</span><span class="o">=</span><span class="n">hdul</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+    <span class="k">return</span> <span class="n">abund</span>
+
+<span class="k">def</span> <span class="nf">get_ionfrac</span><span class="p">(</span><span class="n">abund</span><span class="p">,</span><span class="n">ionname</span><span class="p">):</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">abund</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">names</span> <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">ionname</span><span class="p">)]</span>
+    <span class="n">ionfrac</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">tau</span><span class="p">)))</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+        <span class="n">ionfrac</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">abund</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="n">ionfrac</span> <span class="o">/=</span> <span class="n">ionfrac</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ionfrac</span>
+
+<span class="k">def</span> <span class="nf">getinfo</span><span class="p">(</span><span class="n">abund</span><span class="p">):</span>
+    <span class="n">fefrac</span> <span class="o">=</span> <span class="n">get_ionfrac</span><span class="p">(</span><span class="n">abund</span><span class="p">,</span><span class="s1">&#39;fe_&#39;</span><span class="p">)</span>
+    <span class="n">ofrac</span> <span class="o">=</span> <span class="n">get_ionfrac</span><span class="p">(</span><span class="n">abund</span><span class="p">,</span><span class="s1">&#39;o_&#39;</span><span class="p">)</span>
+    <span class="n">cfrac</span> <span class="o">=</span> <span class="n">get_ionfrac</span><span class="p">(</span><span class="n">abund</span><span class="p">,</span><span class="s1">&#39;c_&#39;</span><span class="p">)</span>
+    <span class="n">ioninfo</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;fe&#39;</span><span class="p">:{</span>
+            <span class="s2">&quot;major_ions&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">26</span><span class="p">],</span>
+            <span class="s2">&quot;major_locs&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">ion</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="k">for</span> <span class="n">ion</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">26</span><span class="p">]],</span>
+            <span class="s2">&quot;major_labels&quot;</span><span class="p">:[</span><span class="sa">f</span><span class="s2">&quot;Fe </span><span class="si">{</span><span class="n">to_roman</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">26</span><span class="p">]]</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;o&#39;</span><span class="p">:{</span>
+            <span class="s2">&quot;major_ions&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">],</span>
+            <span class="s2">&quot;major_locs&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">ion</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="k">for</span> <span class="n">ion</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">]],</span>
+            <span class="s2">&quot;major_labels&quot;</span><span class="p">:[</span><span class="sa">f</span><span class="s2">&quot;O </span><span class="si">{</span><span class="n">to_roman</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">]]</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;c&quot;</span><span class="p">:{</span>
+            <span class="s2">&quot;major_ions&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">],</span>
+            <span class="s2">&quot;major_locs&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">ion</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="k">for</span> <span class="n">ion</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">]],</span>
+            <span class="s2">&quot;major_labels&quot;</span><span class="p">:[</span><span class="sa">f</span><span class="s2">&quot;C </span><span class="si">{</span><span class="n">to_roman</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">]]</span>
+        <span class="p">}</span>   
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">fefrac</span><span class="p">,</span><span class="n">ofrac</span><span class="p">,</span><span class="n">cfrac</span><span class="p">,</span><span class="n">ioninfo</span>
+
+
+<span class="k">def</span> <span class="nf">plotcolormap</span><span class="p">(</span><span class="n">ioninfo</span><span class="p">,</span><span class="n">ax</span><span class="p">,</span><span class="n">frac</span><span class="p">,</span><span class="n">ionname</span><span class="p">):</span>
+    <span class="n">ion_levels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">frac</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">im</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">tau_boundaries</span><span class="p">,</span> <span class="n">ion_levels</span><span class="p">,</span> <span class="n">frac</span><span class="p">,</span> 
+                    <span class="n">shading</span> <span class="o">=</span> <span class="s1">&#39;flat&#39;</span><span class="p">,</span> 
+                    <span class="n">cmap</span> <span class="o">=</span> <span class="n">colormap</span><span class="p">,</span>
+                    <span class="n">norm</span> <span class="o">=</span> <span class="n">colors</span><span class="o">.</span><span class="n">LogNorm</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">1.0</span><span class="p">))</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span>
+    
+    <span class="n">major_ions</span> <span class="o">=</span> <span class="n">ioninfo</span><span class="p">[</span><span class="n">ionname</span><span class="p">][</span><span class="s1">&#39;major_ions&#39;</span><span class="p">]</span>
+    <span class="n">major_locs</span> <span class="o">=</span> <span class="n">ioninfo</span><span class="p">[</span><span class="n">ionname</span><span class="p">][</span><span class="s1">&#39;major_locs&#39;</span><span class="p">]</span>
+    <span class="n">major_labels</span> <span class="o">=</span> <span class="n">ioninfo</span><span class="p">[</span><span class="n">ionname</span><span class="p">][</span><span class="s1">&#39;major_labels&#39;</span><span class="p">]</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_major_locator</span><span class="p">(</span><span class="n">FixedLocator</span><span class="p">(</span><span class="n">major_locs</span><span class="p">))</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_major_formatter</span><span class="p">(</span><span class="n">FixedFormatter</span><span class="p">(</span><span class="n">major_labels</span><span class="p">))</span>
+
+    <span class="n">all_ions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">frac</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">minor_locs</span> <span class="o">=</span> <span class="p">[</span><span class="n">ion</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="k">for</span> <span class="n">ion</span> <span class="ow">in</span> <span class="n">all_ions</span><span class="p">]</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_minor_locator</span><span class="p">(</span><span class="n">FixedLocator</span><span class="p">(</span><span class="n">minor_locs</span><span class="p">))</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;major&#39;</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;minor&#39;</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">im</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">9</span><span class="p">),</span><span class="n">layout</span><span class="o">=</span><span class="s2">&quot;constrained&quot;</span><span class="p">,</span><span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">supylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Ionization State&#39;</span><span class="p">)</span>
+
+<span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;abund_a7f0a841e1_dxi5000_abund.fits&#39;</span><span class="p">,</span><span class="s1">&#39;abund_0eae9aa8c6_dxi5000_abund.fits&#39;</span><span class="p">,</span><span class="s1">&#39;abund_a2cf2f5d08_dxi5000_abund.fits&#39;</span><span class="p">]</span>
+<span class="n">zetas</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;4.0&#39;</span><span class="p">,</span><span class="s1">&#39;3.0&#39;</span><span class="p">,</span><span class="s1">&#39;2.0&#39;</span><span class="p">]</span>
+
+<span class="n">cmap</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s1">&#39;viridis&#39;</span><span class="p">)</span>
+<span class="n">norm</span> <span class="o">=</span> <span class="n">LogNorm</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="n">sm</span> <span class="o">=</span> <span class="n">ScalarMappable</span><span class="p">(</span><span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="n">norm</span><span class="p">)</span>
+<span class="n">sm</span><span class="o">.</span><span class="n">set_array</span><span class="p">([])</span> 
+
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">paths</span><span class="p">):</span>
+
+    <span class="n">abund</span> <span class="o">=</span> <span class="n">loadabund</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">fefrac</span><span class="p">,</span><span class="n">ofrac</span><span class="p">,</span><span class="n">cfrac</span><span class="p">,</span><span class="n">ioninfo</span> <span class="o">=</span> <span class="n">getinfo</span><span class="p">(</span><span class="n">abund</span><span class="p">)</span>
+
+    <span class="n">plotcolormap</span><span class="p">(</span><span class="n">ioninfo</span><span class="p">,</span><span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span><span class="n">fefrac</span><span class="p">,</span><span class="s1">&#39;fe&#39;</span><span class="p">)</span>
+    <span class="n">plotcolormap</span><span class="p">(</span><span class="n">ioninfo</span><span class="p">,</span><span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span><span class="n">ofrac</span><span class="p">,</span><span class="s1">&#39;o&#39;</span><span class="p">)</span>
+    <span class="n">im</span><span class="o">=</span><span class="n">plotcolormap</span><span class="p">(</span><span class="n">ioninfo</span><span class="p">,</span><span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">2</span><span class="p">],</span><span class="n">cfrac</span><span class="p">,</span><span class="s1">&#39;c&#39;</span><span class="p">)</span>
+
+
+    <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">,</span> <span class="sa">rf</span><span class="s1">&#39;log$\xi$ = </span><span class="si">{</span><span class="n">zetas</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="n">verticalalignment</span><span class="o">=</span><span class="s1">&#39;top&#39;</span><span class="p">,</span> <span class="n">horizontalalignment</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">i</span><span class="o">==</span><span class="nb">len</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$\tau_</span><span class="si">{T}</span><span class="s2">$&quot;</span><span class="p">)</span>
+
+
+<span class="n">cbar</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">orientation</span><span class="o">=</span><span class="s1">&#39;horizontal&#39;</span><span class="p">,</span> 
+                    <span class="n">aspect</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.04</span><span class="p">)</span>
+<span class="n">cbar</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s2">&quot;Ionization Fraction&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</details>
+<figure class="align-center" id="fig-abund">
+<a class="reference internal image-reference" href="_images/abund.svg"><img alt="_images/abund.svg" src="_images/abund.svg" width="800px" /></a>
+<figcaption>
+<p><span class="caption-text">Ionic fractions of iron (Fe), oxygen (O), and carbon (C) as a function of Thomson optical depth for three different ionization parameters: <span class="math notranslate nohighlight">\(\log\xi = 4.0\)</span> (top row), <span class="math notranslate nohighlight">\(\log\xi = 3.0\)</span> (middle row), and <span class="math notranslate nohighlight">\(\log\xi = 2.0\)</span> (bottom row). The other parameters are the same as in Figure~\ref{fig:xivstau}.</span><a class="headerlink" href="#fig-abund" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="heating-and-cooling-rate">
+<h2>Heating and cooling rate<a class="headerlink" href="#heating-and-cooling-rate" title="Link to this heading">¶</a></h2>
+<p>we compare reflection spectra for hydrogen densities of 10<span class="math notranslate nohighlight">\(^{15}\)</span>, 10<span class="math notranslate nohighlight">\(^{16}\)</span>, and 10<span class="math notranslate nohighlight">\(^{17}\)</span> cm<span class="math notranslate nohighlight">\(^{-3}\)</span> under <code class="docutils literal notranslate"><span class="pre">nthcomp</span></code> illumination. Other parameters are set at their default values.</p>
+<details>
+<summary>Click to expand plot script</summary>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span> 
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span> 
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span> 
+<span class="kn">from</span> <span class="nn">rdata</span> <span class="kn">import</span> <span class="n">read_spec</span><span class="p">,</span><span class="n">read_spec2</span><span class="p">,</span><span class="n">read_temp</span><span class="p">,</span><span class="n">read_spec5000</span><span class="p">,</span><span class="n">readabund</span>
+<span class="kn">from</span> <span class="nn">matplotlib.colors</span> <span class="kn">import</span> <span class="n">Normalize</span>
+<span class="kn">from</span> <span class="nn">matplotlib.cm</span> <span class="kn">import</span> <span class="n">ScalarMappable</span>
+<span class="kn">import</span> <span class="nn">matplotlib.cm</span> <span class="k">as</span> <span class="nn">cm</span>
+<span class="kn">import</span> <span class="nn">matplotlib.colors</span> <span class="k">as</span> <span class="nn">mcolors</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">time</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="k">def</span> <span class="nf">fix_scientific</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="s1">&#39;-&#39;</span> <span class="ow">in</span> <span class="n">x</span> <span class="ow">and</span> <span class="s1">&#39;E&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x</span> <span class="ow">and</span> <span class="s1">&#39;e&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="ow">and</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">isdigit</span><span class="p">():</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;e-&#39;</span> <span class="o">+</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    
+<span class="k">def</span> <span class="nf">convert_filepath</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+  <span class="n">new_filepath</span> <span class="o">=</span> <span class="n">filepath</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;spec_&#39;</span><span class="p">,</span> <span class="s1">&#39;abund_&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.dat&#39;</span><span class="p">,</span> <span class="s1">&#39;.fits&#39;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">new_filepath</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;seaborn-v0_8-ticks&#39;</span><span class="p">)</span>
+<span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;text.usetex&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;text.latex.preamble&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;\usepackage</span><span class="si">{mathptmx}</span><span class="s1">&#39;</span> 
+<span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;font.family&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;serif&#39;</span>
+
+<span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;font.size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">20</span>
+
+<span class="n">ERGSEV</span> <span class="o">=</span> <span class="mf">1.60217662e-12</span> 
+<span class="n">METADATA_DIR</span> <span class="o">=</span> <span class="s1">&#39;metadata&#39;</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">METADATA_DIR</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;元数据目录 &#39;</span><span class="si">{</span><span class="n">METADATA_DIR</span><span class="si">}</span><span class="s2">&#39; 不存在。&quot;</span><span class="p">)</span>
+<span class="n">datas</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">METADATA_DIR</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">normtopflux</span><span class="p">(</span><span class="n">nh</span><span class="p">,</span><span class="n">flux</span><span class="p">):</span>
+    <span class="n">factor</span> <span class="o">=</span> <span class="mf">1e15</span><span class="o">/</span><span class="n">nh</span>
+    <span class="k">return</span> <span class="n">flux</span><span class="o">*</span><span class="n">factor</span>
+
+<span class="k">def</span> <span class="nf">normhc</span><span class="p">(</span><span class="n">nh</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="n">factor</span> <span class="o">=</span> <span class="p">(</span><span class="n">nh</span><span class="o">/</span><span class="mf">1e15</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+    <span class="n">data</span><span class="o">/=</span><span class="n">factor</span>
+    <span class="k">return</span> <span class="n">data</span>
+
+<span class="n">plot_data_list</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">data_filename</span> <span class="ow">in</span> <span class="n">datas</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">METADATA_DIR</span><span class="p">,</span> <span class="n">data_filename</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;parameters&#39;</span><span class="p">]</span>
+            
+            <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;diy_tag&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;DNHX&#39;</span> <span class="ow">and</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;nh&#39;</span><span class="p">])</span><span class="o">!=</span><span class="mf">1e21</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>    
+                    <span class="n">specfile</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;op_spec&#39;</span><span class="p">]</span>
+                    <span class="n">abundfile</span> <span class="o">=</span> <span class="n">convert_filepath</span><span class="p">(</span><span class="n">specfile</span><span class="p">)</span>
+                    <span class="n">tempfile</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;op_temp&#39;</span><span class="p">]</span>
+
+                    <span class="n">nh</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;nh&#39;</span><span class="p">])</span>
+                    
+                    <span class="c1"># read out spec</span>
+                    <span class="n">ener</span><span class="p">,</span><span class="n">top</span><span class="p">,</span><span class="n">bot</span><span class="p">,</span><span class="n">inte</span><span class="p">,</span><span class="n">flux</span> <span class="o">=</span> <span class="n">read_spec5000</span><span class="p">(</span><span class="n">specfile</span><span class="p">)</span>
+
+                    <span class="c1"># norm flux</span>
+                    <span class="n">flux</span> <span class="o">=</span> <span class="n">normtopflux</span><span class="p">(</span><span class="n">nh</span><span class="p">,</span><span class="n">flux</span><span class="p">)</span>
+                    
+                    <span class="c1"># read temperature</span>
+                    <span class="n">tau</span><span class="p">,</span><span class="n">temp</span> <span class="o">=</span> <span class="n">read_temp</span><span class="p">(</span><span class="n">tempfile</span><span class="p">)</span>
+
+                    <span class="c1"># read heating-cooling</span>
+                    <span class="n">comh</span><span class="p">,</span><span class="n">comc</span><span class="p">,</span><span class="n">brec</span><span class="p">,</span><span class="n">toth</span><span class="p">,</span><span class="n">totc</span> <span class="o">=</span> <span class="n">readabund</span><span class="p">(</span><span class="n">abundfile</span><span class="p">)</span>
+                    <span class="n">comh</span> <span class="o">=</span> <span class="n">normhc</span><span class="p">(</span><span class="n">nh</span><span class="p">,</span><span class="n">comh</span><span class="p">)</span>
+                    <span class="n">comc</span> <span class="o">=</span> <span class="n">normhc</span><span class="p">(</span><span class="n">nh</span><span class="p">,</span><span class="n">comc</span><span class="p">)</span>
+                    <span class="n">brec</span> <span class="o">=</span> <span class="n">normhc</span><span class="p">(</span><span class="n">nh</span><span class="p">,</span><span class="n">brec</span><span class="p">)</span>
+                    <span class="n">toth</span> <span class="o">=</span> <span class="n">normhc</span><span class="p">(</span><span class="n">nh</span><span class="p">,</span><span class="n">toth</span><span class="p">)</span>
+                    <span class="n">totc</span> <span class="o">=</span> <span class="n">normhc</span><span class="p">(</span><span class="n">nh</span><span class="p">,</span><span class="n">totc</span><span class="p">)</span>
+   
+                    <span class="n">task_info</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s1">&#39;ener&#39;</span><span class="p">:</span> <span class="n">ener</span><span class="p">,</span> 
+                        <span class="s1">&#39;eemo&#39;</span><span class="p">:</span> <span class="n">flux</span><span class="p">,</span>
+                        <span class="s1">&#39;tau&#39;</span> <span class="p">:</span> <span class="n">tau</span><span class="p">,</span>
+                        <span class="s1">&#39;temp&#39;</span><span class="p">:</span> <span class="n">temp</span><span class="p">,</span>
+                        <span class="s1">&#39;top&#39;</span><span class="p">:</span> <span class="n">top</span><span class="p">,</span>
+                        <span class="s1">&#39;nh&#39;</span> <span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;nh&#39;</span><span class="p">]),</span>
+                        <span class="s1">&#39;compton heating&#39;</span><span class="p">:</span><span class="n">comh</span><span class="p">,</span>
+                        <span class="s1">&#39;compton cooling&#39;</span><span class="p">:</span><span class="n">comc</span><span class="p">,</span>
+                        <span class="s1">&#39;brems cooling&#39;</span><span class="p">:</span><span class="n">brec</span><span class="p">,</span>
+                        <span class="s1">&#39;total heating&#39;</span><span class="p">:</span><span class="n">toth</span><span class="p">,</span>
+                        <span class="s1">&#39;total cooling&#39;</span><span class="p">:</span><span class="n">totc</span>
+                    <span class="p">}</span>
+                    <span class="n">plot_data_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">task_info</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;fail </span><span class="si">{</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;op_spec&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">continue</span>      
+        <span class="k">except</span> <span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Warning: skip </span><span class="si">{</span><span class="n">data_filename</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">plot_data_list</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error: no &#39;diy_tag &quot;</span><span class="p">)</span>
+    <span class="n">exit</span><span class="p">()</span>
+<span class="n">plot_data_list</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;nh&#39;</span><span class="p">])</span>
+<span class="n">nh_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;nh&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">plot_data_list</span><span class="p">]))</span>
+
+<span class="n">cmap</span> <span class="o">=</span> <span class="n">cm</span><span class="o">.</span><span class="n">viridis</span>   
+<span class="n">norm</span> <span class="o">=</span> <span class="n">mcolors</span><span class="o">.</span><span class="n">LogNorm</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="n">nh_values</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">vmax</span><span class="o">=</span><span class="n">nh_values</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+<span class="n">model_colors</span> <span class="o">=</span> <span class="p">{</span><span class="n">d</span><span class="p">:</span> <span class="n">mcolors</span><span class="o">.</span><span class="n">to_hex</span><span class="p">(</span><span class="n">cmap</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">d</span><span class="p">)))</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">nh_values</span><span class="p">}</span>
+
+<span class="n">labels</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mf">1e15</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;logn$_h$=15&#39;</span><span class="p">,</span>
+    <span class="mf">1e16</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;logn$_h$=16&#39;</span><span class="p">,</span>
+    <span class="mf">1e17</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;logn$_h$=17&#39;</span><span class="p">,</span>
+    <span class="mf">1e18</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;logn$_h$=18&#39;</span><span class="p">,</span>
+    <span class="mf">1e19</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;logn$_h$=19&#39;</span><span class="p">,</span>
+    <span class="mf">1e20</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;logn$_h$=20&#39;</span><span class="p">,</span>
+    <span class="mf">1e21</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;logn$_h$=21&#39;</span><span class="p">,</span>
+    <span class="mf">1e22</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;logn$_h$=22&#39;</span>
+<span class="p">}</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span>
+    <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> 
+    <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">3.4</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">),</span>
+    <span class="n">constrained_layout</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+
+<span class="n">lw</span> <span class="o">=</span> <span class="mf">2.0</span>
+
+<span class="n">traget_inci</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="mi">45</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">plot_data_list</span><span class="p">):</span>
+    <span class="n">color</span> <span class="o">=</span> <span class="n">model_colors</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;nh&#39;</span><span class="p">])]</span>
+    <span class="n">label</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;nh&#39;</span><span class="p">]]</span>
+    <span class="n">energ</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;ener&#39;</span><span class="p">]</span>
+    <span class="n">flux</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;eemo&#39;</span><span class="p">]</span>
+    <span class="n">top</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;top&#39;</span><span class="p">]</span>
+    <span class="n">tau</span><span class="o">=</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;tau&#39;</span><span class="p">]</span>
+    <span class="n">temp</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;temp&#39;</span><span class="p">]</span>
+
+    <span class="n">comh</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;compton heating&#39;</span><span class="p">]</span>
+    <span class="n">comc</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;compton cooling&#39;</span><span class="p">]</span>
+    <span class="n">brec</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;brems cooling&#39;</span><span class="p">]</span>
+    <span class="n">toth</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;total heating&#39;</span><span class="p">]</span>
+    <span class="n">totc</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;total cooling&#39;</span><span class="p">]</span>
+
+    <span class="c1"># if i==0:</span>
+    <span class="c1">#     ax[0].loglog(ener, top, color=&#39;k&#39;,lw=lw,linestyle=&#39;--&#39;)</span>
+
+    <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">tau</span><span class="p">,</span> <span class="n">comh</span> <span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">tau</span><span class="p">,</span> <span class="n">comc</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span><span class="n">lw</span><span class="o">=</span><span class="n">lw</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+
+
+
+<span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Rate&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mf">1e3</span><span class="p">,</span><span class="mf">1e7</span><span class="p">)</span>
+<span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="mf">0.001</span><span class="p">,</span><span class="mf">0.01</span><span class="p">,</span><span class="mf">0.1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">10</span><span class="p">])</span>
+<span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([</span><span class="s1">&#39;0.001&#39;</span><span class="p">,</span><span class="s1">&#39;0.01&#39;</span><span class="p">,</span><span class="s1">&#39;0.1&#39;</span><span class="p">,</span><span class="s1">&#39;1&#39;</span><span class="p">,</span><span class="s1">&#39;10&#39;</span><span class="p">])</span>
+<span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Thomson depth $\tau_T$&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="sa">rf</span><span class="s1">&#39;Compton Heating&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="n">verticalalignment</span><span class="o">=</span><span class="s1">&#39;top&#39;</span><span class="p">,</span> <span class="n">horizontalalignment</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+
+<span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Rate&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">,</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="mf">0.001</span><span class="p">,</span><span class="mf">0.01</span><span class="p">,</span><span class="mf">0.1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">10</span><span class="p">])</span>
+<span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([</span><span class="s1">&#39;0.001&#39;</span><span class="p">,</span><span class="s1">&#39;0.01&#39;</span><span class="p">,</span><span class="s1">&#39;0.1&#39;</span><span class="p">,</span><span class="s1">&#39;1&#39;</span><span class="p">,</span><span class="s1">&#39;10&#39;</span><span class="p">])</span>
+<span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="mi">3</span><span class="p">,</span><span class="mf">1e7</span><span class="p">)</span>
+<span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="sa">rf</span><span class="s1">&#39;Compton Cooling&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="n">verticalalignment</span><span class="o">=</span><span class="s1">&#39;top&#39;</span><span class="p">,</span> <span class="n">horizontalalignment</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Thomson depth $\tau_T$&quot;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</details>
+<figure class="align-center" id="fig-comhc">
+<a class="reference internal image-reference" href="_images/comhc.svg"><img alt="_images/comhc.svg" src="_images/comhc.svg" width="600px" /></a>
+<figcaption>
+<p><span class="caption-text">Compton heating and cooling rates</span><a class="headerlink" href="#fig-comhc" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="fig-piff">
+<a class="reference internal image-reference" href="_images/PIff.svg"><img alt="_images/PIff.svg" src="_images/PIff.svg" width="600px" /></a>
+<figcaption>
+<p><span class="caption-text">Photoionization and bremsstrahlung heating rates, along with the bremsstrahlung cooling rate.</span><a class="headerlink" href="#fig-piff" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="OuputFiles.html" class="btn btn-neutral float-left" title="Output Files" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="theory.html" class="btn btn-neutral float-right" title="Theory" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yimin Huang.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

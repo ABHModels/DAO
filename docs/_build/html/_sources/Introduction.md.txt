@@ -16,6 +16,6 @@ After you have installed, we recommend the following steps to get started with `
 
 2. Review the [Model Input Parameters](InputParameters) and [Output Files](outputfile) sections for detailed specifications.
 
-3. Utilize [Python scripts](runcodewithpython) to manage your workflow.
+3. Utilize [Python scripts](runcodewithpython) to manage your workflow and see [Example](example) for more details practices.
 
 4. For a detailed description of the physics and mathematics behind DAO, please refer to the [Theory](theory) section.
