@@ -58,6 +58,8 @@ Important Data Requirements: Before running the model, you must download or prep
 
 * Compton Redistribution File: Pre-calculated redistribution functions.
 
-⚠️ Critical Note: The energy grid used in the Compton redistribution file must match the energy grid defined in your simulation parameters.
+``` Note
+⚠️ Critical Note: The energy grid used in the Compton redistribution file must match the energy grid defined in your simulation parameters. You can download the atomdata base and redistribution function (500 energy bins) from [Zenodo](https://doi.org/10.5281/zenodo.17845422).
+```
 
-For a step-by-step tutorial on running your first simulation, please refer to the Quick Start Guide in our documentation.
+For a step-by-step tutorial on running your first simulation, please refer to the [Quick Start Guide](https://dao.readthedocs.io/en/latest/QuickStart.html#) in our documentation.
