@@ -3,7 +3,7 @@
 
 ## Summary
 
-Here we list the input parameters summary. We use the example in [Sample Output](sampleoutput)
+Here we list the output files summary. We use the example in [Sample Output](sampleoutput)
 | File Name | description |
 | :---      | :-------- |
 |`[out/User_Guide/spec_b912ee2e38_User_Guide.dat](spec.dat)`|energy, top illumination, bottom illumination and angle averaged intensity at top and bottom layer|

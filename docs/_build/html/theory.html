@@ -56,6 +56,16 @@
 <li class="toctree-l3"><a class="reference internal" href="#boundary-condition">Boundary condition</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#compton-scattering">Compton scattering</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#exact-redistribution">Exact redistribution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gaussian-redistribution-function">Gaussian redistribution function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cross-section">Cross section</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#normalization-of-redistribution-functions">Normalization of Redistribution Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scattered-radiation-field">Scattered radiation field</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#atom-physics">Atom Physics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#algorithm">Algorithm</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="version.html">Version</a></li>
@@ -96,13 +106,13 @@
 \]</div>
 <p>where <span class="math notranslate nohighlight">\(z\)</span>, <span class="math notranslate nohighlight">\(\mu\)</span>, and <span class="math notranslate nohighlight">\(\nu\)</span> denote the specific depth, angle cosine, and frequency (or energy), respectively. Here, <span class="math notranslate nohighlight">\(I\)</span> is the specific intensity, <span class="math notranslate nohighlight">\(\chi\)</span> is the opacity, and <span class="math notranslate nohighlight">\(\eta\)</span> is the emissivity. Photons traveling through the plasma interact with various elements, resulting in absorption and emission.</p>
 <p>Leveraging the sophisticated architecture of <code class="docutils literal notranslate"><span class="pre">XSTAR</span></code>, <code class="docutils literal notranslate"><span class="pre">DAO</span></code> accounts for a comprehensive range of atomic physics. It includes nearly all relevant processes, such as free-free, bound-free, three-body recombination, collisional excitation, and radiative recombination. These processes determine the opacity and emissivity terms in the radiative transfer equation, with Compton scattering being treated as a distinct component.</p>
-<p>When constructing the model, it is convenient to represent this equation using optical depth, defined as <span class="math notranslate nohighlight">\(d\tau(E) = \chi(E)dz\)</span>. Consequently, Eq. {eq}eq-rte can be rewritten as:</p>
+<p>When constructing the model, it is convenient to represent this equation using optical depth, defined as <span class="math notranslate nohighlight">\(d\tau(E) = \chi(E)dz\)</span>. Consequently, transfer equation can be rewritten as:</p>
 <div class="math notranslate nohighlight">
 \[
 \mu \frac{\partial I(\tau_T,\mu,\nu)}{\partial \tau(\nu)} = I(\tau_T,\mu,\nu) - S(\tau_T,\mu,\nu)
 \]</div>
 <p>(Note: We omit the explicit dependence on optical depth for brevity).</p>
-<p>It is important to note that in Eq. <code class="xref eq docutils literal notranslate"><span class="pre">eq-rte-tau</span></code>, the radiation field depends on the Thomson optical depth <span class="math notranslate nohighlight">\(\tau_T\)</span> (where <span class="math notranslate nohighlight">\(d\tau_T = n_e\sigma_T dz\)</span>), rather than the frequency-dependent optical depth <span class="math notranslate nohighlight">\(\tau\)</span>. We adopt this convention because the model calculations are performed on a fixed depth grid, and <span class="math notranslate nohighlight">\(\tau_T\)</span> provides the most stable reference for determining these grid points. Similar approaches are found in other radiative transfer models, such as <code class="docutils literal notranslate"><span class="pre">reflionx</span></code>.There are various methods to solve the radiative transfer equation, including approximate, direct, and iterative methods. Considering both accuracy and computational efficiency, we employ the Lambda-iteration method combined with the Feautrier method (hereafter FTM).</p>
+<p>The radiation field depends on the Thomson optical depth <span class="math notranslate nohighlight">\(\tau_T\)</span> (where <span class="math notranslate nohighlight">\(d\tau_T = n_e\sigma_T dz\)</span>), rather than the frequency-dependent optical depth <span class="math notranslate nohighlight">\(\tau\)</span>. We adopt this convention because the model calculations are performed on a fixed depth grid, and <span class="math notranslate nohighlight">\(\tau_T\)</span> provides the most stable reference for determining these grid points. Similar approaches are found in other radiative transfer models, such as <code class="docutils literal notranslate"><span class="pre">reflionx</span></code>.There are various methods to solve the radiative transfer equation, including approximate, direct, and iterative methods. Considering both accuracy and computational efficiency, we employ the Lambda-iteration method combined with the Feautrier method (hereafter FTM).</p>
 <section id="feautrier-method">
 <h3>Feautrier Method<a class="headerlink" href="#feautrier-method" title="Link to this heading">¶</a></h3>
 <p>FTM is based on second order of radiative transfer equation. First if we consider symmetric and antisymmetric averages of the specific intensity at frequency <span class="math notranslate nohighlight">\(\nu\)</span> propagating along a ray in the <span class="math notranslate nohighlight">\(\pm\mu\)</span> direction are</p>
@@ -160,7 +170,7 @@
 B_1u_1 -C_1u_{2} = L_1\\
 -A_{n_\tau} u_{{n_\tau-1}} + B_{n_\tau}u_{n_\tau} = L_{n_\tau}
 \end{split}\]</div>
-<p>where A,B,C,L are diagonal in the problem we considering. Equation \ref{eq:tridiagonal}-\ref{eq:tridiagonal_bot} could be solved by forward-elimination and back-substitution procedure. Once it’s been solved, the new radiation field will been scattered and update the source function, which named <span class="math notranslate nohighlight">\(\Lambda\)</span>-iteration.</p>
+<p>where A,B,C,L are diagonal in the problem we considering. Equations above could be solved by forward-elimination and back-substitution procedure. Once it’s been solved, the new radiation field will been scattered and update the source function, which named <span class="math notranslate nohighlight">\(\Lambda\)</span>-iteration.</p>
 <p>The complete iterative procedure is summarized as follows:</p>
 <ul class="simple">
 <li><p>Obtain the initial estimates of the emissivity and absorption coefficients using a naive radiation field.</p></li>
@@ -179,11 +189,11 @@ E_\tau\!\left[\int \frac{S_n(E)-S_{n-1}(E)}{S_{n-1}(E)}\,dE\right] &lt; \varepsi
 \[
 \mathbf{T}\cdot \mathbf{x} = \mathbf{b}
 \]</div>
-<p>In general, <span class="math notranslate nohighlight">\(\mathbf{T}\)</span> is a full matrix, while <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> and <span class="math notranslate nohighlight">\(\mathbf{b}\)</span> are vectors. When the complete redistribution function <span class="math notranslate nohighlight">\(R_{\nu,\nu'}\)</span> is considered, the problem becomes considerably more complex, as a <span class="math notranslate nohighlight">\(200\times5000\times5000\)</span> matrix is introduced. At each depth point, computing the inverse of a <span class="math notranslate nohighlight">\(5000\times5000\)</span> matrix would be necessary, scaling with a computational complexity of <span class="math notranslate nohighlight">\(O(n^3)\)</span>. In contrast, the method implemented in DAO scales linearly with <span class="math notranslate nohighlight">\(O(n)\)</span> complexity, although it requires more iterations to achieve convergence.</p>
+<p>In general, <span class="math notranslate nohighlight">\(\mathbf{T}\)</span> is a full matrix, while <span class="math notranslate nohighlight">\(\mathbf{x}\)</span> and <span class="math notranslate nohighlight">\(\mathbf{b}\)</span> are vectors. When the complete redistribution function <span class="math notranslate nohighlight">\(R_{\nu,\nu'}\)</span> is considered, the problem becomes considerably more complex, as a <span class="math notranslate nohighlight">\(200\times5000\times5000\)</span> matrix is introduced. At each depth point, computing the inverse of a <span class="math notranslate nohighlight">\(5000\times5000\)</span> matrix would be necessary, scaling with a computational complexity of <span class="math notranslate nohighlight">\(O(n^3)\)</span>. In contrast, the method implemented in <code class="docutils literal notranslate"><span class="pre">DAO</span></code> scales linearly with <span class="math notranslate nohighlight">\(O(n)\)</span> complexity, although it requires more iterations to achieve convergence.</p>
 </section>
 <section id="boundary-condition">
 <h3>Boundary condition<a class="headerlink" href="#boundary-condition" title="Link to this heading">¶</a></h3>
-<p>It should be emphasized that the second-order radiative transfer equation (Eq.~\ref{eq:second-order rte}) requires the specification of the intensity as a boundary condition.
+<p>Second-order radiative transfer equation requires the specification of the intensity as a boundary condition.
 For the upper surface, the boundary condition can be obtained from the first moment of the radiation field:</p>
 <div class="math notranslate nohighlight">
 \[
@@ -201,6 +211,151 @@ I_\mathrm{inc}(E) = \frac{2F(E)}{\mu_\mathrm{inc}}.
     I_\mathrm{bot}(E,\mu) = B(E) + \mu \frac{\partial B}{\partial \tau}_{\tau=\tau_\mathrm{max}}
 \]</div>
 </section>
+</section>
+<section id="compton-scattering">
+<h2>Compton scattering<a class="headerlink" href="#compton-scattering" title="Link to this heading">¶</a></h2>
+<p>Essentially, Compton scattering is a stochastic process that alters both the propagation
+direction and the energy of photons, and it should be described using the exact quantum
+mechanical formalism. In addition, in high temperature gas, motion of relativistic elec-
+trons follow the Maxwellian distribution, which need to be taken into account in complete
+redistribution function.</p>
+<p>Historically, many authors had investigated such unpolarized and quantum mechanism  scattering redistribution function:  incorporated the relativistic Maxwellian velocity distribution for electrons into the redistribution function, but a computational error was present in the original paper. Subsequently, <span id="id4">Nagirner and Poutanen [<a class="reference internal" href="index.html#id13" title="D. I. Nagirner and Yu. J. Poutanen. Compton scattering by Maxwellian electrons - Redistribution of radiation according to frequencies and directions. Astronomy Letters, 19(7):262-267, July 1993.">1993</a>], Poutanen and Svensson [<a class="reference internal" href="index.html#id63" title="Juri Poutanen and Roland Svensson. The Two-Phase Pair Corona Model for Active Galactic Nuclei and X-Ray Binaries: How to Obtain Exact Solutions. \apj , 470:249, October 1996. arXiv:astro-ph/9605073, doi:10.1086/177865.">1996</a>], Poutanen and Vurm [<a class="reference internal" href="index.html#id77" title="Juri Poutanen and Indrek Vurm. Theory of Compton Scattering by Anisotropic Electrons. \apjs , 189(2):286-308, August 2010. arXiv:1006.2397, doi:10.1088/0067-0049/189/2/286.">2010</a>]</span> investigated the  redistribution function between photons and relativistic electrons using quantum electrodynamical methods. Later, <span id="id5">Madej <em>et al.</em> [<a class="reference internal" href="index.html#id58" title="J. Madej, A. Różańska, A. Majczyna, and M. Należyty. On the Compton scattering redistribution function in plasma. \mnras , 469(2):2032-2041, August 2017. arXiv:1602.05088, doi:10.1093/mnras/stx994.">2017</a>]</span> corrected the earlier error of Guilbert and demonstrated consistency among these methods. Recently, <span id="id6">García <em>et al.</em> [<a class="reference internal" href="index.html#id10" title="Javier A. García, Ekaterina Sokolova-Lapa, Thomas Dauser, Jerzy Madej, Agata Różańska, Agnieszka Majczyna, Fiona A. Harrison, and Jörn Wilms. Accurate Treatment of Comptonization in X-Ray Illuminated Accretion Disks. \apj , 897(1):67, July 2020. arXiv:2005.04852, doi:10.3847/1538-4357/ab919b.">2020</a>]</span> showed the large difference between exactly redistribution function and Gaussian-approximated. The former is derived from <span id="id7">Nagirner and Poutanen [<a class="reference internal" href="index.html#id13" title="D. I. Nagirner and Yu. J. Poutanen. Compton scattering by Maxwellian electrons - Redistribution of radiation according to frequencies and directions. Astronomy Letters, 19(7):262-267, July 1993.">1993</a>]</span> and the later is been widely use in reflection model <span id="id8">Ross and Fabian [<a class="reference internal" href="index.html#id50" title="R. R. Ross and A. C. Fabian. A comprehensive range of X-ray ionized-reflection models. \mnras , 358(1):211-216, March 2005. arXiv:astro-ph/0501116, doi:10.1111/j.1365-2966.2005.08797.x.">2005</a>], Ross <em>et al.</em> [<a class="reference internal" href="index.html#id12" title="R. R. Ross, R. Weaver, and R. McCray. The Comptonization of iron X-ray features in compact X-ray sources. \apj , 219:292-299, January 1978. doi:10.1086/155776.">1978</a>], Nayakshin <em>et al.</em> [<a class="reference internal" href="index.html#id56" title="Sergei Nayakshin, Demosthenes Kazanas, and Timothy R. Kallman. Thermal Instability and Photoionized X-Ray Reflection in Accretion Disks. \apj , 537(2):833-852, July 2000. arXiv:astro-ph/9909359, doi:10.1086/309054.">2000</a>]</span>.</p>
+<p>In <code class="docutils literal notranslate"><span class="pre">DAO</span></code> model, the python parameter <code class="docutils literal notranslate"><span class="pre">kernelpath</span></code> (<code class="docutils literal notranslate"><span class="pre">rfcomp_file</span></code> in fortran) allow user to set any type of redistribution function they want. Considering dependence of accuracy for physic probelm, we highly recommend user generate the exact redistribution function by using script in <code class="docutils literal notranslate"><span class="pre">get_redistribuion</span></code>, where we use the code of <code class="docutils literal notranslate"><span class="pre">2020ApJ...897...67G</span></code> to calculate the second-order exact redistribution function as described in <code class="docutils literal notranslate"><span class="pre">1993AstL...19..262N</span></code> and use formula which described in <code class="docutils literal notranslate"><span class="pre">1978ApJ...219..292R</span></code> to caculate the Guassian redistribution function. The calculation routine as follows:</p>
+<section id="exact-redistribution">
+<h3>Exact redistribution<a class="headerlink" href="#exact-redistribution" title="Link to this heading">¶</a></h3>
+<div class="math notranslate nohighlight">
+\[
+R_E(x,x_1,\mu,\gamma)= \frac{2}{Q} + \frac{u}{v} \left(1-\frac{2}{q}\right) + u \frac{(u^2-Q^2)(u^2+5v)}{2q^2v^3}+u\frac{Q^2}{q^2 v^2},
+\]</div>
+<p>with <span class="math notranslate nohighlight">\(x\)</span> and <span class="math notranslate nohighlight">\(x_1\)</span> the dimensionless photon energies before and after scattering, respectively, <span class="math notranslate nohighlight">\(\mu\)</span> is the cosine of the scattering angle, and <span class="math notranslate nohighlight">\(\gamma\)</span> represents electron Lorentz factor. Here, <span class="math notranslate nohighlight">\(q = xx_1 (1-\mu)\)</span> and <span class="math notranslate nohighlight">\(Q^2=(x-x_1)^2+2q\)</span>, while</p>
+<div class="math notranslate nohighlight">
+\[
+a_-^2 = (\gamma-x)^2 + \frac{1+\mu}{1-\mu}, \qquad
+a_+^2 = (\gamma+x_1)^2 + \frac{1+\mu}{1-\mu}
+\]</div>
+<div class="math notranslate nohighlight">
+\[
+v = a_-a_+, \qquad
+u = a_+ - a_-
+\]</div>
+<p>The redistribution function averaged over a relativistic Maxwellian distribution is</p>
+<div class="math notranslate nohighlight">
+\[
+R(x,x_1,\mu) = \frac{3}{32\mu\Theta K_2(1/\Theta)}\int _{\left(x-x_1+Q\sqrt{1+2/q}\right)/2}^\infty R(x,x_1,\mu,\gamma)\exp(-\gamma/\Theta)d\gamma
+\]</div>
+<p>where <span class="math notranslate nohighlight">\(K_2\)</span> is the modified Bessel function of the second kind and <span class="math notranslate nohighlight">\(\Theta=kT/m_ec^2\)</span>. Currently we use angle-averaged redistribution so the resulting function is</p>
+<div class="math notranslate nohighlight">
+\[
+    R(x,x_1) = \int_{\mu_{\mathrm{min}}}^{\mu_\mathrm{max}}R(x,x_1,\mu)d\mu
+\]</div>
+</section>
+<section id="gaussian-redistribution-function">
+<h3>Gaussian redistribution function<a class="headerlink" href="#gaussian-redistribution-function" title="Link to this heading">¶</a></h3>
+<div class="math notranslate nohighlight">
+\[
+P(E_i,E_f) = \frac{1}{\sqrt{2\pi}\Sigma}
+\exp\left[-\frac{(E_f-E_c)^2}{2\Sigma^2}\right]
+\]</div>
+<p>with central energy <span class="math notranslate nohighlight">\(E_c\)</span> and standard deviation <span class="math notranslate nohighlight">\(\Sigma\)</span> defined as</p>
+<div class="math notranslate nohighlight">
+\[
+E_c = E_i\left(1 + \frac{4kT}{m_ec^2} - \frac{E_i}{m_ec^2}\right)
+\]</div>
+<div class="math notranslate nohighlight">
+\[
+\Sigma = E_i\left[\frac{2kT}{m_ec^2} + \frac{2}{5}\left(\frac{E_i}{m_ec^2}\right)^2\right]^{1/2}
+\]</div>
+<figure class="align-center" id="fig-kernel">
+<a class="reference internal image-reference" href="_images/kernel.svg"><img alt="_images/kernel.svg" src="_images/kernel.svg" width="100%" /></a>
+<figcaption>
+<p><span class="caption-text">Gaussian (red dash line) and Exact redistribution (orange solid line) function with three initial energy: E<span class="math notranslate nohighlight">\(_i\)</span> = 1, 10, 100 keV and three different gas temperature: 10<span class="math notranslate nohighlight">\(^7\)</span>, 10<span class="math notranslate nohighlight">\(^8\)</span>, 10<span class="math notranslate nohighlight">\(^9\)</span> K.</span><a class="headerlink" href="#fig-kernel" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>In the Figure above, we shows the large deviation between exactly redistribution function and Gaussian-approximated function when gas temperature is high and photons have large energy. Same results have been reported in <span id="id9">García <em>et al.</em> [<a class="reference internal" href="index.html#id10" title="Javier A. García, Ekaterina Sokolova-Lapa, Thomas Dauser, Jerzy Madej, Agata Różańska, Agnieszka Majczyna, Fiona A. Harrison, and Jörn Wilms. Accurate Treatment of Comptonization in X-Ray Illuminated Accretion Disks. \apj , 897(1):67, July 2020. arXiv:2005.04852, doi:10.3847/1538-4357/ab919b.">2020</a>]</span>. We show here just for convenient for readers to see differences.</p>
+</section>
+<section id="cross-section">
+<h3>Cross section<a class="headerlink" href="#cross-section" title="Link to this heading">¶</a></h3>
+<p>Klein-Nishina cross section is usually used in non-relativistic scattering process, where</p>
+<div class="math notranslate nohighlight">
+\[
+    \sigma(x) = \sigma_T \frac{3}{4}\left\{\frac{1+x}{x^3}\left[\frac{2x(1+x)}{1+2x}-\ln{\left(1+2x\right)}\right]+\frac{1}{2x}\ln{\left(1+2x\right)}-\frac{1+3x}{\left(1+2x\right)^2}\right\}
+\]</div>
+<p>where <span class="math notranslate nohighlight">\(x\)</span> is dimensionless energy <span class="math notranslate nohighlight">\(x=E/m_ec^2\)</span>. However, electrons in hot plasma follow relativistic Maxwellian distribution:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}
+\sigma_{CS}(x) = 
+\frac{3\sigma_T}{16x^2\Theta K_2(1/\Theta)}
+\int_1^\infty e^{-\gamma/\Theta}
+\Biggl\{ &amp;
+\left(x\gamma+\frac{9}{2}+\frac{2\gamma}{x}\right)
+\ln{\left[\frac{1+2x(\gamma+z)}{1+2x(\gamma-z)}\right]} - 2xz \\
+&amp; + z\left(x-\frac{2}{x}\right)\ln(1+4x\gamma+4x^2)
++\frac{4x^2z(\gamma+x)}{1+4x\gamma+4x^2} \\
+&amp; -2\int_{x(\gamma-z)}^{x(\gamma+z)} 
+\ln(1+2\varepsilon)\frac{d\varepsilon}{\varepsilon}
+\Biggr\} d\gamma
+\end{split}\]</div>
+<p>In <code class="docutils literal notranslate"><span class="pre">DAO</span></code>, we use Compton scattering cross section averaged over a relativistic Maxwellian electron distribution which following <span id="id10">Poutanen and Svensson [<a class="reference internal" href="index.html#id63" title="Juri Poutanen and Roland Svensson. The Two-Phase Pair Corona Model for Active Galactic Nuclei and X-Ray Binaries: How to Obtain Exact Solutions. \apj , 470:249, October 1996. arXiv:astro-ph/9605073, doi:10.1086/177865.">1996</a>]</span>, instead of the  Klein–Nishina cross section. In certain limiting cases (e.g., <span class="math notranslate nohighlight">\(\Theta \ll 1\)</span>), the thermal cross section can be approximated using simpler expressions (see <span id="id11">Svensson [<a class="reference internal" href="index.html#id82" title="R. Svensson. The pair annihilation process in relativistic plasmas. \apj , 258:321-334, July 1982. doi:10.1086/160081.">1982</a>]</span> for more details). <span id="id12">García <em>et al.</em> [<a class="reference internal" href="index.html#id10" title="Javier A. García, Ekaterina Sokolova-Lapa, Thomas Dauser, Jerzy Madej, Agata Różańska, Agnieszka Majczyna, Fiona A. Harrison, and Jörn Wilms. Accurate Treatment of Comptonization in X-Ray Illuminated Accretion Disks. \apj , 897(1):67, July 2020. arXiv:2005.04852, doi:10.3847/1538-4357/ab919b.">2020</a>]</span> showed the difference between the Klein–Nishina cross section and cross section we mentioned here.</p>
+<p>We have not yet included the effects of induced scattering, which are planned for future implementation. The electron scattering opacity accounting for the induced scattering is</p>
+<div class="math notranslate nohighlight">
+\[
+    \sigma(x,\mu) = \frac{\sigma_T}{x} \int_0^\infty x_1dx_1\int_{-1}^1 d\mu_1 R(x_1,\mu_1,x,\mu)\left(1+\frac{CI(x_1,\mu_1)}{x_1^3}\right),\quad C=\frac{1}{2m_e}\left(\frac{h}{m_ec^2}\right)^3
+\]</div>
+<p>which add one more dimension <span class="math notranslate nohighlight">\(\mu\)</span> for source function.</p>
+</section>
+<section id="normalization-of-redistribution-functions">
+<h3>Normalization of Redistribution Functions<a class="headerlink" href="#normalization-of-redistribution-functions" title="Link to this heading">¶</a></h3>
+<p>Integration of redistribution should give the scattering cross section. Therefore we normalize redistribution function like</p>
+<div class="math notranslate nohighlight">
+\[
+R_n(E_i,E_f) = \sigma_\nu\frac{R(E_i,E_f)}{\int_0^\infty dE_iR(E_i,E_F)}
+\]</div>
+</section>
+<section id="scattered-radiation-field">
+<h3>Scattered radiation field<a class="headerlink" href="#scattered-radiation-field" title="Link to this heading">¶</a></h3>
+<p>In expression of source function, the scattered mean-intensity <span class="math notranslate nohighlight">\(J^c\)</span> is</p>
+<div class="math notranslate nohighlight">
+\[
+ J^c(E) = \int_{E_{min}}^{E_{max}} R(E',E)J(E')dE'
+\]</div>
+<p>Currently, angular redistribution is not included in <code class="docutils literal notranslate"><span class="pre">DAO</span></code>. If it were, scattered intensity would take the form</p>
+<div class="math notranslate nohighlight">
+\[
+I(\mu,E) = \int_{E_{min}}^{E_{max}} dE'\int_{-1}^1 d\mu' R(E';\mu',E;\mu)I(\mu',E')
+\]</div>
+<p>where <span class="math notranslate nohighlight">\(E'\)</span> and <span class="math notranslate nohighlight">\(\mu'\)</span> denote the photon energy and direction cosine after scattering and <span class="math notranslate nohighlight">\(E\)</span>, <span class="math notranslate nohighlight">\(\mu\)</span> denote the energy and direction cosine before scattering. In this case, the redistribution becomes more complex, as it depends on both the incident and scattered energies and angles. If one considers the scattering angle <span class="math notranslate nohighlight">\(\eta\)</span> (defined as <span class="math notranslate nohighlight">\(\eta = \boldsymbol{\mu} \cdot \boldsymbol{\mu}'\)</span>), the redistribution function becomes a function of <span class="math notranslate nohighlight">\(\eta\)</span>, <span class="math notranslate nohighlight">\(E'\)</span>, and <span class="math notranslate nohighlight">\(E\)</span>, which is more convenient for numerical calculations. In summary, the inclusion of induced scattering and angle-dependent redistribution makes the source function angle-dependent. To date, there has been no research demonstrating whether such angle dependence is important in X-ray reprocessing. However, this aspect is worth investigating, especially when polarization effects are taken into account.</p>
+<p>In addition, it is important to note that we use the inverse redistribution function <span class="math notranslate nohighlight">\(R(E',E)\)</span> rather than <span class="math notranslate nohighlight">\(R(E,E')\)</span>. This is because we are interested in the probability that a photon with an initial energy <span class="math notranslate nohighlight">\(E'\)</span> is scattered into the current energy <span class="math notranslate nohighlight">\(E\)</span>. The redistribution function satisfies the detailed balance condition <span id="id13">[<a class="reference internal" href="index.html#id85">Pomraning, 1973</a>]</span>:</p>
+<div class="math notranslate nohighlight">
+\[
+R(E',E) = R(E,E') \left(\frac{E}{E'}\right)^{2}
+\exp\left(\frac{E' - E}{kT_e}\right)
+\]</div>
+</section>
+</section>
+<section id="atom-physics">
+<h2>Atom Physics<a class="headerlink" href="#atom-physics" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">DAO</span></code> is fully based on <code class="docutils literal notranslate"><span class="pre">XSTAR</span></code>. All atomic processes, including photoionization, thermal equilibrium, and level population calculations, are derived from <code class="docutils literal notranslate"><span class="pre">XSTAR</span></code>. We employ the latest version (v2.59) together with the updated atomic database released in 2024. For more details, please refer to the [<a class="reference external" href="https://heasarc.gsfc.nasa.gov/xstar/xstar.html">XSTAR manual</a></p>
+</section>
+<section id="algorithm">
+<h2>Algorithm<a class="headerlink" href="#algorithm" title="Link to this heading">¶</a></h2>
+<p>Convergence must be achieved through an iterative procedure. We begin by assuming that the initial radiation field at each depth is equal to the coronal illumination. Then, we use <code class="docutils literal notranslate"><span class="pre">XSTAR</span></code> to calculate the emissivity and opacity at each depth (excluding scattering in this step). The <code class="docutils literal notranslate"><span class="pre">XSTAR</span></code> calculations enforce thermal equilibrium, satisfying</p>
+<div class="math notranslate nohighlight">
+\[
+H=C
+\]</div>
+<p>where <span class="math notranslate nohighlight">\(H\)</span> is the heating rate and <span class="math notranslate nohighlight">\(C\)</span> is the cooling rate. Once the plasma reaches thermal equilibrium under the current radiation field, we assume that it remains in this equilibrium state during the radiative-transfer calculation. In other words, the plasma temperature, emissivity, and absorption coefficients are held fixed in this stage.</p>
+<p>The solution to the radiative transfer equation is obtained through a standard <span class="math notranslate nohighlight">\(\Lambda\)</span>-iteration scheme as follows:</p>
+<ul class="simple">
+<li><p>Using the current temperature, emissivity, and absorption, we compute the source function at each Thomson optical depth <span class="math notranslate nohighlight">\(\tau_T\)</span>.</p></li>
+<li><p>We solve the second-order radiative transfer equation using the Feautrier method.</p></li>
+<li><p>We update the source function based on the new radiation field obtained at step~2 and use this new source function to update the radiation field.</p></li>
+</ul>
+<p>This iteration loop stops when the source function converges:</p>
+<div class="math notranslate nohighlight">
+\[
+\int\frac{S^{n}(E)-S^{n-1}(E)}{S^{n-1}(E)}dE &lt;e_n,\quad e_n = 10^{-10}
+\]</div>
+<p>After the radiation field converges in the radiative-transfer step, we again use this updated radiation field as the input to <code class="docutils literal notranslate"><span class="pre">XSTAR</span></code> to obtain a new plasma profile. We then solve the radiative transfer equation again. The iterative procedure continues until both the temperature and ionization profiles at each layer no longer change. When <code class="docutils literal notranslate"><span class="pre">DAO</span></code> calculates low-ionization models, photoionization is the dominant process, with <span class="math notranslate nohighlight">\(\alpha \gg \alpha^c\)</span>. In this regime, convergence are more rapidly than in a scattering-dominated gas. In contrast, for high-ionization models, the gas is scattering-dominated, with <span class="math notranslate nohighlight">\(\alpha^c \gg \alpha\)</span>, leading to slower convergence.</p>
 </section>
 </section>
 
