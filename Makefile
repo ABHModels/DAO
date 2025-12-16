@@ -52,6 +52,5 @@ clean:
 	find $(MODSRC) -name '*.o' -delete
 	find $(MODSRC) -name '*.mod' -delete
 	find $(SRCDIR) -name '*.o' -delete
-	find $(SRCDIR) -name '*.mod' -delete
 	rm $(NAME)*.o $(NAME)*.x
 

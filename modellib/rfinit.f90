@@ -35,7 +35,7 @@
         rfi_bot = 0.0
     endif
     
-    call inc_top(rfdebug,nfrt,rfener,rfstinci,rfgamma,rfhcut,rfi_inc,rfFxinc,rfinmu,rfinci_file)
+    call inc_top(rfdebug,nfrt,rfener,rfstinci,rfgamma,rfhcut,rfi_inc,rfFxinc,rfinmu,rfinci_file,ktb_nthcomp)
     
     ! This illumination define the top illumination by flux of bottom illumination
     if (rfdebug.eq.2) then

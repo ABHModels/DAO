@@ -17,7 +17,7 @@ subroutine readinput(lun11)
 
     &   rfit_temp,rftemp_gas,rftemp_gas_unit,&
     &   rfgamma,rfhcut,rfinmu,rfstinci,rfinci_file,&
-    &   rfsbot,rfktbb,rfFx_frac,ktb_nthcomp&
+    &   rfsbot,rfktbb,rfFx_frac,ktb_nthcomp,&
 
     &   rfzeta,rfnh,&
     

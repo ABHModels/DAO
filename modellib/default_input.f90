@@ -14,7 +14,7 @@ subroutine default_input
     rfmumin = 0.0
     rfmumax = 1.0
     ity = 2
-    debug = 0
+    rfdebug = 0
     rfit_temp =99 
     rftemp_gas = 1e8
     rftemp_gas_unit = 'k'

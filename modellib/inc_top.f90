@@ -1,5 +1,5 @@
     subroutine inc_top(debug,nener,ener,stinci,gamma,ehcut,I_inc,Fx,inangle,&
-        &   rfinci_file)
+        &   rfinci_file,ktb_nthcomp)
     use constants
     implicit none
 
@@ -10,6 +10,7 @@
     character(len=100) :: line
     integer,intent(in)::debug,nener
     real(8),intent(in)::gamma,ehcut,Fx,inangle
+    real(8),intent(in)::ktb_nthcomp
     character(80),intent(in)::stinci
     character(80),intent(in)::rfinci_file
 
@@ -127,7 +128,7 @@
     case("comptt")
     comptt_par(1) = 0.0         ! Red shift
     comptt_par(2) = gamma/1e3   ! Wien temperature (keV) 
-    comptt_par(3) = hcut/1e3    ! plasma temperature (keV)
+    comptt_par(3) = ehcut/1e3    ! plasma temperature (keV)
     comptt_par(4) = 1.0         ! Optical depth
     comptt_par(5) = 1.0         ! Depth geometry
 
