@@ -277,18 +277,19 @@ c      write(*,*) 'gamln : az  z = ',az,z
       END
 **==gammi.spg  processed by SPAG 4.50J  at 15:47 on 21 Sep 1995
 c***********************************************************
-      FUNCTION GAMMI(A,X)
-      use fgsl
-      IMPLICIT NONE
-      REAL A , X , GAMMI
-      DOUBLE PRECISION a_doub, x_doub
-      IF ( X.LT.0.0 .OR. A.LE.0.0 ) 
-     & CALL XWRITE('Inc. Gamma Fn. called with x < 0 or A <= 0', 10)
-      a_doub = A
-      x_doub = X
-      GAMMI = SNGL(fgsl_sf_gamma_inc_p(a_doub,x_doub))
-      RETURN
-      END
+c      FUNCTION GAMMI(A,X)
+c      use fgsl
+c      IMPLICIT NONE
+c      REAL A , X , GAMMI
+c      DOUBLE PRECISION a_doub, x_doub
+c      IF ( X.LT.0.0 .OR. A.LE.0.0 ) 
+c     & CALL XWRITE('Inc. Gamma Fn. called with x < 0 or A <= 0', 10)
+c      a_doub = A
+c      x_doub = X
+c      GAMMI = SNGL(fgsl_sf_gamma_inc_p(a_doub,x_doub))
+c      RETURN
+c      END
+! Change by Yimin, now we use fortran native fgsl
 **==d0.spg  processed by SPAG 4.50J  at 15:47 on 21 Sep 1995
 c**************************************************************
       DOUBLE PRECISION FUNCTION COMPD0(X)
