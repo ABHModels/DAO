@@ -21,6 +21,7 @@
 
     ! Loacl
     integer,parameter::nth_np = 5,comptt_np=5
+    real(8),parameter::elow=0.1e3
     real nth_par(nth_np),comptt_par(comptt_np)
     integer::ifl
     real Ear(0:nener),Earout(nener)
@@ -82,7 +83,7 @@
 
     do i=1,numcon 
         zremsi(i)=1.e-24
-        zremsi(i)=ener(i)**tp
+        zremsi(i)=ener(i)**tp * exp(-elow/ener(i))
     enddo
 
     case ("cutoff")
@@ -90,7 +91,7 @@
 
     do i=1,numcon
         zremsi(i)=1.e-24
-        zremsi(i)=ener(i)**tp * exp(-(ener(i)/ehcut))
+        zremsi(i)=ener(i)**tp * exp(-(ener(i)/ehcut)) * exp(-elow/ener(i))
     enddo
 
     case ("blackbody")

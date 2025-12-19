@@ -16,3 +16,10 @@ Standard model framework
 * Add `comptt` as a type of incident spectrum
 * When incident spectrum is `nthcomp`, the blackbody temperature is a free parameter now.
 * Fix the normalization error for bottom disk radiation. **[Contributor: Lin,Gao, Fudan University]**
+
+## v1.1.4
+
+* Add low energy cutoff for `powerlaw` and `cutoff` incident. The low cutoff energy is fixed at 0.1keV
+$$
+    F(E)=E^{-\Gamma+1}\times\exp{-\frac{E}{E_{hcut}}}\times\exp{-\frac{E_{lcut}}{E}},\quad E_{lcut}=0.1 keV
+$$
