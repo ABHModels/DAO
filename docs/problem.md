@@ -21,3 +21,4 @@ Spectra generated with `nthcomp` incident radiation, including the density point
 Same as above but exculde the $10^{21}$
 ```
 
+* **Low enery cut for power law and cutoff power law:** When utilizing a power-law or cutoff power-law as the incident spectrum, a low-energy cutoff is required. This feature is not yet implemented in the current release of the model but is scheduled for inclusion in a future update.
