@@ -19,3 +19,5 @@ After you have installed, we recommend the following steps to get started with `
 3. Utilize [Python scripts](runcodewithpython) to manage your workflow and see [Example](example) for more details practices.
 
 4. For a detailed description of the physics and mathematics behind DAO, please refer to the [Theory](theory) section.
+
+The paper is available now by arxiv: [DAO: A New and Public Non-Relativistic Reflection Model](https://arxiv.org/abs/2512.12728)

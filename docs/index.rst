@@ -14,6 +14,7 @@ Welcome to DAO's documentation!
    OuputFiles
    Example
    theory
+   problem
    version
 
 ..
