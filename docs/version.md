@@ -19,7 +19,8 @@ Standard model framework
 
 ## v1.1.4
 
-* Add low energy cutoff for `powerlaw` and `cutoff` incident. The low cutoff energy is fixed at 0.1keV
+* Add low energy cutoff for `powerlaw` and `cutoff` incident. The low cutoff energy is fixed at 0.1keV.
+
 $$
     F(E)=E^{-\Gamma+1}\times\exp{-\frac{E}{E_{hcut}}}\times\exp{-\frac{E_{lcut}}{E}},\quad E_{lcut}=0.1 keV
 $$
