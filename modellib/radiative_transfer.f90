@@ -58,7 +58,7 @@
     real(8) rftem_flux
     real(8) emerflux(nmurt,nfrt),influx(nmurt,nfrt)
     real(8) emff(nfrt),inff(nfrt)
-    real(8) eeout,eein,fracFLUX
+    real(8) eeout,eein,fracFLUX,eebou
     real(8) outmu(10)
     integer indoutmu(10)
 
@@ -190,7 +190,7 @@
 
             emet(m,n) = 2*rfu(1,m,n)
             if (m.eq.rfinmu_ind) emet(m,n) = emet(m,n)-topb(n)
-            if (m.eq.rfinmu_ind) influx(m,n) = topb(n)*rfmu(m)
+            if (m.eq.rfinmu_ind) influx(m,n) = topb(n)
             emeb(m,n) = 2*rfu(ntau,m,n)-botb(n)
 
             emerflux(m,n) = (emet(m,n) + emeb(m,n))*rfmu(m)
@@ -203,28 +203,28 @@
             do m=1,nmu
                 meantop(n) = meantop(n) + emet(m,n)*dmu(m)
                 meanbot(n) = meanbot(n) + emeb(m,n)*dmu(m)
-                emff(n) = emff(n) + emerflux(m,n)*dmu(m)
-                inff(n) = inff(n) + influx(m,n)*dmu(m)
+                ! emff(n) = emff(n) + emerflux(m,n)*dmu(m)
+                ! inff(n) = inff(n) + influx(m,n)*dmu(m)
             enddo
 
         case(2)
 
         call trapz(nmu,emet(:,n),rfmu,meantop(n))
         call trapz(nmu,emeb(:,n),rfmu,meanbot(n))
-        call trapz(nmu,emerflux(:,n),rfmu,emff(n))
+        ! call trapz(nmu,emerflux(:,n),rfmu,emff(n))
         call trapz(nmu,influx(:,n),rfmu,inff(n))
 
         end select
     enddo
 
 
-    call trapz(nener,emff,rfener,eeout)
+    call trapz(nener,meantop,rfener,eeout)
+    call trapz(nener,meanbot,rfener,eebou)
     call trapz(nener,inff,rfener,eein)
-
-    fracFLUX = eeout/eein
+    fracFLUX = (eeout+eebou)/eein
 
     write(lun11,0926) fracFLUX
-    0926 format ("Emergent total flux / Fx :",1E15.7)
+    0926 format ("Fo/Fx :",1E15.7)
 
     ! Energy, Top boundary intensity, bottom boundary intensity, bot mean flux, top mean intensity
     write(io_flux,6666) (rfener(n),topb(n),botb(n),meanbot(n),meantop(n),n=1,nener)
