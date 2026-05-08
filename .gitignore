@@ -1,0 +1,38 @@
+# Build artefacts
+*.o
+*.a
+*.so
+*.dylib
+maindaocl
+test_kernel_compare
+test_kernel_norm
+test_kernel_sym
+test_kernel_compare_old
+normalize_kernel
+
+# Cached precomputed data (regenerated at runtime)
+kernel/
+comp_cs/
+
+# Run outputs
+results/
+*.log
+run.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+
+# Archives
+*.tar.gz
+*.zip
