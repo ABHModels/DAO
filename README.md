@@ -112,6 +112,17 @@ CLOUDY_LIB = /path/to/cloudy/source
 ```
 Edit these paths in `Makefile` to match your installation.
 
+**Custom continuum-mesh resolution file (required).** DAOv2.0 ships with a tailored Cloudy resolution file at `resolution/smooth_hump.ini` that boosts the spectral resolving power around the iron K region (~30 keV, R ~ 600) while keeping it modest elsewhere. You must install it as Cloudy's `continuum_mesh.ini`:
+
+```bash
+# Back up Cloudy's default mesh first
+cp /path/to/cloudy/data/continuum_mesh.ini /path/to/cloudy/data/continuum_mesh.ini.bak
+# Install the DAOv2 resolution file
+cp resolution/smooth_hump.ini /path/to/cloudy/data/continuum_mesh.ini
+```
+
+Without this step, the energy grid produced by Cloudy will not match the resolution assumed by the RT solver around the Fe K region, and emergent spectra will under-resolve key features.
+
 ### 2. HEASoft / Xspec
 
 **Required for nthcomp, comptt, and all production runs** (Xspec model libraries are linked at compile time).
@@ -232,6 +243,8 @@ DAOv2/
 │   ├── production.h/cpp               Cloudy-RT outer iteration loop
 │   └── test_rt.h/cpp                  Synthetic slab test mode
 │
+├── resolution/                Custom continuum-mesh files for Cloudy
+│   └── smooth_hump.ini        Boosted resolving power around Fe K (install as Cloudy's continuum_mesh.ini)
 ├── plot/                      Plotting scripts (matplotlib)
 ├── image/                     UI assets
 ├── kernel/                    Cached Compton kernels (binary, generated at runtime)
