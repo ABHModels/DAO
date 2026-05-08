@@ -83,9 +83,9 @@ Dispatch:
 
 | Cache | Directory | File pattern | Contents |
 |-------|-----------|-------------|----------|
-| Compton kernel | `kernel/` | `kernel_norm_NE{}_NA{}_NT{}.bin` | Banded K(x,mu;x1,mu1,T), ~10% fill |
+| Compton kernel | `$COMPTON_CACHE_DIR/kernel/` | `kernel_norm_NE{}_NI{}_NT{}.bin` | Banded K(x,mu;x1,mu1,T), ~10% fill |
 
-Grid dimensions are encoded in the filename so different grids (test vs production) coexist. On first run the cache is computed and saved; subsequent runs load instantly.
+The cache directory is controlled by the `COMPTON_CACHE_DIR` environment variable (defaults to the current working directory). Grid dimensions are encoded in the filename so different grids (test vs production) coexist. On first run the cache is computed and saved; subsequent runs load instantly.
 
 ---
 
@@ -134,7 +134,18 @@ source $HEADAS/headas-init.sh
 
 **This must be sourced before every run** — the Xspec shared libraries need the `HEADAS` environment.
 
-### 3. Python (optional, for Web UI)
+### 3. Compton kernel cache directory
+
+The Compton kernel is precomputed once and cached on disk under a `kernel/` subdirectory. By default the code looks for this in the current working directory; to use a shared location (recommended, since the kernel files are large and parameter-independent), set:
+
+```bash
+export COMPTON_CACHE_DIR=/path/to/shared/cache
+# Kernel files will be looked up / written under $COMPTON_CACHE_DIR/kernel/
+```
+
+If `COMPTON_CACHE_DIR` is unset the code falls back to `./kernel/`. On first run the cache is computed and saved (this can take a while); every subsequent run loads it instantly.
+
+### 4. Python (optional, for Web UI)
 
 ```bash
 pip install flask
