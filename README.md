@@ -2,7 +2,7 @@
 
 **Disk-corona Atmosphere with Opacity**
 
-A Compton scattering radiative transfer (RT) solver for computing X-ray reflection spectra from accretion disk atmospheres. The code couples **Cloudy** (Gary Ferland's spectral synthesis code) for atomic physics with custom second-order short characteristics RT, and uses **HEASoft/Xspec** models for corona spectra.
+A Compton scattering radiative transfer (RT) solver for computing X-ray reflection spectra from accretion disk atmospheres. The code couples **Cloudy** (Gary Ferland's spectral synthesis code) for atomic physics with a custom RT solver based on a cubic Bezier interpolant, and uses **HEASoft/Xspec** models for corona spectra.
 
 **Author:** Yimin Huang
 
@@ -30,9 +30,9 @@ A Compton scattering radiative transfer (RT) solver for computing X-ray reflecti
 DAOv2.0 solves the angle- and energy-dependent radiative transfer equation in a plane-parallel slab (accretion disk atmosphere) illuminated by an X-ray corona from above and a thermal disk from below. The code iterates between:
 
 1. **Cloudy** — computes emissivity j_nu, absorption opacity kappa_abs, and thermal structure at each depth point given the local radiation field
-2. **RT solver** — solves the transfer equation with Compton scattering using second-order short characteristics and Lambda iteration
+2. **RT solver** — solves the transfer equation with Compton scattering using a cubic Bezier interpolant for the formal solution, with Lambda iteration
 
-The Compton scattering kernel is computed exactly (not in the diffusion or Fokker-Planck approximation), following the relativistic formalism of Madej et al. (2017). The original Fortran source code for the exact redistribution function was generously shared by **Prof. Jerzy Madej** (University of Warsaw), whose pioneering work on exact Comptonisation made this project possible. We are deeply grateful for his generosity and his extraordinary contributions to the field. The Fortran code has been implemented in C++ for this project.
+The Compton scattering kernel is computed exactly (not in the diffusion or Fokker-Planck approximation), following the relativistic formalism of [Madej et al. (2017)](https://ui.adsabs.harvard.edu/abs/2017MNRAS.469.2032M). The original Fortran source code for the exact redistribution function was generously shared by **Prof. Jerzy Madej** (University of Warsaw), whose pioneering work on exact Comptonisation made this project possible. We are deeply grateful for his generosity and his extraordinary contributions to the field. The Fortran code has been implemented in C++ for this project.
 
 ---
 
@@ -56,14 +56,14 @@ init_rt_grids()  →  angle (4-pt GL quadrature), depth (Thomson tau), energy gr
 rad.illum.compute()  →  corona spectrum (via dispatch) + disk blackbody, normalise to F_x
     │
     ▼
-Precompute KernelCache + ScatteringCache (load from disk or compute + save)
+Precompute KernelCache (load from disk or compute + save)
     │
     ▼
 Dispatch:
     ├── test mode  →  run_test_rt()  (synthetic uniform slab, no Cloudy)
     └── production →  Outer loop:
                         ├── Cloudy depth sweep → extract j_nu, kappa_abs, kappa_sct
-                        ├── RT solve (formal solution + Lambda iteration)
+                        ├── RT solve (cubic Bezier formal solution + Lambda iteration)
                         ├── Compute moments J, ionisation parameter xi
                         ├── Check convergence (mean |dT/T|, mean |d(log xi)|)
                         └── Save results every 5 iterations + iteration 1
@@ -84,9 +84,8 @@ Dispatch:
 | Cache | Directory | File pattern | Contents |
 |-------|-----------|-------------|----------|
 | Compton kernel | `kernel/` | `kernel_norm_NE{}_NA{}_NT{}.bin` | Banded K(x,mu;x1,mu1,T), ~10% fill |
-| Scattering sigma | `comp_cs/` | `scache_NE{}_NT{}.bin` | sigma(E,T) on 50-point T grid |
 
-Both encode grid dimensions in the filename so different grids (test vs production) coexist. On first run they compute and save; subsequent runs load instantly.
+Grid dimensions are encoded in the filename so different grids (test vs production) coexist. On first run the cache is computed and saved; subsequent runs load instantly.
 
 ---
 
@@ -139,9 +138,6 @@ pip install flask
 
 make                    # build maindaocl (main executable)
 make clean              # remove object files and binaries
-make test_kernel        # standalone kernel test (no Cloudy dependency)
-make test_kernel_fine   # fine-grained kernel validation (A23 sum rule)
-make normalize_kernel   # normalize unnormalized kernel cache
 ```
 
 ---
@@ -222,7 +218,7 @@ DAOv2/
 ├── source/                    All C++ source modules
 │   ├── compton_kernel.h/cpp           Exact azimuth-integrated kernel (Madej+ 2017)
 │   ├── compton_cross_section.h/cpp    Klein-Nishina + relativistic sigma (Poutanen & Svensson 1996)
-│   ├── compton_rt.h/cpp               Second-order short characteristics RT solver
+│   ├── compton_rt.h/cpp               RT solver (cubic Bezier interpolant + Lambda iteration)
 │   ├── source.h/cpp                   Source function: thermal + Compton scattering
 │   ├── radiation.h/cpp                RadField arrays, moments, convergence check
 │   ├── corona_models.h/cpp            Corona spectrum dispatch (powerlaw, nthcomp, comptt, ...)
@@ -234,16 +230,11 @@ DAOv2/
 │   ├── params.h/cpp                   CLI parsing, parameter validation, hash computation
 │   ├── save_results.h/cpp             Data output to results/<hash>/
 │   ├── production.h/cpp               Cloudy-RT outer iteration loop
-│   ├── test_rt.h/cpp                  Synthetic slab test mode
-│   ├── normalize_kernel.cpp           Standalone tool: normalize cached kernel files
-│   ├── test_kernel_norm.cpp           Standalone test: A23 normalization sum rule
-│   ├── test_kernel_sym.cpp            Standalone test: kernel symmetry check
-│   └── test_kernel_compare.cpp        Standalone test: compare against Madej Fortran code
+│   └── test_rt.h/cpp                  Synthetic slab test mode
 │
 ├── plot/                      Plotting scripts (matplotlib)
 ├── image/                     UI assets
 ├── kernel/                    Cached Compton kernels (binary, generated at runtime)
-├── comp_cs/                   Cached scattering cross-sections (binary, generated at runtime)
 └── results/                   Output: results/<hash>/{emergent,moments,profile}_iter*.dat
 ```
 
@@ -282,17 +273,19 @@ Relativistic scattering cross section sigma(E, T) averaged over a Maxwellian ele
 
 ### Radiative Transfer Solver
 
-Second-order short characteristics with Lambda iteration:
+Short characteristics formal solution using a cubic Bezier interpolant, with Lambda iteration:
 
-- **Hubeny I., Mihalas D., 2015, Theory of Stellar Atmospheres, Princeton University Press, Section 12.4** — Second-order short characteristics formal solution
+- **Auer L., 2003, ASP Conf. Ser., 288, 3** — "Insertion of Cubic Bezier Splines into Short-Characteristics Solutions of the Radiative Transfer Equation"
+  [ADS](https://ui.adsabs.harvard.edu/abs/2003ASPC..288....3A)
+- **de la Cruz Rodriguez J., Piskunov N., 2013, ApJ, 764, 33** — Bezier formal solutions in radiative transfer
+  [ADS](https://ui.adsabs.harvard.edu/abs/2013ApJ...764...33D)
+- **Hubeny I., Mihalas D., 2015, Theory of Stellar Atmospheres, Princeton University Press, Section 12.4** — Short characteristics formal solution and Lambda iteration
   [Publisher](https://press.princeton.edu/books/hardcover/9780691163291/theory-of-stellar-atmospheres)
 - **Suleimanov V., Poutanen J., Werner K., 2012, A&A, 545, A120** — Application to neutron star spectrum
   [ADS](https://ui.adsabs.harvard.edu/abs/2012A%26A...545A.120S)
 
 ### Emissivity Extraction from Cloudy
 
-- **Garcia J., Kallman T.R., 2010, ApJ, 718, 695** — Emissivity normalization (Eq. 12), X-ray reflection modelling
-  [ADS](https://ui.adsabs.harvard.edu/abs/2010ApJ...718..695G)
 - Conversion: `j_nu = (ConEmitLocal[1] + DiffuseLineEmission) * anu(j) * eV_to_erg / widflx(j)`
 - Opacity: `kappa_abs = opacity_abs + OpacStatic`, `kappa_sct = n_e * sigma_compton(E,T)`
 

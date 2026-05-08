@@ -67,22 +67,5 @@ $(TARGET): $(OBJS)
 %.o: %.cpp $(HDRS)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-# Standalone kernel tests (no Cloudy dependency)
-TEST_KERNEL_FLAGS = -std=c++17 -O3 -Wall -Isource
-
-test_kernel_compare: source/test_kernel_compare.cpp source/compton_kernel.cpp source/compton_cross_section.cpp
-	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $^ -lm
-
-test_kernel_norm: source/test_kernel_norm.cpp source/rt_grids.cpp source/compton_kernel.cpp source/compton_cross_section.cpp
-	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $^ -lm
-
-test_kernel_sym: source/test_kernel_sym.cpp source/rt_grids.cpp source/compton_kernel.cpp source/compton_cross_section.cpp
-	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $^ -lm
-
-test_kernel_compare_old: source/test_kernel_compare_old.cpp source/rt_grids.cpp source/compton_kernel.cpp source/compton_cross_section.cpp
-	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $^ -lm
-
 clean:
-	rm -f $(OBJS) $(TARGET) \
-	      test_kernel_compare test_kernel_norm test_kernel_sym test_kernel_compare_old \
-	      normalize_kernel
+	rm -f $(OBJS) $(TARGET)
