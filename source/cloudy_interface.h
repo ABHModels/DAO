@@ -19,13 +19,13 @@ struct CloudyInput
 	void init(const ModelParams& par);
 	void issue_constant();
 	void issue_depth(int id, const RadField& rad,const RTGrids& g, const ModelParams& par);
+	void issue_depth_lastest(int id, const RadField& rad, const RTGrids& g,const ModelParams& par);
 };
 
 // Bootstrap Cloudy to extract the energy grid
 void bootstrap_cloudy_energy_grid(RTGrids& g, const char* save_file);
 
 void extract_cloudy_output(int id, RadField& rad, const RTGrids& g, int outer_iter);
-void save_cloudy_opacity(int id, const RadField& rad, const RTGrids& g,const ModelParams& par, int outer_iter);
-void save_line_labels(int id, const RTGrids& g,const ModelParams& par, int outer_iter);
+
 
 #endif // CLOUDY_INTERFACE_H

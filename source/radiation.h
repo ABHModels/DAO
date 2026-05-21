@@ -66,7 +66,7 @@ struct RadField
 	void compute_ionization_parameter(double nh);
 	void check_convergence(int outer_iter,
 	                       double* T_old, double* xi_old,
-	                       double& mean_dT, double& mean_dXi);
+	                       double& max_dT, double& max_dXi);
 };
 
 #endif // RADIATION_H

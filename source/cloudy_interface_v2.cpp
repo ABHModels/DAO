@@ -178,10 +178,11 @@ void extract_cloudy_output(int id, RadField& rad, const RTGrids& g, int outer_it
 					            / GetDopplerWidth(dense.AtomicWeight[(*tr.Hi()).nelem()-1]);
 					beta = esc_CRDwing_1side(tau_cell, damp);
 				}
-				else
+				else if (redis == ipCRD)
 				{
 					beta = esca0k2(tau_cell);
 				}
+
 			}
 		}
 
@@ -254,154 +255,6 @@ void extract_cloudy_output(int id, RadField& rad, const RTGrids& g, int outer_it
 }
 
 // ============================================================
-void save_cloudy_opacity(int id, const RadField& rad, const RTGrids& g, const ModelParams& par,int outer_iter)
-{
-#undef fopen
-	const char* dir = par.run_dir[0] ? par.run_dir : "results";
-	mkdir("results", 0755);
-	if (par.run_dir[0])
-		mkdir(dir, 0755);
-
-	char fname[256];
-	snprintf(fname, sizeof(fname), "%s/opacity_iter%03d.dat", dir,outer_iter);
-	FILE* fp = fopen(fname, "w");
-	fprintf(fp, "# Emissivity, opacity  iter=%d\n", outer_iter);
-	fprintf(fp, "# Col 1: E [eV]\n");
-	fprintf(fp, "# Col 2: depth index\n");
-	fprintf(fp, "# Col 3: tau_mid\n");
-	fprintf(fp, "# Col 4: ConEmitLocal (raw Cloudy)\n");
-	fprintf(fp, "# Col 5: jnu_line [erg cm^-3 s^-1 eV^-1 sr^-1]\n");
-	fprintf(fp, "# Col 6: jnu_total [erg cm^-3 s^-1 eV^-1 sr^-1]\n");
-	fprintf(fp, "# Col 7: kabs (continuum) [cm^-1]\n");
-	fprintf(fp, "# Col 8: ksct (Compton) [cm^-1]\n");
-	fprintf(fp, "# Col 9: OpacStatic [cm^-1]\n");
-	long j0_save = 0;
-	double E_lo_ryd_s = g.ene[0] / phys::eV_per_Ryd;
-	while (j0_save < rfield.nflux && rfield.anu(j0_save) < E_lo_ryd_s * 0.999)
-		++j0_save;
-	for (int i = 0; i < g.NE; ++i)
-	{
-		long j = j0_save + i;
-		fprintf(fp, "%.6e  %d  %.6e  %.6e  %.6e  %.6e  %.6e  %.6e  %.6e\n",
-			g.ene[i], id, g.tau_mid[id],
-			double(rfield.ConEmitLocal[nzone][j]),
-			rad.jnu_line[id][i],
-			rad.jnu[id][i], rad.kabs[id][i],
-			rad.ksct[id][i],
-			opac.OpacStatic[j]);
-	}
-	fclose(fp);
-}
-
-// ============================================================
-// Save line data in cdLine / cdEmis format.
-//
-// For every line that passes the same filters as extract_cloudy_output,
-// save its label, wavelength, energy, intensity, and emissivity.
-//
-// The label and wavelength are the same strings you would pass to:
-//   cdLine("H  1", 4861.33, &relint, &absint, 0)
-//   cdEmis("H  1", 4861.33, &emiss, false)
-//
-void save_line_labels(int id, const RTGrids& g, const ModelParams& par,int outer_iter)
-{
-#undef fopen
-
-	const char* dir = par.run_dir[0] ? par.run_dir : "results";
-
-	mkdir("results", 0755);
-	if (par.run_dir[0])
-		mkdir(dir, 0755);
-
-	char fname[256];
-	snprintf(fname, sizeof(fname), "%s/line_labels_iter%03d.dat",
-	         dir, outer_iter);
-	FILE* fp = fopen(fname, "w");
-	fprintf(fp, "# Line data (cdLine + cdEmis format)  id=%d  iter=%d\n", id, outer_iter);
-	fprintf(fp, "# Col 1: label       — 4-char species label (input to cdLine/cdEmis)\n");
-	fprintf(fp, "# Col 2: wavelength  — line wavelength [A]  (input to cdLine/cdEmis)\n");
-	fprintf(fp, "# Col 3: energy      — line energy [eV]\n");
-	fprintf(fp, "# Col 4: relint      — relative intensity (linear, from cdLine)\n");
-	fprintf(fp, "# Col 5: absint      — log luminosity/intensity (from cdLine)\n");
-	fprintf(fp, "# Col 6: emiss       — local emissivity [erg cm^-3 s^-1] (from cdEmis)\n");
-	fprintf(fp, "# Col 7: type        — c=cooling, r=recomb, t=transferred, h=heating, F=fluorescence\n");
-
-	double E_lo_ryd = g.ene[0] / phys::eV_per_Ryd;
-	long j0 = 0;
-	while (j0 < rfield.nflux && rfield.anu(j0) < E_lo_ryd * 0.999)
-		++j0;
-
-	for (long ip = 0; ip < LineSave.nsum; ++ip)
-	{
-		LinSv& line = LineSave.lines[ip];
-
-		if (line.chSumTyp() == 'i') continue;
-		if (line.isBlend()) continue;
-
-		double emiss;
-		cdEmis_ip(ip, &emiss, false);
-		if (emiss <= 0.) continue;
-
-		TransitionProxy tr = line.getTransition();
-		if (!tr.associated()) continue;
-		if (tr.ipCont() <= 0) continue;
-		long j = tr.ipCont() - 1;
-		if (j < j0 || j >= j0 + g.NE) continue;
-
-		double relint, absint;
-		cdLine_ip(ip, &relint, &absint, 0);
-
-		double E_eV = rfield.anu(j) * phys::eV_per_Ryd;
-
-		fprintf(fp, "\"%-4s\"  %12.4f  %12.4f  %.6e  %.6e  %.6e  %c\n",
-			line.chALab(),
-			line.wavelength(),
-			E_eV,
-			relint,
-			absint,
-			emiss,
-			line.chSumTyp());
-	}
-
-	// --- Inner-shell fluorescence lines from t_yield ---
-	// These are NOT in LineSave (no TransitionProxy), so we save
-	// them separately.  Label is built from the daughter ion
-	// (the ion AFTER K-shell ionization emits the fluorescence photon).
-	// Type 'F' distinguishes them from bound-bound lines.
-	for (long ifl = 0; ifl < t_yield::Inst().nlines(); ++ifl)
-	{
-		long ip = t_yield::Inst().ipoint(ifl) - 1;
-		if (ip < j0 || ip >= j0 + g.NE) continue;
-
-		double n_phot =
-			dense.xIonDense[t_yield::Inst().nelem(ifl)][t_yield::Inst().ion(ifl)] *
-			ionbal.PhotoRate_Shell[t_yield::Inst().nelem(ifl)]
-								  [t_yield::Inst().ion(ifl)]
-								  [t_yield::Inst().nshell(ifl)][0] *
-			t_yield::Inst().yield(ifl);
-		if (n_phot <= 0.) continue;
-
-		// Emissivity [erg cm^-3 s^-1]
-		double emiss_fl = n_phot * t_yield::Inst().energy(ifl) * EN1RYD;
-		double E_eV = rfield.anu(ip) * phys::eV_per_Ryd;
-		double wl_A = RYDLAM / t_yield::Inst().energy(ifl);
-
-		// Label: daughter ion (nelem+1 on physical scale, ion_emit+1 for stage)
-		string chLabel = chIonLbl(t_yield::Inst().nelem(ifl)+1,
-		                          t_yield::Inst().ion_emit(ifl)+1);
-
-		fprintf(fp, "\"%-4s\"  %12.4f  %12.4f  %12s  %12s  %.6e  F\n",
-			chLabel.c_str(),
-			wl_A,
-			E_eV,
-			"---", "---",    // no relint/absint for fluorescence
-			emiss_fl);
-	}
-
-	fclose(fp);
-}
-
-// ============================================================
 // issue_constant — Cloudy commands that stay the same for all
 // depth points.  Called once before the depth loop.
 //
@@ -430,7 +283,7 @@ void CloudyInput::issue_constant()
 	cdRead("no molecules");           // no H2, CO, etc. (hot plasma)
 	cdRead("No scattering opacity");  // we handle Compton scattering ourselves
 	cdRead("no level2 lines");        // disable minor lines (speed)
-
+	
 	// --- Line transfer: handled by OUR RT solver ---
 	// "no line transfer" makes Cloudy set Pesc=1 for all lines
 	// EXCEPT Ly-alpha (iRedisFun == ipLY_A), which Cloudy still
@@ -441,15 +294,6 @@ void CloudyInput::issue_constant()
 	cdRead("no line transfer");
 
 	// --- Disable H-like Ly-alpha pumping from the incident SED ---
-	// Without this, Cloudy reads J0 (which includes escaped Ly-alpha
-	// from our RT solver) and pumps 1s→2p from it.  Since we feed
-	// J0 back each iteration, this creates a positive feedback loop:
-	//   more Ly-alpha → larger J0 spike → more pumping → runaway.
-	// "Database H-like Lyman pumping off" disables this pumping
-	// for all H-like Ly-alpha lines (H I 10.2 eV, C VI 368 eV,
-	// O VIII 654 eV, Fe XXVI 6.97 keV, etc.).
-	// Ly-alpha emission from recombination + collisions is unaffected.
-	// Note: He-like does not have this command (parse_atom_iso.cpp:537).
 	cdRead("Database H-like Lyman pumping off");
 
 	// --- Solver settings ---
@@ -500,10 +344,6 @@ void CloudyInput::issue_depth(int id, const RadField& rad, const RTGrids& g,cons
 	char buf[256];
 	snprintf(buf, sizeof(buf), "intensity %.8f range %.8f to %.8f ev",(rad.log_xi[id]-log10(phys::four_pi))+par.nh,g.E_IN_LO,g.E_IN_HI);
 	cdRead(buf);
-
-	// // --- radius ---
-	// snprintf(buf, sizeof(buf), "stop thickness %.8f",log10(g.dr[id]));
-	// cdRead(buf);
 }
 
 // ============================================================
@@ -542,4 +382,41 @@ void bootstrap_cloudy_energy_grid(RTGrids& g, const char* save_file)
 	char buf[256];
 	cdVersion(buf);
 	fprintf(stdout, "  Cloudy version: %s\n",buf);
+}
+
+void CloudyInput::issue_depth_lastest(int id, const RadField& rad, const RTGrids& g,const ModelParams& par)
+{
+	// after the whole iteration, output the line labels and the iron fraction
+	FILE* fsed = open_data("SED_TEST_API_INCI.dat", "w");
+	fprintf(fsed, "# E_eV  J0*wid/E\n");
+
+	bool units_written = false;
+	for (int i = 0; i < g.NE; ++i)
+	{
+		double val = rad.J0[id][i] * g.wid[i] / g.ene[i];
+		if (val <= 1e-30) continue;
+		if (!units_written)
+		{
+			fprintf(fsed, "%.8e  %.8e units eV\n", g.ene[i], val);
+			units_written = true;
+		}
+		else
+		{
+			fprintf(fsed, "%.8e  %.8e\n", g.ene[i], val);
+		}
+	}
+	fprintf(fsed, "************");
+	fclose(fsed);
+	cdRead("table SED \"SED_TEST_API_INCI.dat\"");
+
+	// --- Intensity normalisation ---
+	char buf[256];
+	snprintf(buf, sizeof(buf), "intensity %.8f range %.8f to %.8f ev",(rad.log_xi[id]-log10(phys::four_pi))+par.nh,g.E_IN_LO,g.E_IN_HI);
+	cdRead(buf);
+
+	// line labels
+	char fname[256];
+	snprintf(fname, sizeof(fname), "\"%s%i.iron\"", par.run_hash,id);
+	snprintf(buf, sizeof(buf), "save element iron %s", fname);
+	cdRead(buf);
 }

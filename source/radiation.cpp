@@ -134,9 +134,14 @@ void IllumSpec::compute(const ModelParams& par)
 
 	// Target flux from ionisation parameter
 	// xi = (4pi)^2 J / nh
+	// J = 1/2 (I)
+	// This function return J; 
 	double xi = pow(10.0, par.zeta);
 	double nH = pow(10.0, par.nh);
 	double Fx = xi * nH / pow(phys::four_pi,2);
+	// to match the xillver (*0.5 for elminate the 2 factor in compton_rt)
+	// double Fx = xi * nH / (2*M_PI*0.7071);
+
 
 	// Rescale so that corona + disk = Fx, split by frac = F_corona / F_disk
 	if (par.frac > 0) {
@@ -212,31 +217,20 @@ void RadField::compute_ionization_parameter(double lognh)
 
 void RadField::check_convergence(int outer_iter,
                                  double* T_old, double* xi_old,
-                                 double& mean_dT, double& mean_dXi)
+                                 double& max_dT, double& max_dXi)
 {
-	mean_dT  = 0.0;
-	mean_dXi = 0.0;
-	int nT = 0, nXi = 0;
+	max_dT  = 0.0;
+	max_dXi = 0.0;
 	for (int id = 0; id < g.ND_MID; ++id)
 	{
-		if (T_old[id] > 0.0)
-		{
-			mean_dT += fabs(log10(T_old[id]) - log10(T_K[id]));
-			++nT;
-		}
-		if (xi_old[id] != 0.0)
-		{
-			mean_dXi += fabs(xi_old[id] - log_xi[id]);
-			++nXi;
-		}		
+		max_dT = std::max(max_dT, fabs(log10(T_old[id]) - log10(T_K[id])));
+		max_dXi = std::max(max_dXi, fabs(xi_old[id] - log_xi[id]));
 		T_old[id]  = T_K[id];
 		xi_old[id] = log_xi[id];
 	}
-	if (nT  > 0) mean_dT  /= nT;
-	if (nXi > 0) mean_dXi /= nXi;
 
-	// Force all three to 1.0 on the first outer iteration so the
+	// Force both to 1.0 on the first outer iteration so the
 	// outer loop runs at least twice (the feedback is not active
 	// until iteration 2).
-	if (outer_iter == 1) { mean_dT = 1.0; mean_dXi = 1.0; }
+	if (outer_iter == 1) { max_dT = 1.0; max_dXi = 1.0; }
 }

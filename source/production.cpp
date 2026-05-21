@@ -38,17 +38,18 @@ void run_production(RadField& rad, const RTGrids& g,
 	for (int id = 0; id < g.ND_MID; ++id)
 	{
 		for (int ie = 0; ie < g.NE; ++ie){
-			rad.J0[id][ie] = rad.illum.I_corona[ie]+rad.illum.I_disk[ie];
+			rad.J0[id][ie] = (rad.illum.I_corona[ie]+rad.illum.I_disk[ie]);
 		}
 		rad.n_e[id] = pow(10,par.nh)*1.21;
 	}
 	rad.compute_ionization_parameter(par.nh);
+
 	// --- Outer Cloudy-RT iteration ---
-	const double T_tol = 1e-3;
-	double mean_dT = 1.0, mean_dXi = 1.0;
+	const double cir = 3e-3;
+	double max_dT = 1.0, max_dXi = 1.0;
 	int outer_iter = 0;
-	const int max_outer = 15;
-	while ((mean_dT > T_tol && mean_dXi > T_tol && outer_iter<max_outer))
+	const int max_outer = 20;
+	while (((max_dT > cir || max_dXi > cir) && outer_iter<max_outer))
 	{
 		++outer_iter;
 		fprintf(stdout, "\n========== OUTER ITERATION %d / %d ==========\n",
@@ -75,13 +76,7 @@ void run_production(RadField& rad, const RTGrids& g,
 			extract_cloudy_output(id, rad, g, outer_iter);
 
 			compute_compton_opacity(rad.ksct[id], g.NE, g.ene,
-			                       rad.T_K[id], rad.n_e[id]);
-
-			if (id == 0 || outer_iter%5==0) {
-				save_cloudy_opacity(id, rad, g,par, outer_iter);
-				save_line_labels(id, g, par,outer_iter);
-			}
-				
+			                       rad.T_K[id], rad.n_e[id]);	
 			fprintf(stdout,
 				"  depth %3d/%d  tau=%.3e  logT=%.3f  log(I)=%.3f  "
 				"ne/nh=%.3f  H/C=%.3f\n",
@@ -96,32 +91,47 @@ void run_production(RadField& rad, const RTGrids& g,
 		fprintf(stdout, "  [RT] Solving radiative transfer...\n");
 		compton_rt_solve(rad, g, par, kcache, par.maxiter);
 
+		// --- update moments---
 		rad.compute_moments();
+
+		// --- update ionization parameter---
 		rad.compute_ionization_parameter(par.nh);
+
+		// --- check if convergence ---
 		rad.check_convergence(outer_iter,
 		                      T_old, xi_old,
-		                      mean_dT, mean_dXi);
+		                      max_dT, max_dXi);
 
-		fprintf(stdout, "  Outer iter %d: mean|dT/T|=%.4e  mean|d(log_xi)|=%.4e\n",
-			outer_iter, mean_dT, mean_dXi);
-		
+		fprintf(stdout, "  Outer iter %d: max|d log T|=%.4e  max|d log xi|=%.4e\n",
+			outer_iter, max_dT, max_dXi);
+
+		// --- save results of current iteration ---
 		save_results(rad, g, par, outer_iter);
 	}
 
-	// for (int id = 0; id < g.ND_MID; ++id){
-	// 	for (int i = 0; i < g.NE; ++i){
-	// 		rad.jnu[id][i] += rad.jnu_line[id][i];
+	// If you want to see the ion fraction, please comment here
+	// the ions can be set by line 420 in cloudy_interface_v2.cpp
+	
+	// {
+	// 	for (int id = 0; id < g.ND_MID; ++id)
+	// 	{
+	// 		cdInit();
+	// 		cdTalk(false);
+	// 		cl_in.issue_constant();
+	// 		cl_in.issue_depth_lastest(id, rad ,g, par);
+	// 		int rc = cdDrive();
+	// 		if (rc)
+	// 		{
+	// 			fprintf(stderr, "Final output");
+	// 		}
 	// 	}
 	// }
-	// compton_rt_solve(rad, g, par, kcache, par.maxiter);
-	// rad.compute_moments();
-	// rad.compute_ionization_parameter(par.nh);
-	// outer_iter = 0;
-	// save_results(rad, g, par, outer_iter);
 	
-	fprintf(stdout, "\n=== %s at outer iteration %d (mean|dT/T|=%.2e) ===\n",
-		(mean_dT <= T_tol) ? "Converged" : "Max iterations reached",
-		outer_iter, mean_dT);
+	bool converged = (max_dT <= cir && max_dXi <= cir);
+	fprintf(stdout, "\n=== %s at outer iteration %d "
+	                "(max|d log T|=%.2e, max|d log xi|=%.2e) ===\n",
+		converged ? "Converged" : "Max iterations reached",
+		outer_iter, max_dT, max_dXi);
 
 	delete[] T_old;
 	delete[] xi_old;

@@ -622,6 +622,7 @@ static void compute_boundary_illumination(
 	const RadField& rad,
 	double* ill_top, double* ill_bot)
 {	
+	// J (E) = 1/2 $$\int_{-1}^{1} $$ I(mu)delta(mu-mu_inc)dmu [Top]
 	for (int ne = 0; ne < NE; ++ne)
 	{
 		ill_top[ne] = 2*rad.illum.I_corona[ne]/g.wt[i_inc];

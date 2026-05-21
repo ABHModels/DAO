@@ -42,8 +42,17 @@ void compute_source_function(
 	memset(source, 0, long(ND) * NM * NE * sizeof(double));
 
 	for (int nd = 0; nd < ND; ++nd)
-	{
-		int iT = kcache.find_T(T_K[nd]);
+	{	
+		int iT = 0;
+		if (T_K[nd]>1e6){
+			iT = kcache.find_T(T_K[nd]);
+		}else{
+			
+			// these is to avoid the numerical instability for low temperature kernel
+			// the problem can be fixed by increase the energy resolution
+			double temT = 1e6;
+			iT = kcache.find_T(temT);
+		}
 
 		for (int nm = 0; nm < NM; ++nm)
 		for (int ne = 0; ne < NE; ++ne)

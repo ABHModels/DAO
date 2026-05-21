@@ -655,7 +655,6 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 			{
 				double dx1 = x_grid[ne1] - x_grid[ne1 - 1];
 				double f_a = 0.0, f_b = 0.0;
-
 				for (int inm = 0; inm < NA_full; ++inm)
 				{
 					if (mu[inm] <= 0.0) continue;
