@@ -24,7 +24,7 @@ ModelParams read_params(int argc, char *argv[])
 	p.incidence = 0.7071067811865476;  // cos(45 deg)
 	p.test_rt   = false;
 	p.angsca = true;
-	strncpy(p.sc_method, "bezier2", sizeof(p.sc_method));
+	strncpy(p.sc_method, "bezier3", sizeof(p.sc_method));
 	p.E_rt_lo   = 10.0;      // 0.01 keV in eV
 	p.E_rt_hi   = 1000.0e3;   // 1000 keV in eV
 	p.maxiter   = 500;
