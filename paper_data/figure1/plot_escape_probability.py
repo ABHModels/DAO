@@ -17,13 +17,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle, FancyArrowPatch
 
-# Resolve output location the same way as paper_data/figure2/plot_kernel_redist.py:
-# write next to this script by default, but prefer ./plot/ if it already exists
-# (so running from the repo root keeps the historical layout). Works from any cwd.
+# Self-contained: write the figure next to this script, regardless of cwd.
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-OUT_DIR = "plot" if os.path.isdir("plot") else SCRIPT_DIR
-os.makedirs(OUT_DIR, exist_ok=True)
-OUT = os.path.join(OUT_DIR, "escape_probability.pdf")
+OUT = os.path.join(SCRIPT_DIR, "escape_probability.pdf")
 # Palette matched to beamer theme
 C_AZURE = "#2A62AF"
 C_INK   = "#12203A"

@@ -12,15 +12,9 @@ Both panels share the same E_out range (1-500 keV, log scale)
 and the same color scale, so the relative magnitudes can be
 read off directly.
 
-Inputs are located by searching:
-  1. the current working directory,
-  2. the directory containing this script,
-  3. the script directory by basename (data file sitting next to the script).
-
-So either of the following works:
-    python plot/plot_kernel_redist.py                       # from repo root
-    python paper_data/figure2/plot_kernel_redist.py         # from repo root, alt path
-    python plot_kernel_redist.py                            # from paper_data/figure2/
+Reads the two .dat slices that sit next to this script and writes the
+figure into the same folder. No arguments; works from any cwd:
+    python plot_kernel_redist.py
 
 Author:      Yimin Huang
 Affiliation: Fudan University
@@ -164,27 +158,12 @@ def draw_panel(ax, slc, vmin, vmax, band, band_label, mark_upscatter=False):
 
 
 # ------------------------------------------------------------------
-# Locate input files
-#
-# Look in this order so the script works from any cwd:
-#   1. <cwd>/<path>                       (e.g. run from repo root with data/)
-#   2. <script_dir>/<path>                (e.g. run from paper_data/figure2/)
-#   3. <script_dir>/<basename(path)>      (data sitting next to this script)
+# Inputs live next to this script, so paths resolve from any cwd.
 # ------------------------------------------------------------------
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-def find_data(rel):
-    for cand in (rel,
-                 os.path.join(SCRIPT_DIR, rel),
-                 os.path.join(SCRIPT_DIR, os.path.basename(rel))):
-        if os.path.isfile(cand):
-            return cand
-    raise FileNotFoundError(
-        f"could not locate {rel!r}; tried cwd, {SCRIPT_DIR!r}, "
-        f"and basename-next-to-script")
-
-fe   = read_slice(find_data("data/kernel_redist2d_FeKa.dat"))
-hump = read_slice(find_data("data/kernel_redist2d_hump.dat"))
+fe   = read_slice(os.path.join(SCRIPT_DIR, "kernel_redist2d_FeKa.dat"))
+hump = read_slice(os.path.join(SCRIPT_DIR, "kernel_redist2d_hump.dat"))
 
 K_all = np.concatenate([fe["K"][fe["K"] > 0], hump["K"][hump["K"] > 0]])
 vmax  = K_all.max()
@@ -224,11 +203,8 @@ cbar.ax.tick_params(labelsize=7)
 # Layout
 fig.subplots_adjust(left=0.07, right=0.91, bottom=0.16, top=0.92)
 
-# Write next to the script by default; use ./plot/ if it already exists
-# (so running from the repo root keeps the historical layout).
-out_dir = "plot" if os.path.isdir("plot") else SCRIPT_DIR
-os.makedirs(out_dir, exist_ok=True)
-out = os.path.join(out_dir, "kernel_redist_FeKa_hump.png")
+# Write the figure next to this script.
+out = os.path.join(SCRIPT_DIR, "kernel_redist_FeKa_hump.png")
 plt.show()
 fig.savefig(out, bbox_inches="tight")
 fig.savefig(out.replace(".png", ".pdf"), bbox_inches="tight")

@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import re
 import json
-import glob
 import os
 
 # ── Nature-style rcParams ────────────────────────────────────────────────────
@@ -79,33 +78,24 @@ def load_emergent_flux(em_file):
     return E, F
 
 
-def latest_iter_file(hash_):
-    """Return the emergent_iter*.dat file with the highest iteration index."""
-    pattern = f'/Users/ym.huang/cloudy_test/results/{hash_}/emergent_iter*.dat'
-    files = glob.glob(pattern)
-    if not files:
-        raise FileNotFoundError(f'No emergent_iter*.dat in {hash_}')
-    def idx(f):
-        m = re.search(r'emergent_iter(\d+)\.dat$', os.path.basename(f))
-        return int(m.group(1)) if m else -1
-    return max(files, key=idx)
+# Self-contained: every input file sits next to this script.
+HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def load_run(hash_):
-    """Load DAO emergent spectrum (latest iteration), reflionx, xillver, params."""
-    em_file = latest_iter_file(hash_)
+    """Load DAO emergent spectrum, reflionx, xillver, params — all local."""
+    em_file = os.path.join(HERE, f'dao_{hash_}.dat')
     print(f'[{hash_}] using {os.path.basename(em_file)}')
     E_eV, F_up = load_emergent_flux(em_file)
 
-    with open(f'/Users/ym.huang/cloudy_test/results/{hash_}/params.json') as f:
+    with open(os.path.join(HERE, f'pa{hash_}.json')) as f:
         par = json.load(f)
 
-    xv = np.loadtxt(f'/Users/ym.huang/cloudy_test/benchmark/xillver/{hash_}.dat')
+    xv = np.loadtxt(os.path.join(HERE, f'xillver_{hash_}.dat'))
     E_xv = xv[:, 0] * 1e3                    # keV -> eV
     EFE_xv = xv[:, 2] / E_xv                 # column 2 is E·F_E → divide for F_E
 
-    rf = np.loadtxt(f'/Users/ym.huang/cloudy_test/benchmark/reflionx/'
-                    f'spectra_{hash_}.dat')
+    rf = np.loadtxt(os.path.join(HERE, f'spectra_{hash_}.dat'))
     E_rf = rf[:, 0] * 1e3
     EFE_rf = rf[:, 1] / E_rf
 
@@ -216,8 +206,8 @@ axes[1].text(
 plt.subplots_adjust(left=0.07, right=0.99, bottom=0.14, top=0.96, wspace=0.06)
 
 plt.show()
-out_png = '/Users/ym.huang/cloudy_test/image/compare_reflionx_xi_scan.png'
-out_pdf = '/Users/ym.huang/cloudy_test/image/compare_reflionx_xi_scan.pdf'
+out_png = os.path.join(HERE, 'compare_reflionx_xi_scan.png')
+out_pdf = os.path.join(HERE, 'compare_reflionx_xi_scan.pdf')
 fig.savefig(out_png, dpi=600, bbox_inches='tight')
 fig.savefig(out_pdf,            bbox_inches='tight')
 print(f'Saved: {out_png}')

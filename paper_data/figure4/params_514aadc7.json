@@ -1,0 +1,18 @@
+{
+  "hash": "514aadc7",
+  "corona": "cutoffpl",
+  "nh": 15,
+  "zeta": 0,
+  "frac": -1,
+  "incidence": 0.5,
+  "Afe": 1,
+  "Gamma": 2,
+  "E_cut": 300,
+  "E_lo_cut": 0.1,
+  "kT_e": -1,
+  "kT_bb": -1,
+  "taup": -1,
+  "kT_disk": 0.35,
+  "test_rt": false,
+  "T_test": 1e+08
+}

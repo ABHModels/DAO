@@ -44,320 +44,6 @@ static inline double fritsch_butland(double Sm1, double S0, double Sp1,
 }
 
 // ============================================================
-//  PARABOLIC 2nd-order SC  (Kunasz & Auer 1988)
-//    H&M Eqs. 12.124-12.133
-// ============================================================
-
-static void calculate_coefficient(
-	int ND, int NM, int NE,
-	const double* dt_ang,
-	double* inc_curr, double* inc_prev, double* inc_back,
-	double* out_curr, double* out_prev, double* out_back)
-{
-	for (int nd = 1; nd < ND - 1; ++nd)
-	{
-		for (int nm = 0; nm < NM; ++nm)
-		for (int ne = 0; ne < NE; ++ne)
-		{
-			double dtp = dt_ang[idx3(nd + 1, nm, ne)];
-			double dtm = dt_ang[idx3(nd, nm, ne)];
-			double dtl = (dtp + dtm) / 2.0;
-
-			double xp = 1.0 - exp(-dtp);
-			double xm = 1.0 - exp(-dtm);
-			double yp = dtp - xp;
-			double ym = dtm - xm;
-			double zp = dtp * dtp - 2.0 * yp;
-			double zm = dtm * dtm - 2.0 * ym;
-
-			// H&M Eqs. 12.126-12.128
-			out_curr[idx3(nd, nm, ne)] = (2.0*yp*dtl - zp) / (dtp * dtm);
-			out_back[idx3(nd, nm, ne)] = xp + (zp - yp*(2.0*dtl + dtp)) / (2.0*dtl*dtp);
-			out_prev[idx3(nd, nm, ne)] = (zp - yp*dtp) / (2.0*dtl*dtm);
-
-			// H&M Eqs. 12.129-12.131
-			inc_curr[idx3(nd, nm, ne)] = (2.0*ym*dtl - zm) / (dtp * dtm);
-			inc_prev[idx3(nd, nm, ne)] = (zm - ym*dtm) / (2.0*dtl*dtp);
-			inc_back[idx3(nd, nm, ne)] = xm + (zm - ym*(2.0*dtl + dtm)) / (2.0*dtl*dtm);
-		}
-	}
-
-	// Top boundary (nd = 0): 1st-order (H&M Eqs. 12.115-12.118)
-	for (int nm = 0; nm < NM; ++nm)
-	for (int ne = 0; ne < NE; ++ne)
-	{
-		inc_curr[idx3(0, nm, ne)] = 0.0;
-		inc_prev[idx3(0, nm, ne)] = 0.0;
-		inc_back[idx3(0, nm, ne)] = 0.0;
-		out_prev[idx3(0, nm, ne)] = 0.0;
-
-		double dtp = dt_ang[idx3(1, nm, ne)];
-		double xp  = 1.0 - exp(-dtp);
-		double yp  = dtp - xp;
-		out_curr[idx3(0, nm, ne)] = yp / dtp;
-		out_back[idx3(0, nm, ne)] = xp - yp / dtp;
-	}
-
-	// Bottom boundary (nd = ND-1): 1st-order
-	for (int nm = 0; nm < NM; ++nm)
-	for (int ne = 0; ne < NE; ++ne)
-	{
-		inc_back[idx3(ND-1, nm, ne)] = 0.0;
-		out_prev[idx3(ND-1, nm, ne)] = 0.0;
-		out_back[idx3(ND-1, nm, ne)] = 0.0;
-		out_curr[idx3(ND-1, nm, ne)] = 0.0;
-
-		double dtm = dt_ang[idx3(ND-1, nm, ne)];
-		double xm  = 1.0 - exp(-dtm);
-		double ym  = dtm - xm;
-		inc_curr[idx3(ND-1, nm, ne)] = ym / dtm;
-		inc_prev[idx3(ND-1, nm, ne)] = xm - ym / dtm;
-	}
-}
-
-static void formal_solution_parabolic(
-	int ND, int NM, int NE,
-	int i_inc,
-	const double* mu,
-	const double* ill_top,
-	const double* ill_bot,
-	const double* source,
-	const double* dt_ang,
-	const double* inc_curr, const double* inc_prev, const double* inc_back,
-	const double* out_curr, const double* out_prev, const double* out_back,
-	double* intensity)
-{
-	memset(intensity, 0, long(ND) * NM * NE * sizeof(double));
-
-	for (int nm = 0; nm < NM; ++nm)
-	for (int ne = 0; ne < NE; ++ne)
-	{
-		// === Downward sweep (mu < 0): nd = 0 -> ND-1 ===
-		for (int nd = 0; nd < ND; ++nd)
-		{
-			if (mu[nm] >= 0.0) continue;
-
-			if (nd == 0)
-			{
-				intensity[idx3(0, nm, ne)] =
-					(nm == i_inc) ? ill_top[ne] : 0.0;
-				continue;
-			}
-
-			long k = idx3(nd, nm, ne);
-			double I_prev = intensity[idx3(nd - 1, nm, ne)];
-			double atten  = exp(-dt_ang[k]);
-
-			if (nd < ND - 1)
-			{
-				intensity[k] = I_prev * atten
-				             + inc_curr[k] * source[idx3(nd,   nm, ne)]
-				             + inc_back[k] * source[idx3(nd+1, nm, ne)]
-				             + inc_prev[k] * source[idx3(nd-1, nm, ne)];
-			}
-			else
-			{
-				intensity[k] = I_prev * atten
-				             + inc_curr[k] * source[idx3(nd,   nm, ne)]
-				             + inc_prev[k] * source[idx3(nd-1, nm, ne)];
-			}
-		}
-
-		// === Upward sweep (mu > 0): nd = ND-1 -> 0 ===
-		for (int nd = ND - 1; nd >= 0; --nd)
-		{
-			if (mu[nm] <= 0.0) continue;
-
-			long k = idx3(nd, nm, ne);
-
-			if (nd == ND - 1)
-			{
-				intensity[k] = ill_bot[ne];
-				continue;
-			}
-
-			double I_next = intensity[idx3(nd + 1, nm, ne)];
-			double atten  = exp(-dt_ang[idx3(nd + 1, nm, ne)]);
-
-			if (nd > 0)
-			{
-				intensity[k] = I_next * atten
-				             + out_curr[k] * source[idx3(nd,   nm, ne)]
-				             + out_back[k] * source[idx3(nd+1, nm, ne)]
-				             + out_prev[k] * source[idx3(nd-1, nm, ne)];
-			}
-			else
-			{
-				intensity[k] = I_next * atten
-				             + out_curr[k] * source[idx3(nd,   nm, ne)]
-				             + out_back[k] * source[idx3(nd+1, nm, ne)];
-			}
-		}
-	}
-}
-
-// ============================================================
-//  QUADRATIC BEZIER SC
-//    de la Cruz Rodriguez & Piskunov (2013), ApJ 764, 33
-//    Eq. 19 + Appendix B
-//
-//    I_D = I_U exp(-d) + alpha*S_D + beta*S_U + gamma*C
-// ============================================================
-
-static inline void bezier2_coeffs(double d,
-                                  double& alpha, double& beta, double& gamma)
-{
-	if (d < 1e-3)
-	{
-		// Taylor expansion (Appendix B)
-		double d2 = d * d, d3 = d2 * d;
-		alpha = d / 3.0 - d2 / 12.0 + d3 / 60.0;
-		beta  = d / 3.0 - d2 / 4.0  + d3 / 10.0;
-		gamma = d / 3.0 - d2 / 6.0  + d3 / 20.0;
-	}
-	else
-	{
-		double ed = exp(-d), d2 = d * d;
-		alpha = (2.0 + d2 - 2.0 * d - 2.0 * ed) / d2;
-		beta  = (2.0 - (2.0 + 2.0 * d + d2) * ed) / d2;
-		gamma = (2.0 * d - 4.0 + (2.0 * d + 4.0) * ed) / d2;
-	}
-}
-
-static void formal_solution_bezier2(
-	int ND, int NM, int NE,
-	int i_inc,
-	const double* mu,
-	const double* ill_top,
-	const double* ill_bot,
-	const double* source,
-	const double* dt_ang,
-	double* intensity)
-{
-	memset(intensity, 0, long(ND) * NM * NE * sizeof(double));
-
-	for (int nm = 0; nm < NM; ++nm)
-	for (int ne = 0; ne < NE; ++ne)
-	{
-		// === Downward sweep (mu < 0) ===
-		for (int nd = 0; nd < ND; ++nd)
-		{
-			if (mu[nm] >= 0.0) continue;
-
-			if (nd == 0)
-			{
-				intensity[idx3(0, nm, ne)] =
-					(nm == i_inc) ? ill_top[ne] : 0.0;
-				continue;
-			}
-
-			double delta = dt_ang[idx3(nd, nm, ne)];
-			double atten = exp(-delta);
-			double S_D = source[idx3(nd, nm, ne)];
-			double S_U = source[idx3(nd - 1, nm, ne)];
-
-			double a, b, g;
-			bezier2_coeffs(delta, a, b, g);
-
-			// Control point (Eqs. 8-10)
-			double C;
-			bool ok_D = (nd > 0 && nd < ND - 1);
-			bool ok_U = (nd - 1 > 0 && nd - 1 < ND - 1);
-
-			if (ok_D && ok_U)
-			{
-				double hm_D = dt_ang[idx3(nd, nm, ne)];
-				double hp_D = dt_ang[idx3(nd + 1, nm, ne)];
-				double dSdt_D = fritsch_butland(
-					source[idx3(nd - 1, nm, ne)], S_D,
-					source[idx3(nd + 1, nm, ne)], hm_D, hp_D);
-
-				double hm_U = dt_ang[idx3(nd - 1, nm, ne)];
-				double hp_U = dt_ang[idx3(nd, nm, ne)];
-				double dSdt_U = fritsch_butland(
-					source[idx3(nd - 2, nm, ne)], S_U,
-					source[idx3(nd, nm, ne)], hm_U, hp_U);
-
-				// Incoming: h_k = tau(nd-1) - tau(nd) = -delta
-				double C0 = S_D - (delta / 2.0) * dSdt_D;
-				double C1 = S_U + (delta / 2.0) * dSdt_U;
-				C = (C0 + C1) / 2.0;
-			}
-			else
-			{
-				C = (S_D + S_U) / 2.0;
-			}
-
-			// Monotonicity clamp
-			double Smin = std::min(S_D, S_U);
-			double Smax = std::max(S_D, S_U);
-			C = std::max(Smin, std::min(Smax, C));
-
-			intensity[idx3(nd, nm, ne)] =
-				intensity[idx3(nd - 1, nm, ne)] * atten
-				+ a * S_D + b * S_U + g * C;
-		}
-
-		// === Upward sweep (mu > 0) ===
-		for (int nd = ND - 1; nd >= 0; --nd)
-		{
-			if (mu[nm] <= 0.0) continue;
-
-			if (nd == ND - 1)
-			{
-				intensity[idx3(nd, nm, ne)] = ill_bot[ne];
-				continue;
-			}
-
-			double delta = dt_ang[idx3(nd + 1, nm, ne)];
-			double atten = exp(-delta);
-			double S_D = source[idx3(nd, nm, ne)];
-			double S_U = source[idx3(nd + 1, nm, ne)];
-
-			double a, b, g;
-			bezier2_coeffs(delta, a, b, g);
-
-			// Control point (Eqs. 8-10)
-			double C;
-			bool ok_D = (nd > 0 && nd < ND - 1);
-			bool ok_U = (nd + 1 > 0 && nd + 1 < ND - 1);
-
-			if (ok_D && ok_U)
-			{
-				double hm_D = dt_ang[idx3(nd, nm, ne)];
-				double hp_D = dt_ang[idx3(nd + 1, nm, ne)];
-				double dSdt_D = fritsch_butland(
-					source[idx3(nd - 1, nm, ne)], S_D,
-					source[idx3(nd + 1, nm, ne)], hm_D, hp_D);
-
-				double hm_U = dt_ang[idx3(nd + 1, nm, ne)];
-				double hp_U = dt_ang[idx3(nd + 2, nm, ne)];
-				double dSdt_U = fritsch_butland(
-					source[idx3(nd, nm, ne)], S_U,
-					source[idx3(nd + 2, nm, ne)], hm_U, hp_U);
-
-				// Outgoing: h_k = tau(nd+1) - tau(nd) = +delta
-				double C0 = S_D + (delta / 2.0) * dSdt_D;
-				double C1 = S_U - (delta / 2.0) * dSdt_U;
-				C = (C0 + C1) / 2.0;
-			}
-			else
-			{
-				C = (S_D + S_U) / 2.0;
-			}
-
-			double Smin = std::min(S_D, S_U);
-			double Smax = std::max(S_D, S_U);
-			C = std::max(Smin, std::min(Smax, C));
-
-			intensity[idx3(nd, nm, ne)] =
-				intensity[idx3(nd + 1, nm, ne)] * atten
-				+ a * S_D + b * S_U + g * C;
-		}
-	}
-}
-
-// ============================================================
 //  CUBIC BEZIER SC
 //    de la Cruz Rodriguez & Piskunov (2013), Eq. 20
 //
@@ -664,7 +350,7 @@ void compton_rt_solve(RadField& rad, const RTGrids& g,
 	g_NM = NM;
 	g_NE = NE;
 
-	const bool use_parabolic = (strcmp(par.sc_method, "parabolic") == 0);
+	// const bool use_parabolic = (strcmp(par.sc_method, "parabolic") == 0);
 	const bool use_bezier3   = (strcmp(par.sc_method, "bezier3") == 0);
 
 	fprintf(stdout, "\n=== Compton RT solver (%s) ===\n", par.sc_method);
@@ -683,29 +369,10 @@ void compton_rt_solve(RadField& rad, const RTGrids& g,
 	double* meani_old = new double[size2]();
 	double* dt_ang    = new double[size3]();
 
-	// Parabolic method needs 6 extra coefficient arrays
-	double* inc_curr = nullptr;
-	double* inc_prev = nullptr;
-	double* inc_back = nullptr;
-	double* out_curr = nullptr;
-	double* out_prev = nullptr;
-	double* out_back = nullptr;
-	if (use_parabolic)
-	{
-		inc_curr = new double[size3]();
-		inc_prev = new double[size3]();
-		inc_back = new double[size3]();
-		out_curr = new double[size3]();
-		out_prev = new double[size3]();
-		out_back = new double[size3]();
-	}
-
 	double* ill_top = new double[NE]();
 	double* ill_bot = new double[NE]();
 
 	double mem_mb = (3.0 * size3 + 2.0 * size2 + 2.0 * NE) * 8.0 / (1024.0 * 1024.0);
-	if (use_parabolic)
-		mem_mb += 6.0 * size3 * 8.0 / (1024.0 * 1024.0);
 	fprintf(stdout, "  Work arrays: %.1f MB\n", mem_mb);
 
 	// --- Step 1: angle-frequency optical depth ---
@@ -718,14 +385,6 @@ void compton_rt_solve(RadField& rad, const RTGrids& g,
 	// --- Step 3: initialise source and mean intensity ---
 	init_source_and_meani(ND, NM, NE, ill_top, source, meani, meani_old);
 
-	// --- Step 4: precompute coefficients (parabolic only) ---
-	if (use_parabolic)
-	{
-		calculate_coefficient(ND, NM, NE, dt_ang,
-		                      inc_curr, inc_prev, inc_back,
-		                      out_curr, out_prev, out_back);
-	}
-
 	// --- Step 5: Lambda iteration ---
 	fprintf(stdout, "  Starting Lambda iteration (max %d)...\n", maxiter);
 	clock_t t_start = clock();
@@ -737,29 +396,22 @@ void compton_rt_solve(RadField& rad, const RTGrids& g,
 	{
 		clock_t t_iter = clock();
 
-		// --- Formal solution (dispatch by method) ---
-		if (use_parabolic)
-		{
-			formal_solution_parabolic(ND, NM, NE, i_inc, g.mu,
-			                          ill_top, ill_bot,
-			                          source, dt_ang,
-			                          inc_curr, inc_prev, inc_back,
-			                          out_curr, out_prev, out_back,
-			                          intensity);
-		}
-		else if (use_bezier3)
+		// --- Formal solution ---
+		if (use_bezier3)
 		{
 			formal_solution_bezier3(ND, NM, NE, i_inc, g.mu,
 			                        ill_top, ill_bot,
 			                        source, dt_ang,
 			                        intensity);
-		}
-		else  // bezier2 (default)
+		} 
+		else
 		{
-			formal_solution_bezier2(ND, NM, NE, i_inc, g.mu,
+			fprintf(stdout,"update: we remove other method, only bezier3 now");
+			formal_solution_bezier3(ND, NM, NE, i_inc, g.mu,
 			                        ill_top, ill_bot,
 			                        source, dt_ang,
 			                        intensity);
+
 		}
 
 		compute_source_function(ND, NM, NE,
@@ -826,12 +478,6 @@ void compton_rt_solve(RadField& rad, const RTGrids& g,
 	delete[] meani;
 	delete[] meani_old;
 	delete[] dt_ang;
-	delete[] inc_curr;
-	delete[] inc_prev;
-	delete[] inc_back;
-	delete[] out_curr;
-	delete[] out_prev;
-	delete[] out_back;
 	delete[] ill_top;
 	delete[] ill_bot;
 	delete[] x_grid;
