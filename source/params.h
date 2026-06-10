@@ -40,12 +40,6 @@ struct ModelParams
 	// --- Angle dependent or not ---
 	bool angsca;
 
-	// --- SC formal solution method ---
-	//   "parabolic" : 2nd-order parabolic SC (Kunasz & Auer 1988)
-	//   "bezier2"   : quadratic Bezier SC (de la Cruz Rodriguez+ 2013, Eq. 19)
-	//   "bezier3"   : cubic Bezier SC (de la Cruz Rodriguez+ 2013, Eq. 20)
-	char sc_method[16];
-
 	// --- Run management (auto-computed from params) ---
 	char run_hash[12];   // 8-char hex hash of all physics params
 	char run_dir[256];   // "results/<hash>/"

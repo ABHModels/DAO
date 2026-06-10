@@ -4,6 +4,7 @@
 #include <cstring>
 #include <cstdio>
 #include <cmath>
+#include <ctime>
 #include <sys/stat.h>
 
 ModelParams read_params(int argc, char *argv[])
@@ -26,7 +27,6 @@ ModelParams read_params(int argc, char *argv[])
 	strncpy(p.test_mode, "scatter", sizeof(p.test_mode));
 	p.tau_slab  = 0.5;   // total vertical Thomson optical depth (compps mode)
 	p.angsca = true;
-	strncpy(p.sc_method, "bezier3", sizeof(p.sc_method));
 	p.E_rt_lo   = 10.0;      // 0.01 keV in eV
 	p.E_rt_hi   = 1000.0e3;   // 1000 keV in eV
 	p.maxiter   = 500;
@@ -78,8 +78,6 @@ ModelParams read_params(int argc, char *argv[])
 			p.taup = atof(argv[++i]);
 		else if (strcmp(argv[i], "-Afe") == 0 && i+1 < argc)
 			p.Afe = atof(argv[++i]);
-		else if (strcmp(argv[i], "-sc") == 0 && i+1 < argc)
-			strncpy(p.sc_method, argv[++i], sizeof(p.sc_method) - 1);
 		else if (strcmp(argv[i], "-angsca") == 0 && i+1 < argc)
 		{
 			// Angular-scattering kernel selector:
@@ -146,16 +144,6 @@ ModelParams read_params(int argc, char *argv[])
 		exit(1);
 	}
 
-	// --- Validate SC method ---
-	if (strcmp(p.sc_method, "parabolic") != 0 &&
-	    strcmp(p.sc_method, "bezier2") != 0 &&
-	    strcmp(p.sc_method, "bezier3") != 0)
-	{
-		fprintf(stderr, "Error: unknown -sc method '%s'. Options: parabolic, bezier2, bezier3\n",
-		        p.sc_method);
-		exit(1);
-	}
-	printf("SC method:  %s\n", p.sc_method);
 	printf("Kernel:     %s\n",
 	       p.angsca ? "angle-dependent (KernelCache)"
 	                : "angle-mean (avgKernelCache)");
@@ -200,8 +188,14 @@ ModelParams read_params(int argc, char *argv[])
 		FILE* fp = fopen(pjson, "w");
 		if (fp)
 		{
+			char timestamp[32];
+			time_t now = time(nullptr);
+			strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S",
+			         localtime(&now));
+
 			fprintf(fp, "{\n");
 			fprintf(fp, "  \"hash\": \"%s\",\n", p.run_hash);
+			fprintf(fp, "  \"time\": \"%s\",\n", timestamp);
 			fprintf(fp, "  \"corona\": \"%s\",\n", p.corona);
 			fprintf(fp, "  \"nh\": %.6g,\n", p.nh);
 			fprintf(fp, "  \"zeta\": %.6g,\n", p.zeta);
@@ -219,7 +213,6 @@ ModelParams read_params(int argc, char *argv[])
 			fprintf(fp, "  \"test_mode\": \"%s\",\n", p.test_mode);
 			fprintf(fp, "  \"T_test\": %.6g,\n", p.T_test);
 			fprintf(fp, "  \"tau_slab\": %.6g,\n", p.tau_slab);
-			fprintf(fp, "  \"sc_method\": \"%s\",\n", p.sc_method);
 			fprintf(fp, "  \"maxiter\": %d,\n", p.maxiter);
 			fprintf(fp, "  \"E_rt_lo\": %.6g,\n", p.E_rt_lo);
 			fprintf(fp, "  \"E_rt_hi\": %.6g,\n", p.E_rt_hi);
