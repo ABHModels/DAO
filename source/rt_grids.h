@@ -50,6 +50,12 @@ struct RTGrids {
 
 	void init_angle();
 
+	// Double-Gauss angle grid: NA/2-point Gauss-Legendre applied to each
+	// hemisphere separately (nodes on [0,1] mirrored to [-1,0]). Reproduces
+	// Xspec compPS's angular quadrature exactly when NA=10 (5 nodes/hemisphere).
+	// Requires NA even.
+	void init_angle_double_gauss();
+
 	// Symmetric-log tanh grid; re-sizes the depth arrays to
 	// the default ND_EDGE_DEFAULT.
 	void init_depth(double tau_min, double tau_max, double nh);

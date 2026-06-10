@@ -4,9 +4,13 @@
 #include "radiation.h"
 #include "params.h"
 #include "compton_kernel.h"
+#include "avg_compton_kernel.h"
 #include "compton_cross_section.h"
 
+// Templated on the kernel-cache type (KernelCache or avgKernelCache);
+// explicitly instantiated for both in test_rt.cpp.
+template<class Cache>
 void run_test_rt(RadField& rad, const RTGrids& g, ModelParams& par,
-                 KernelCache& kcache);
+                 Cache& kcache);
 
 #endif // TEST_RT_H

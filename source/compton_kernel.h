@@ -80,9 +80,13 @@ struct KernelCache
 	                glo(nullptr), ghi(nullptr),
 	                data(nullptr), data_size(0) {}
 
+	// nt_user > 0 with T_user != nullptr builds the kernel on the supplied
+	// temperature grid (e.g. a single isothermal value in test mode) instead
+	// of the default log-spaced N_T_CACHE grid.
 	void init(int n_ene, const double* ene_eV,
 	          int n_ang, const double* mu, const double* wt,
-	          const int ktype);
+	          const int ktype,
+	          int nt_user = 0, const double* T_user = nullptr);
 
 	void save(const char* filename) const;
 	bool load(const char* filename);

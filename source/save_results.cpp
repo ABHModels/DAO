@@ -37,8 +37,8 @@ void save_results(const RadField& rad, const RTGrids& g,
 		FILE* fp = fopen(fname, "w");
 		fprintf(fp, "# Emergent specific intensity at surface (nd=0)  iter=%d\n", iter);
 		fprintf(fp, "# Col 1: E [eV]\n");
-		fprintf(fp, "# Col 2: I_corona (incident) [erg cm^-2 s^-1 eV^-1]\n");
-		fprintf(fp, "# Col 3: I_disk (incident) [erg cm^-2 s^-1 eV^-1]\n");
+		fprintf(fp, "# Col 2: I_corona (incident) [erg cm^-2 s^-1 eV^-1 sr^-1]\n");
+		fprintf(fp, "# Col 3: I_disk (incident) [erg cm^-2 s^-1 eV^-1 sr^-1]\n");
 		for (int nm = 0; nm < g.NA; ++nm)
 			fprintf(fp, "# Col %d: I(mu=%.6f) [erg cm^-2 s^-1 eV^-1 sr^-1]\n",
 			        nm + 4, g.mu[nm]);
@@ -63,7 +63,7 @@ void save_results(const RadField& rad, const RTGrids& g,
 		fprintf(fp, "# Col 2: depth index\n");
 		fprintf(fp, "# Col 3: tau_mid\n");
 		fprintf(fp, "# Col 4: T_K [K]\n");
-		fprintf(fp, "# Col 5: J0 [erg cm^-2 s^-1 eV^-1 sr^-1]\n");
+		fprintf(fp, "# Col 5: J0 [erg cm^-2 s^-1 eV^-1]\n");
 		fprintf(fp, "# Col 6: J2\n");
 		fprintf(fp, "# Col 7: J3\n");
 		for (int id = 0; id < g.ND_MID; ++id)
@@ -88,7 +88,7 @@ void save_results(const RadField& rad, const RTGrids& g,
 		fprintf(fp, "# Col 4: n_e [cm^-3]\n");
 		fprintf(fp, "# Col 5: heating [erg cm^-3 s^-1]\n");
 		fprintf(fp, "# Col 6: cooling [erg cm^-3 s^-1]\n");
-		fprintf(fp, "# Col 7: log_xi = log10(4piJ) [erg cm^-2 s^-1]\n");
+		fprintf(fp, "# Col 7: log_xi = log10(4piJ) [erg cm^-2 s^-1] / nh\n");
 		for (int id = 0; id < g.ND_MID; ++id)
 		{
 			fprintf(fp, "%d  %.6e  %.6e  %.6e  %.6e  %.6e  %.6e\n",

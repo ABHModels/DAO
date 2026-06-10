@@ -19,9 +19,10 @@
 #include "yield.h"                                                                                                                                                                             
 #include "ionbal.h"
 
+template<class Cache>
 void run_production(RadField& rad, const RTGrids& g,
                     const ModelParams& par,
-                    KernelCache& kcache)
+                    Cache& kcache)
 {
 	// --- Cloudy setup ---
 	CloudyInput cl_in(g);
@@ -109,9 +110,6 @@ void run_production(RadField& rad, const RTGrids& g,
 		save_results(rad, g, par, outer_iter);
 	}
 
-	// If you want to see the ion fraction, please comment here
-	// the ions can be set by line 420 in cloudy_interface_v2.cpp
-	
 	// {
 	// 	for (int id = 0; id < g.ND_MID; ++id)
 	// 	{
@@ -136,3 +134,9 @@ void run_production(RadField& rad, const RTGrids& g,
 	delete[] T_old;
 	delete[] xi_old;
 }
+
+// Explicit instantiations for both kernel-cache types.
+template void run_production<KernelCache>(
+	RadField&, const RTGrids&, const ModelParams&, KernelCache&);
+template void run_production<avgKernelCache>(
+	RadField&, const RTGrids&, const ModelParams&, avgKernelCache&);

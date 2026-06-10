@@ -23,6 +23,8 @@ ModelParams read_params(int argc, char *argv[])
 	p.frac      = 100;  // flux ratio: F_corona/F_disk. If frac <= 0, no I_disk (corona only)
 	p.incidence = 0.7071067811865476;  // cos(45 deg)
 	p.test_rt   = false;
+	strncpy(p.test_mode, "scatter", sizeof(p.test_mode));
+	p.tau_slab  = 0.5;   // total vertical Thomson optical depth (compps mode)
 	p.angsca = true;
 	strncpy(p.sc_method, "bezier3", sizeof(p.sc_method));
 	p.E_rt_lo   = 10.0;      // 0.01 keV in eV
@@ -54,9 +56,16 @@ ModelParams read_params(int argc, char *argv[])
 		else if (strcmp(argv[i], "-incidence") == 0 && i+1 < argc)
 			p.incidence = atof(argv[++i]);
 		else if (strcmp(argv[i], "-test_rt") == 0)
+		{
 			p.test_rt = true;
+			// optional mode token: "-test_rt compps"  (default "scatter")
+			if (i+1 < argc && argv[i+1][0] != '-')
+				strncpy(p.test_mode, argv[++i], sizeof(p.test_mode) - 1);
+		}
 		else if (strcmp(argv[i], "-T_test") == 0 && i+1 < argc)
 			p.T_test = atof(argv[++i]);
+		else if (strcmp(argv[i], "-tau") == 0 && i+1 < argc)
+			p.tau_slab = atof(argv[++i]);
 		else if (strcmp(argv[i], "-kT_disk") == 0 && i+1 < argc)
 			p.kT_disk = atof(argv[++i]);
 		else if (strcmp(argv[i], "-corona") == 0 && i+1 < argc)
@@ -71,6 +80,15 @@ ModelParams read_params(int argc, char *argv[])
 			p.Afe = atof(argv[++i]);
 		else if (strcmp(argv[i], "-sc") == 0 && i+1 < argc)
 			strncpy(p.sc_method, argv[++i], sizeof(p.sc_method) - 1);
+		else if (strcmp(argv[i], "-angsca") == 0 && i+1 < argc)
+		{
+			// Angular-scattering kernel selector:
+			//   1/true/yes → angle-dependent KernelCache
+			//   0/false/no → angle-mean   avgKernelCache
+			const char* v = argv[++i];
+			p.angsca = (strcmp(v, "1") == 0 || strcmp(v, "true") == 0
+			         || strcmp(v, "yes") == 0);
+		}
 	}
 
 	// --- Validate corona model and its required parameters ---
@@ -138,6 +156,9 @@ ModelParams read_params(int argc, char *argv[])
 		exit(1);
 	}
 	printf("SC method:  %s\n", p.sc_method);
+	printf("Kernel:     %s\n",
+	       p.angsca ? "angle-dependent (KernelCache)"
+	                : "angle-mean (avgKernelCache)");
 
 	double xi = pow(10.0, p.zeta);
 	double nH = pow(10.0, p.nh);
@@ -150,12 +171,13 @@ ModelParams read_params(int argc, char *argv[])
 	{
 		char buf[512];
 		snprintf(buf, sizeof(buf),
-			"%s|nh=%.6g|zeta=%.6g|frac=%.6g|inc=%.6g|Afe=%.6g|"
+			"%s|mode=%s|nh=%.6g|zeta=%.6g|frac=%.6g|inc=%.6g|Afe=%.6g|"
 			"Gamma=%.6g|Ecut=%.6g|Elo=%.6g|kTe=%.6g|kTbb=%.6g|"
-			"taup=%.6g|kTd=%.6g|test=%d|Tt=%.6g",
-			p.corona, p.nh, p.zeta, p.frac, p.incidence, p.Afe,
+			"taup=%.6g|kTd=%.6g|test=%d|Tt=%.6g|tau=%.6g|ang=%d",
+			p.corona, p.test_mode, p.nh, p.zeta, p.frac, p.incidence, p.Afe,
 			p.Gamma, p.E_cut, p.E_lo_cut, p.kT_e, p.kT_bb,
-			p.taup, p.kT_disk, (int)p.test_rt, p.T_test);
+			p.taup, p.kT_disk, (int)p.test_rt, p.T_test, p.tau_slab,
+			(int)p.angsca);
 		// FNV-1a 32-bit hash
 		unsigned int h = 2166136261u;
 		for (const char* c = buf; *c; ++c)
@@ -194,7 +216,15 @@ ModelParams read_params(int argc, char *argv[])
 			fprintf(fp, "  \"taup\": %.6g,\n", p.taup);
 			fprintf(fp, "  \"kT_disk\": %.6g,\n", p.kT_disk);
 			fprintf(fp, "  \"test_rt\": %s,\n", p.test_rt ? "true" : "false");
-			fprintf(fp, "  \"T_test\": %.6g\n", p.T_test);
+			fprintf(fp, "  \"test_mode\": \"%s\",\n", p.test_mode);
+			fprintf(fp, "  \"T_test\": %.6g,\n", p.T_test);
+			fprintf(fp, "  \"tau_slab\": %.6g,\n", p.tau_slab);
+			fprintf(fp, "  \"sc_method\": \"%s\",\n", p.sc_method);
+			fprintf(fp, "  \"maxiter\": %d,\n", p.maxiter);
+			fprintf(fp, "  \"E_rt_lo\": %.6g,\n", p.E_rt_lo);
+			fprintf(fp, "  \"E_rt_hi\": %.6g,\n", p.E_rt_hi);
+			fprintf(fp, "  \"angsca\": %s,\n", p.angsca ? "true" : "false");
+			fprintf(fp, "  \"ktype\": %d\n", p.ktype);
 			fprintf(fp, "}\n");
 			fclose(fp);
 		}

@@ -83,6 +83,70 @@ void RTGrids::init_angle()
 }
 
 // ============================================================
+// Double-Gauss angle grid (per-hemisphere Gauss-Legendre)
+//
+// NA/2-point Gauss-Legendre on [-1,1] gives roots x_k, weights w_k.
+// Each root is mapped onto the half-interval mu_h = (1+x_k)/2 in (0,1)
+// with weight w_k/2, and placed symmetrically in both hemispheres:
+//   downward  mu = -mu_h        upward  mu = +mu_h
+// Each hemisphere's weights then sum to 1 (total 2), consistent with
+// J = 0.5 * sum(wt*I).  With NA=10 (5 nodes/hemisphere) this is exactly
+// the angle grid used by Xspec compPS (QDRGSDO mapped to [0,1]).
+//
+// Nodes are stored ascending in mu, mirroring init_angle().
+// ============================================================
+void RTGrids::init_angle_double_gauss()
+{
+	if (NA % 2 != 0)
+	{
+		fprintf(stderr,
+		        "Error: init_angle_double_gauss requires even NA (got %d)\n",
+		        NA);
+		exit(1);
+	}
+
+	const int n = NA / 2;   // Gauss-Legendre nodes per hemisphere
+
+	for (int i = 0; i < n; ++i)
+	{
+		double x = -cos(M_PI * (i + 0.75) / (n + 0.5));
+
+		for (int iter = 0; iter < 100; ++iter)
+		{
+			double p0 = 1.0, p1 = x;
+			for (int j = 2; j <= n; ++j)
+			{
+				double p2 = ((2*j - 1) * x * p1 - (j - 1) * p0) / j;
+				p0 = p1; p1 = p2;
+			}
+			double dp = n * (x * p1 - p0) / (x * x - 1.0);
+			double dx = -p1 / dp;
+			x += dx;
+			if (fabs(dx) < 1e-15) break;
+		}
+
+		double p0 = 1.0, p1 = x;
+		for (int j = 2; j <= n; ++j)
+		{
+			double p2 = ((2*j - 1) * x * p1 - (j - 1) * p0) / j;
+			p0 = p1; p1 = p2;
+		}
+		double dp = n * (x * p1 - p0) / (x * x - 1.0);
+		double w  = 2.0 / ((1.0 - x * x) * dp * dp);
+
+		// x ascending in [-1,1]  ->  mu_h ascending in (0,1)
+		double mu_h = 0.5 * (1.0 + x);
+		double wt_h = 0.5 * w;
+
+		// Place so the full mu[] array stays ascending:
+		//   index 0..n-1   : downward (-mu_h), largest |mu| first
+		//   index n..NA-1  : upward   (+mu_h), ascending
+		mu[n - 1 - i] = -mu_h;  wt[n - 1 - i] = wt_h;
+		mu[n + i]     =  mu_h;  wt[n + i]     = wt_h;
+	}
+}
+
+// ============================================================
 // Depth grid
 // ============================================================
 void RTGrids::init_depth(double tau_min, double tau_max, double nh)

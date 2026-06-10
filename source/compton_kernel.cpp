@@ -415,19 +415,31 @@ bool KernelCache::load(const char* filename)
 
 void KernelCache::init(int n_ene, const double* ene_eV,
                        int n_ang, const double* mu, const double* wt,
-                       const int ktype)
+                       const int ktype,
+                       int nt_user, const double* T_user)
 {
-	NT      = N_T_CACHE;
 	NE      = n_ene;
 	NA_full = n_ang;
 
-	// Build log-spaced temperature grid
-	T_grid = new double[NT];
-	double log_lo = log10(T_CACHE_LO);
-	double log_hi = log10(T_CACHE_HI);
-	double dlog   = (NT > 1) ? (log_hi - log_lo) / (NT - 1) : 0.0;
-	for (int i = 0; i < NT; ++i)
-		T_grid[i] = pow(10.0, log_lo + i * dlog);
+	// Temperature grid: caller-supplied (e.g. single isothermal value in
+	// test mode) or the default log-spaced N_T_CACHE grid for production.
+	if (nt_user > 0 && T_user)
+	{
+		NT     = nt_user;
+		T_grid = new double[NT];
+		for (int i = 0; i < NT; ++i)
+			T_grid[i] = T_user[i];
+	}
+	else
+	{
+		NT     = N_T_CACHE;
+		T_grid = new double[NT];
+		double log_lo = log10(T_CACHE_LO);
+		double log_hi = log10(T_CACHE_HI);
+		double dlog   = (NT > 1) ? (log_hi - log_lo) / (NT - 1) : 0.0;
+		for (int i = 0; i < NT; ++i)
+			T_grid[i] = pow(10.0, log_lo + i * dlog);
+	}
 
 	// Build symmetry tables (sets n_indep, canon, indep_nm/nm1)
 	build_canon();

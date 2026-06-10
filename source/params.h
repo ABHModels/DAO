@@ -30,7 +30,9 @@ struct ModelParams
 
 	// --- Test mode ---
 	bool   test_rt;    // if true, skip Cloudy, use synthetic atmosphere
+	char   test_mode[16]; // "scatter" (default) or "compps" (compps benchmark slab) or "avgang"
 	double T_test;     // uniform slab temperature [K] (test mode)
+	double tau_slab;   // total vertical Thomson optical depth (compps test mode)
 
 	// --- Abundances ---
 	double Afe;        // iron abundance: log10(Fe/Fe_solar), 0 = solar

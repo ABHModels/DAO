@@ -15,9 +15,13 @@
 
 #include "radiation.h"
 #include "compton_kernel.h"
+#include "avg_compton_kernel.h"
 #include "params.h"
 
+// Templated on the kernel-cache type (KernelCache or avgKernelCache);
+// explicitly instantiated for both in compton_rt.cpp.
+template<class Cache>
 void compton_rt_solve(RadField& rad, const RTGrids& g,
                       const ModelParams& par,
-                      const KernelCache& kcache, int maxiter);
+                      const Cache& kcache, int maxiter);
 #endif // COMPTON_RT_H
