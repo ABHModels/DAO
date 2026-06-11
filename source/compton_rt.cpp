@@ -439,26 +439,9 @@ void compton_rt_solve(RadField& rad, const RTGrids& g,
 		else
 			n_converged = 0;
 
-		// --- Flux conservation: F_in (corona) vs F_out (top + bottom) ---
-		double F_in = 0.0, F_out_top = 0.0, F_out_bot = 0.0;
-		for (int ne = 0; ne < NE; ++ne)
-			F_in += ill_top[ne] * abs(g.mu[i_inc]) *g.wt[i_inc] * g.wid[ne];
-		for (int nm = 0; nm < NM; ++nm)
-		for (int ne = 0; ne < NE; ++ne)
-		{
-			if (g.mu[nm] > 0.0)
-				F_out_top += intensity[idx3(0,    nm, ne)] * abs(g.mu[nm]) * g.wt[nm] * g.wid[ne];
-			if (g.mu[nm] < 0.0)
-				F_out_bot += intensity[idx3(ND-1, nm, ne)] * abs(g.mu[nm]) * g.wt[nm] * g.wid[ne];
-		}
-
 		double dt_sec = double(clock() - t_iter) / CLOCKS_PER_SEC;
-		fprintf(stdout, "    iter %3d  max|dJ/J|=%.6e  converged=%d/3  "
-		                "F_in=%.4e  F_out=%.4e  ratio=%.4f  (%.2f s)\n",
-		        iter + 1, max_change, n_converged,
-		        F_in, F_out_top + F_out_bot,
-		        (F_in > 0.0 ? (F_out_top + F_out_bot) / F_in : 0.0),
-		        dt_sec);
+		fprintf(stdout, "    iter %3d  max|dJ/J|=%.6e  converged=%d/3  ",
+		        iter + 1, max_change, n_converged);
 
 		memcpy(meani_old, meani, size2 * sizeof(double));
 		++iter;

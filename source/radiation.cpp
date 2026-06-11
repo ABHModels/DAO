@@ -219,18 +219,21 @@ void RadField::check_convergence(int outer_iter,
                                  double* T_old, double* xi_old,
                                  double& max_dT, double& max_dXi)
 {
-	max_dT  = 0.0;
-	max_dXi = 0.0;
-	for (int id = 0; id < g.ND_MID; ++id)
-	{
-		max_dT = std::max(max_dT, fabs(log10(T_old[id]) - log10(T_K[id])));
-		max_dXi = std::max(max_dXi, fabs(xi_old[id] - log_xi[id]));
-		T_old[id]  = T_K[id];
-		xi_old[id] = log_xi[id];
-	}
-
 	// Force both to 1.0 on the first outer iteration so the
 	// outer loop runs at least twice (the feedback is not active
 	// until iteration 2).
-	if (outer_iter == 1) { max_dT = 1.0; max_dXi = 1.0; }
+	if (outer_iter == 1) 
+	{
+		max_dT = 1.0; max_dXi = 1.0; 
+	} else{
+		max_dT  = 0.0;
+		max_dXi = 0.0;
+		for (int id = 0; id < g.ND_MID; ++id)
+		{
+			max_dT = std::max(max_dT, fabs(log10(T_old[id]) - log10(T_K[id])));
+			max_dXi = std::max(max_dXi, fabs(xi_old[id] - log_xi[id]));
+			T_old[id]  = T_K[id];
+			xi_old[id] = log_xi[id];
+		}
+	}
 }
