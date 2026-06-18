@@ -336,10 +336,10 @@ static inline void source_dispatch(
 	const double* intensity, const double* /*meani*/,
 	const double* x_grid, const double* wmu, const double* T_K,
 	const double* const* jnu, const double* const* kabs,
-	const double* const* ksct, const double* n_e, double* source)
+	const double* const* ksct, const double n_h, double* source)
 {
 	compute_source_function(ND, NM, NE, intensity, x_grid, wmu,
-	                        kc, T_K, jnu, kabs, ksct, n_e, source);
+	                        kc, T_K, jnu, kabs, ksct, n_h, source);
 }
 
 static inline void source_dispatch(
@@ -347,10 +347,10 @@ static inline void source_dispatch(
 	const double* /*intensity*/, const double* meani,
 	const double* x_grid, const double* /*wmu*/, const double* T_K,
 	const double* const* jnu, const double* const* kabs,
-	const double* const* ksct, const double* n_e, double* source)
+	const double* const* ksct, const double n_h, double* source)
 {
 	avgcompute_source_function(ND, NM, NE, meani, x_grid,
-	                           kc, T_K, jnu, kabs, ksct, n_e, source);
+	                           kc, T_K, jnu, kabs, ksct, n_h, source);
 }
 
 // ============================================================
@@ -426,7 +426,7 @@ void compton_rt_solve(RadField& rad, const RTGrids& g,
 
 		source_dispatch(kcache, ND, NM, NE,
 		                intensity, meani, x_grid, g.wt, rad.T_K,
-		                rad.jnu, rad.kabs, rad.ksct, rad.n_e,
+		                rad.jnu, rad.kabs, rad.ksct, pow(10,par.nh),
 		                source);
 
 		check_rt_convergence(ND, NM, NE, g.ene, g.mu, g.wt,
@@ -440,8 +440,8 @@ void compton_rt_solve(RadField& rad, const RTGrids& g,
 			n_converged = 0;
 
 		double dt_sec = double(clock() - t_iter) / CLOCKS_PER_SEC;
-		fprintf(stdout, "    iter %3d  max|dJ/J|=%.6e  converged=%d/3  ",
-		        iter + 1, max_change, n_converged);
+		fprintf(stdout, "    iter %3d  max|dJ/J|=%.6e  converged=%d/3  time=%.3fs\n",
+		        iter + 1, max_change, n_converged, dt_sec);
 
 		memcpy(meani_old, meani, size2 * sizeof(double));
 		++iter;

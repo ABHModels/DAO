@@ -219,10 +219,10 @@ double compton_cross_section(double E_eV, double T_K)
 //   based on Poutanen & Svensson (1996)
 // ============================================================
 void compute_compton_opacity(double* ksct, int NE, const double* ene_eV,
-                             double T_K, double n_e)
+                             double T_K, double n_h)
 {
 	for (int ie = 0; ie < NE; ++ie)
-		ksct[ie] = n_e * compton_cross_section(ene_eV[ie], T_K);
+		ksct[ie] = 1.21 * n_h * compton_cross_section(ene_eV[ie], T_K);
 }
 
 

@@ -138,7 +138,7 @@ void IllumSpec::compute(const ModelParams& par)
 	// This function return J; 
 	double xi = pow(10.0, par.zeta);
 	double nH = pow(10.0, par.nh);
-	double Fx = xi * nH / pow(phys::four_pi,2);
+	double Fx = xi * 1.21 * nH / pow(phys::four_pi,2);
 	// to match the xillver (*0.5 for elminate the 2 factor in compton_rt)
 	// double Fx = xi * nH / (2*M_PI*0.7071);
 

@@ -2,6 +2,14 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · [SemVer](https://semver.org/).
 
+## [2.2.1] - 2026-06-18
+- `source/compton_cross_section.cpp:255` - Always use total electron densities to calculate the Compton scattering cross section. The original one only use the free electron for compton scattering, it'll cause the temperature instability when ionization parameter is low.
+- `source/radiation.cpp:141` - Use electron density to normalize the total flux. 
+    Original: $$ \xi = \frac{(4\pi)^2J/n\_h}$$ 
+    Now : $$n\_h \to n\_e = 1.21n\_h$$
+- `source/source.cpp` - same as item 1 and remove some redundant code; remove 1e6 K limit for electron temperature, when ionization is low, this approximation temperature will make the iron Kalpha shoulder disappear. However, at low temperature (e.g. 1e4K) the compton redistribution function need very high resoltion to keep smooth. If one use default resolution we provided, there will inevitably have jagged edges in the high-energy range.
+
+
 ## [2.2.0] - 2026-05-22
 
 ### Added

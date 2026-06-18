@@ -77,7 +77,7 @@ void run_production(RadField& rad, const RTGrids& g,
 			extract_cloudy_output(id, rad, g, outer_iter);
 
 			compute_compton_opacity(rad.ksct[id], g.NE, g.ene,
-			                       rad.T_K[id], rad.n_e[id]);	
+			                       rad.T_K[id], pow(10,par.nh));	
 			fprintf(stdout,
 				"  depth %3d/%d  tau=%.3e  logT=%.3f  log(I)=%.3f  "
 				"ne/nh=%.3f  H/C=%.3f\n",

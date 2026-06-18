@@ -23,18 +23,17 @@ static inline long sidx3(int nd, int nm, int ne)
 // where ktot = kabs + ksct, and
 //   S_compton = x² ∫∫ K(x,μ;x₁,μ₁) I(x₁,μ₁)/x₁² dμ₁ dx₁
 // ============================================================
-template<class Cache>
 void compute_source_function(
 	int ND, int NM, int NE,
 	const double* intensity,
 	const double* x_grid,
 	const double* wmu,
-	const Cache& kcache,
+	const KernelCache& kcache,
 	const double* T_K,
 	const double* const* jnu,
 	const double* const* kabs,
 	const double* const* ksct,
-	const double* n_e,
+	const double n_h,
 	double* source)
 {
 	s_NM = NM;
@@ -45,12 +44,7 @@ void compute_source_function(
 	for (int nd = 0; nd < ND; ++nd)
 	{	
 		int iT = 0;
-		if (T_K[nd]>1e6){
-			iT = kcache.find_T(T_K[nd]);
-		}else{
-			double temT = 1e6;
-			iT = kcache.find_T(temT);
-		}
+		iT = kcache.find_T(T_K[nd]);
 
 		for (int nm = 0; nm < NM; ++nm)
 		for (int ne = 0; ne < NE; ++ne)
@@ -93,22 +87,10 @@ void compute_source_function(
 
 				S_sct = trapz * x * x;
 			}
-			source[sidx3(nd, nm, ne)] = S_th + n_e[nd]*phys::sigma_T / ktot * S_sct;
+			source[sidx3(nd, nm, ne)] = S_th + 1.21 * n_h*phys::sigma_T / ktot * S_sct;
 		}
 	}
 }
-
-// Explicit instantiations for both kernel-cache types.
-template void compute_source_function<KernelCache>(
-	int, int, int, const double*, const double*, const double*,
-	const KernelCache&, const double*,
-	const double* const*, const double* const*, const double* const*,
-	const double*, double*);
-template void compute_source_function<avgKernelCache>(
-	int, int, int, const double*, const double*, const double*,
-	const avgKernelCache&, const double*,
-	const double* const*, const double* const*, const double* const*,
-	const double*, double*);
 
 // ============================================================
 // avgcompute_source_function — angle-mean source function
@@ -128,7 +110,7 @@ void avgcompute_source_function(
 	const double* const* jnu,
 	const double* const* kabs,
 	const double* const* ksct,
-	const double* n_e,
+	const double n_h,
 	double* source)
 {
 	s_NM = NM;
@@ -139,12 +121,7 @@ void avgcompute_source_function(
 	for (int nd = 0; nd < ND; ++nd)
 	{
 		int iT = 0;
-		if (T_K[nd] > 1e6){
-			iT = kcache.find_T(T_K[nd]);
-		}else{
-			double temT = 1e6;
-			iT = kcache.find_T(temT);
-		}
+		iT = kcache.find_T(T_K[nd]);
 
 		for (int ne = 0; ne < NE; ++ne)
 		{
@@ -186,7 +163,7 @@ void avgcompute_source_function(
 			}
 
 			// Source function is identical for every angle.
-			double S_val = S_th + n_e[nd] * phys::sigma_T / ktot * S_sct;
+			double S_val = S_th + 1.21 * n_h * phys::sigma_T / ktot * S_sct;
 			for (int nm = 0; nm < NM; ++nm)
 				source[sidx3(nd, nm, ne)] = S_val;
 		}

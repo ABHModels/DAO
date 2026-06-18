@@ -18,18 +18,17 @@
 // KernelCache (angle-dependent) and avgKernelCache (angle-mean): both
 // expose find_T/lo/hi and a 5-arg K(iT, ne, nm, ne1, nm1).
 // Explicitly instantiated for both types in source.cpp.
-template<class Cache>
 void compute_source_function(
 	int ND, int NM, int NE,
 	const double* intensity,
 	const double* x_grid,
 	const double* wmu,
-	const Cache& kcache,
+	const KernelCache& kcache,
 	const double* T_K,
 	const double* const* jnu,
 	const double* const* kabs,
 	const double* const* ksct,
-	const double* n_e,
+	const double n_h,
 	double* source);
 
 // ============================================================
@@ -53,6 +52,6 @@ void avgcompute_source_function(
 	const double* const* jnu,
 	const double* const* kabs,
 	const double* const* ksct,
-	const double* n_e,
+	const double n_h,
 	double* source);
 #endif // SOURCE_H

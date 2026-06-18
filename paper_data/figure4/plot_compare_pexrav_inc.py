@@ -46,6 +46,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # Panel (a): incidence-averaged spectrum, precomputed and stored as a run.
 AVG_HASH = '38ea5924_inc_avg'
 
+# Panel (a) extra: DAO v2.0 angle-averaged emergent intensity (last iteration).
+DAO2_HASH = '4f606092'
+
 # Panel (b): individual runs that differ only in the corona-illumination
 # incidence angle μ_inc (cutoffpl, logξ=0, Γ=2, E_cut=300, nh=15).
 RUN_HASHES = [
@@ -94,6 +97,20 @@ def I_at_mu(mu_arr, data, mu_target):
     return (1 - w_hi) * data[:, 3 + lo_i] + w_hi * data[:, 3 + hi_i]
 
 
+def I_angle_avg(mu_arr, data):
+    """Angle-average of emergent I(E, μ) over the outgoing (μ>0) hemisphere.
+
+    Uses Gauss-Legendre weights recovered from the run's μ nodes, so the result
+    is the proper quadrature mean ∫₀¹ I dμ / ∫₀¹ dμ over the emergent directions.
+    """
+    nodes, weights = np.polynomial.legendre.leggauss(len(mu_arr))
+    w = np.array([weights[np.argmin(np.abs(nodes - mu))] for mu in mu_arr])
+    pos = np.where(mu_arr > 0)[0]
+    num = sum(w[i] * data[:, 3 + i] for i in pos)
+    den = sum(w[i] for i in pos)
+    return num / den
+
+
 def interp_log(E_target, E_src, F_src):
     return np.exp(np.interp(np.log(E_target),
                             np.log(E_src),
@@ -125,6 +142,17 @@ print(f'Panel (a): incidence-averaged ← {os.path.basename(avg_file)}')
 F_px_on_avg = interp_log(E_eV, E_px_eV, F_px_ref)
 I_avg_n = I_avg       / band_mean(I_avg, E_eV)
 F_px_n  = F_px_on_avg / band_mean(F_px_on_avg, E_eV)
+
+# DAO v2.0: emergent intensity at the same observation angle as the blue curve
+# (μ_obs = MU_OBS_TARGET). This run differs only in the Compton-scattering
+# treatment, so the comparison isolates that effect at fixed inclination.
+dao2_file = emergent_path(DAO2_HASH)
+E_d2, mu_d2, data_d2 = read_emergent(dao2_file)
+I_d2 = I_at_mu(mu_d2, data_d2, MU_OBS_TARGET)
+if not (E_d2.shape == E_eV.shape and np.allclose(E_d2, E_eV)):
+    I_d2 = interp_log(E_eV, E_d2, I_d2)
+I_d2_n = I_d2 / band_mean(I_d2, E_eV)
+print(f'Panel (a): DAO v2.0 (Compton scattering) ← {os.path.basename(dao2_file)}')
 # ── Panel (b) data: reflected spectrum at each angle bin ────────────────────
 # The code (snap_incidence, source/params.cpp) snaps the requested -incidence to
 # the nearest GL node g.mu[], so the only physically distinct spectra are those
@@ -175,7 +203,10 @@ fig, (ax_a, ax_b) = plt.subplots(1, 2, figsize=(6.8, 2.7), sharey=True)
 
 # Panel (a): incidence-averaged vs pexrav
 ax_a.loglog(E_eV, I_avg_n, color=C_DAO, lw=0.8, alpha=0.9,
-            label=r'DAOv2.0 $\langle$incidence avg$\rangle$', zorder=3)
+            label=r'DAOv2.0 (ang-dep Compton, inc. avg)', zorder=3)
+ax_a.loglog(E_eV, I_d2_n, color='#D55E00', lw=0.8, alpha=0.9,
+            label=r'DAOv2.0 (ang-avg Compton, '
+                  r'$\mu_{\rm inc}=0.7$)', zorder=4)
 ax_a.loglog(E_eV, F_px_n, color=C_PEX, lw=0.9, alpha=0.95,
             label='pexrav (reflection-only)', zorder=5)
 ax_a.set_xlim(1e2, 1e6)
@@ -191,7 +222,8 @@ incident_txt = (
     rf'$\Gamma = {par["Gamma"]}$' + '\n'
     rf'$E_{{\rm cut}} = {par["E_cut"]}\,$keV' + '\n'
     rf'$n_{{\rm H}} = 10^{{{par["nh"]}}}\,$cm$^{{-3}}$' + '\n'
-    rf'$\log\xi = {par["zeta"]}$'
+    rf'$\log\xi = {par["zeta"]}$' + '\n'
+    r'$\mu_{\rm view} = \cos 45^\circ$'
 )
 ax_a.text(0.97, 0.96, incident_txt, transform=ax_a.transAxes,
           ha='right', va='top', fontsize=6.5,
