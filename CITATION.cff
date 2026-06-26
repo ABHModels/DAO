@@ -1,20 +1,29 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below, and cite the references listed in the README (in particular Madej et al. 2017 for the Compton kernel and Gunasekera et al. 2025 for Cloudy)."
 title: "DAO: A New and Public Non-Relativistic Reflection Model"
-abstract: "  We present \textsc{DAO}, a new and public reflection model that computes rest-frame reflection spectra from accretion disks in X-ray binaries and active galactic nuclei. The code is built on three
-  pillars: (i) the photoionization code \textsc{Cloudy}~C25, which provides a comprehensive and up-to-date treatment of all relevant atomic processes, including line emission via the escape
-  probability formalism; (ii) the exact quantum-electrodynamic Compton redistribution kernel, which fully accounts for angle- and energy-dependent scattering rather than relying on the angle-averaged
-  Gaussian or Fokker--Planck approximations adopted by existing reflection codes; and (iii) cubic B\'{e}zier interpolants for the formal solution of the radiative transfer equation, a
-  monotonicity-preserving short-characteristics scheme that avoids spurious numerical oscillations. We investigate the spectral dependence on key physical parameters and benchmark the results against
-  the publicly available table models of the widely used \textsc{reflionx} and \textsc{xillver} codes."
+abstract: >-
+  We present DAO, a new and public reflection model that computes rest-frame
+  reflection spectra from accretion disks in X-ray binaries and active galactic
+  nuclei. The code is built on three pillars: (i) the photoionization code
+  Cloudy C25, which provides a comprehensive and up-to-date treatment of all
+  relevant atomic processes, including line emission via the escape-probability
+  formalism; (ii) the exact quantum-electrodynamic Compton redistribution
+  kernel, which fully accounts for angle- and energy-dependent scattering
+  rather than relying on the angle-averaged Gaussian or Fokker-Planck
+  approximations adopted by existing reflection codes; and (iii) cubic Bezier
+  interpolants for the formal solution of the radiative transfer equation, a
+  monotonicity-preserving short-characteristics scheme that avoids spurious
+  numerical oscillations. We investigate the spectral dependence on key
+  physical parameters and benchmark the results against the publicly available
+  table models of the widely used reflionx and xillver codes.
 type: software
 authors:
   - family-names: Huang
     given-names: Yimin
     affiliation: "Fudan University; University of Bristol"
     email: huangym23@m.fudan.edu.cn
-    # orcid: "https://orcid.org/0009-0008-3299-9185"   
+    orcid: "https://orcid.org/0009-0008-3299-9185"
 version: "1.0.0"
 date-released: "2026-06-26"
 license: MIT
-# repository-code: "https://github.com/ABHModels/DAO"  
+repository-code: "https://github.com/ABHModels/DAO"
