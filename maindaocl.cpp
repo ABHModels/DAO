@@ -2,7 +2,7 @@
 // maindaocl — Compton scattering RT solver using Cloudy
 //
 // Author:  Yimin Huang (Fudan University; University of Bristol)
-// Contact: huangym23@m.fudan.edu.cn  (alt: hyimin0924@gmail.com)
+// Contact: huangym23@m.fudan.edu.cn
 // License: MIT (see LICENSE). Cloudy and HEASoft/Xspec are separate
 //          dependencies under their own licenses.
 //

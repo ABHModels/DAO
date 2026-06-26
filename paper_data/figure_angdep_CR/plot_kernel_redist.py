@@ -18,7 +18,7 @@ figure into the same folder. No arguments; works from any cwd:
 
 Author:      Yimin Huang
 Affiliation: Fudan University
-Email:       huangym23@m.fudan.edu.cn (hyimin0924@gmail.com)
+Email:       huangym23@m.fudan.edu.cn
 """
 
 import os

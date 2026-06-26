@@ -10,7 +10,7 @@ low and high energies.
 
 - **Name:** Yimin Huang
 - **Affiliation:** Fudan University
-- **Email:** huangym23@m.fudan.edu.cn (alt: hyimin0924@gmail.com)
+- **Email:** huangym23@m.fudan.edu.cn
 
 ## Contents
 

@@ -1,6 +1,6 @@
 # Figure 3 — DAO vs `reflionx` vs `xillvercp` over a log ξ scan
 
-**Author:** Yimin Huang · Fudan University · huangym23@m.fudan.edu.cn (hyimin0924@gmail.com)
+**Author:** Yimin Huang · Fudan University · huangym23@m.fudan.edu.cn
 
 Emergent reflection spectra from DAO compared against `reflionx` and
 `xillvercp` at log ξ = 1, 2, 3 (one panel each). All runs share: `nthcomp`

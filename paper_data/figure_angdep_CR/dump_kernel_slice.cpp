@@ -20,7 +20,7 @@
 //
 // Author:      Yimin Huang
 // Affiliation: Fudan University
-// Email:       huangym23@m.fudan.edu.cn (hyimin0924@gmail.com)
+// Email:       huangym23@m.fudan.edu.cn
 // ============================================================
 
 #include "compton_kernel.h"

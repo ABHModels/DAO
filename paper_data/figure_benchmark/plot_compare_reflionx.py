@@ -2,7 +2,7 @@
 
 Author:      Yimin Huang
 Affiliation: Fudan University
-Email:       huangym23@m.fudan.edu.cn (hyimin0924@gmail.com)
+Email:       huangym23@m.fudan.edu.cn
 """
 
 import numpy as np

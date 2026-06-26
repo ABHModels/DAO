@@ -8,7 +8,7 @@ Right: beta_l(tau_l) = (1 - p_w) beta_K2(tau_l) + p_w
 
 Author:      Yimin Huang
 Affiliation: Fudan University
-Email:       huangym23@m.fudan.edu.cn (hyimin0924@gmail.com)
+Email:       huangym23@m.fudan.edu.cn
 """
 
 import os
