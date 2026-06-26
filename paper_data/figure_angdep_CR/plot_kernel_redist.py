@@ -17,7 +17,7 @@ figure into the same folder. No arguments; works from any cwd:
     python plot_kernel_redist.py
 
 Author:      Yimin Huang
-Affiliation: Fudan University
+Affiliation: Fudan University; University of Bristol
 Email:       huangym23@m.fudan.edu.cn
 """
 

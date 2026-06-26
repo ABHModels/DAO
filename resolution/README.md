@@ -9,7 +9,7 @@ low and high energies.
 ## Author
 
 - **Name:** Yimin Huang
-- **Affiliation:** Fudan University
+- **Affiliation:** Fudan University; University of Bristol
 - **Email:** huangym23@m.fudan.edu.cn
 
 ## Contents
@@ -47,5 +47,5 @@ Produces `smooth_hump.ini` and `smooth_hump_resolution.png`.
 
 ## Contact
 
-For questions, please contact Yimin Huang (Fudan University) —
+For questions, please contact Yimin Huang (Fudan University; University of Bristol) —
 huangym23@m.fudan.edu.cn.

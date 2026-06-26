@@ -7,7 +7,7 @@ Right: beta_l(tau_l) = (1 - p_w) beta_K2(tau_l) + p_w
        (Hummer 1982; Ferland et al. 2017).
 
 Author:      Yimin Huang
-Affiliation: Fudan University
+Affiliation: Fudan University; University of Bristol
 Email:       huangym23@m.fudan.edu.cn
 """
 

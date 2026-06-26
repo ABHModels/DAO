@@ -1,6 +1,6 @@
 # Figure 3 (xillver normalisation) — DAO vs `reflionx` vs `xillvercp`
 
-**Author:** Yimin Huang · Fudan University · huangym23@m.fudan.edu.cn
+**Author:** Yimin Huang · Fudan University; University of Bristol · huangym23@m.fudan.edu.cn
 
 Emergent reflection spectra from DAO compared against `reflionx` and
 `xillvercp` at log ξ = 1, 2, 3 (one panel each). All runs share: `nthcomp`

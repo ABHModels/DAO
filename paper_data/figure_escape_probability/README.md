@@ -1,6 +1,6 @@
 # Figure 1 — Escape probability for subordinate lines
 
-**Author:** Yimin Huang · Fudan University · huangym23@m.fudan.edu.cn
+**Author:** Yimin Huang · Fudan University; University of Bristol · huangym23@m.fudan.edu.cn
 
 Left panel: schematic of the cell-by-cell solver. Right panel: escape
 probability β_ℓ vs line-center optical depth τ_ℓ. `beta_K2` and `beta_PRD`

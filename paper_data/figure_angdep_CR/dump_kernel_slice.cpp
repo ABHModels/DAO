@@ -19,7 +19,7 @@
 //                       -Eo_lo 5 -Eo_hi 500 -NMU 181 -NEO 240
 //
 // Author:      Yimin Huang
-// Affiliation: Fudan University
+// Affiliation: Fudan University; University of Bristol
 // Email:       huangym23@m.fudan.edu.cn
 // ============================================================
 

@@ -1,6 +1,6 @@
 # Figure 4 — Incidence-angle sensitivity of the reflection spectrum
 
-**Author:** Yimin Huang · Fudan University · huangym23@m.fudan.edu.cn
+**Author:** Yimin Huang · Fudan University; University of Bristol · huangym23@m.fudan.edu.cn
 
 Two panels, both compared against `pexrav` (reflection-only):
 - **(a)** DAO incidence-averaged emergent spectrum (at μ_obs = 0.7).

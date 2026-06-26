@@ -1,6 +1,6 @@
 # Figure 6 — Comptonised slab benchmark against `compPS`
 
-**Author:** Yimin Huang · Fudan University · huangym23@m.fudan.edu.cn
+**Author:** Yimin Huang · Fudan University; University of Bristol · huangym23@m.fudan.edu.cn
 
 DAO (`-test_rt compps` mode) on an isothermal, pure-scattering slab compared
 against Xspec `compPS` (Poutanen & Svensson 1996). Run `8c3e57d7`:

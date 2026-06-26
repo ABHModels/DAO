@@ -1,6 +1,6 @@
 # Figure 8 — Angle-averaged vs directional Compton kernel
 
-**Author:** Yimin Huang · Fudan University · huangym23@m.fudan.edu.cn
+**Author:** Yimin Huang · Fudan University; University of Bristol · huangym23@m.fudan.edu.cn
 
 Two DAO cutoffpl runs with identical physics (Γ = 2, E_cut = 300 keV,
 n_H = 10^15 cm^-3, log ξ = 2, incidence cos θ = 0.70 → snapped GL node

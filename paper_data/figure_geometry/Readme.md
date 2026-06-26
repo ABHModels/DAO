@@ -1,6 +1,6 @@
 # Figure — Model geometry
 
-**Author:** Yimin Huang · Fudan University · huangym23@m.fudan.edu.cn
+**Author:** Yimin Huang · Fudan University; University of Bristol · huangym23@m.fudan.edu.cn
 
 Schematic of the slab geometry. An incident photon from the corona crosses the
 surface at incidence angle θ_inc (from the surface normal n̂); after radiative

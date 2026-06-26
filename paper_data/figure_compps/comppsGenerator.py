@@ -44,7 +44,7 @@ Requires HEASoft/PyXspec for the compPS model:
   python comppsGenerator.py
 
 Author:      Yimin Huang
-Affiliation: Fudan University
+Affiliation: Fudan University; University of Bristol
 Email:       huangym23@m.fudan.edu.cn
 """
 

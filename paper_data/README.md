@@ -2,7 +2,7 @@
 
 Data and self-contained plotting scripts that reproduce the figures in the DAO paper.
 
-**Author:** Yimin Huang · Fudan University · huangym23@m.fudan.edu.cn
+**Author:** Yimin Huang · Fudan University; University of Bristol · huangym23@m.fudan.edu.cn
 
 ## Figures
 

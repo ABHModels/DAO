@@ -1,6 +1,6 @@
 # Figure 2 — Compton redistribution kernel slices
 
-**Author:** Yimin Huang · Fudan University · huangym23@m.fudan.edu.cn
+**Author:** Yimin Huang · Fudan University; University of Bristol · huangym23@m.fudan.edu.cn
 
 2-D slices of the Compton redistribution kernel `K(μ_out, E_out)` at fixed
 `(E_in, μ_in, T)`, for two input energies: Fe Kα (6.4 keV) and the

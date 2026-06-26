@@ -1,6 +1,6 @@
 # Smooth-hump resolving-power generator for the Compton RT code.
 #
-# Author: Yimin Huang (Fudan University)
+# Author: Yimin Huang (Fudan University; University of Bristol)
 # Email:  huangym23@m.fudan.edu.cn
 
 import numpy as np

@@ -1,7 +1,7 @@
 """Figure 3 — DAO vs reflionx vs xillvercp over a log xi scan.
 
 Author:      Yimin Huang
-Affiliation: Fudan University
+Affiliation: Fudan University; University of Bristol
 Email:       huangym23@m.fudan.edu.cn
 """
 
