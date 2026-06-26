@@ -36,3 +36,9 @@ venv/
 # Archives
 *.tar.gz
 *.zip
+
+# Local-only notes & scratch (never commit)
+*.local.md
+README_new.md
+ui_new.py
+*.bak
