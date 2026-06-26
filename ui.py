@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DAOv2.0 — X-ray Reflection Spectroscopy Model
+DAO — X-ray Reflection Spectroscopy Model
 Web-based parameter configurator & launcher
 Author: Yimin Huang
 """
@@ -17,21 +17,23 @@ app = Flask(__name__, static_folder='image', static_url_path='/image')
 WORK_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ─── Model definitions (mirrors params.cpp) ────────────────────
+# "scale":"log" marks parameters whose sliders run in log10 space (the
+# emitted command always carries the real linear value).
 CORONA_MODELS = {
     "powerlaw": {
         "label": "Power Law",
-        "desc": "F(E) ∝ E<sup>−Γ</sup> · exp(−E<sub>lo</sub>/E)",
+        "desc": "N(E) ∝ E<sup>−Γ</sup> · exp(−E<sub>lo</sub>/E)  [photons cm⁻² s⁻¹ keV⁻¹]",
         "params": [
-            {"name": "Gamma", "label": "Γ", "desc": "Photon index", "default": 2.0, "min": 1.0, "max": 4.0, "step": 0.01},
+            {"name": "Gamma", "label": "Γ", "desc": "Photon index (photon-number spectrum)", "default": 2.0, "min": 1.0, "max": 4.0, "step": 0.01},
             {"name": "E_low_cut", "label": "E<sub>lo</sub>", "desc": "Low-energy exp cutoff [keV]", "default": 0.1, "min": 0.01, "max": 10, "step": 0.01},
         ],
     },
     "cutoffpl": {
         "label": "Cutoff Power Law",
-        "desc": "F(E) ∝ E<sup>−Γ</sup> · exp(−E/E<sub>cut</sub>) · exp(−E<sub>lo</sub>/E)",
+        "desc": "N(E) ∝ E<sup>−Γ</sup> · exp(−E/E<sub>cut</sub>) · exp(−E<sub>lo</sub>/E)  [photons cm⁻² s⁻¹ keV⁻¹]",
         "params": [
-            {"name": "Gamma", "label": "Γ", "desc": "Photon index", "default": 2.0, "min": 1.0, "max": 4.0, "step": 0.01},
-            {"name": "Ecut",  "label": "E<sub>cut</sub>", "desc": "High-energy cutoff [keV]", "default": 300.0, "min": 10, "max": 2000, "step": 1},
+            {"name": "Gamma", "label": "Γ", "desc": "Photon index (photon-number spectrum)", "default": 2.0, "min": 1.0, "max": 4.0, "step": 0.01},
+            {"name": "Ecut",  "label": "E<sub>cut</sub>", "desc": "High-energy cutoff [keV]", "default": 300.0, "min": 10, "max": 2000, "step": 1, "scale": "log"},
             {"name": "E_low_cut", "label": "E<sub>lo</sub>", "desc": "Low-energy exp cutoff [keV]", "default": 0.1, "min": 0.01, "max": 10, "step": 0.01},
         ],
     },
@@ -40,42 +42,205 @@ CORONA_MODELS = {
         "desc": "Thermal Comptonisation (Zdziarski+ 1996)",
         "params": [
             {"name": "Gamma", "label": "Γ", "desc": "Photon index", "default": 2.0, "min": 1.0, "max": 4.0, "step": 0.01},
-            {"name": "kT_e",  "label": "kT<sub>e</sub>", "desc": "Electron temperature [keV]", "default": 60.0, "min": 1, "max": 500, "step": 0.5},
-            {"name": "kT_bb", "label": "kT<sub>bb</sub>", "desc": "Seed photon temperature [keV]", "default": 0.1, "min": 0.001, "max": 5, "step": 0.001},
+            {"name": "kT_e",  "label": "kT<sub>e</sub>", "desc": "Electron temperature [keV]", "default": 60.0, "min": 1, "max": 500, "step": 0.5, "scale": "log"},
+            {"name": "kT_bb", "label": "kT<sub>bb</sub>", "desc": "Seed photon temperature [keV]", "default": 0.1, "min": 0.001, "max": 5, "step": 0.001, "scale": "log"},
         ],
     },
     "comptt": {
         "label": "CompTT",
         "desc": "Comptonisation model (Titarchuk 1994)",
         "params": [
-            {"name": "kT_e",  "label": "kT<sub>e</sub>", "desc": "Plasma temperature [keV]", "default": 50.0, "min": 1, "max": 500, "step": 0.5},
-            {"name": "kT_bb", "label": "kT<sub>bb</sub>", "desc": "Soft photon temperature [keV]", "default": 0.05, "min": 0.001, "max": 5, "step": 0.001},
-            {"name": "taup",  "label": "τ<sub>p</sub>", "desc": "Plasma optical depth", "default": 1.0, "min": 0.01, "max": 20, "step": 0.01},
+            {"name": "kT_e",  "label": "kT<sub>e</sub>", "desc": "Plasma temperature [keV]", "default": 50.0, "min": 1, "max": 500, "step": 0.5, "scale": "log"},
+            {"name": "kT_bb", "label": "kT<sub>bb</sub>", "desc": "Soft photon temperature [keV]", "default": 0.05, "min": 0.001, "max": 5, "step": 0.001, "scale": "log"},
+            {"name": "taup",  "label": "τ<sub>p</sub>", "desc": "Plasma optical depth", "default": 1.0, "min": 0.01, "max": 20, "step": 0.01, "scale": "log"},
         ],
     },
     "blackbody": {
         "label": "Blackbody",
         "desc": "B(E) = (2E³/h²c²) / [exp(E/kT) − 1]",
         "params": [
-            {"name": "kT_bb", "label": "kT<sub>bb</sub>", "desc": "Temperature [keV]", "default": 0.05, "min": 0.001, "max": 50, "step": 0.001},
+            {"name": "kT_bb", "label": "kT<sub>bb</sub>", "desc": "Temperature [keV]", "default": 0.05, "min": 0.001, "max": 50, "step": 0.001, "scale": "log"},
         ],
     },
 }
 
 SLAB_PARAMS = [
-    {"name": "nh",        "label": "log n<sub>H</sub>",  "desc": "Hydrogen density [cm⁻³]",      "default": 15.0,   "min": 10,  "max": 22,   "step": 0.1},
-    {"name": "zeta",      "label": "log ξ",              "desc": "Ionisation parameter",          "default": 3.0,    "min": 0,   "max": 6,    "step": 0.1},
-    {"name": "frac",      "label": "f<sub>cor</sub>",    "desc": "F<sub>corona</sub> / F<sub>disk</sub>", "default": 100, "min": 0, "max": 100, "step": 0.01},
+    {"name": "nh",        "label": "log n<sub>H</sub>",  "desc": "Hydrogen density [cm⁻³]",      "default": 15.0,   "min": 10,  "max": 22,   "step": 0.1,    "scale": "log"},
+    {"name": "zeta",      "label": "log ξ",              "desc": "Ionisation parameter",          "default": 3.0,    "min": 0,   "max": 6,    "step": 0.1,    "scale": "log"},
+    {"name": "frac",      "label": "f<sub>cor</sub>",    "desc": "F<sub>corona</sub> / F<sub>disk</sub>; ≤ 0 → corona only (no disk)", "default": -1, "min": -1, "max": 100, "step": 0.01},
     {"name": "incidence", "label": "cos θ",              "desc": "Incidence angle cosine",        "default": 0.7071, "min": 0.01,"max": 1,    "step": 0.0001},
     {"name": "Afe",       "label": "A<sub>Fe</sub>",     "desc": "Iron abundance [solar]",        "default": 1.0,    "min": 0.1, "max": 10,   "step": 0.1},
 ]
 
 DISK_PARAMS = [
-    {"name": "kT_disk", "label": "kT<sub>disk</sub>", "desc": "Disk blackbody temperature [eV]", "default": 0.35, "min": 0.01, "max": 5, "step": 0.01},
+    {"name": "kT_disk", "label": "kT<sub>disk</sub>", "desc": "Disk blackbody temperature [keV]", "default": 0.35, "min": 0.001, "max": 5, "step": 0.001, "scale": "log"},
 ]
 
 
-# ─── HTML template ──────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════
+#  DESIGN SYSTEM — single source of truth (injected into all pages)
+# ═══════════════════════════════════════════════════════════════
+# "Observatory Instrument": near-black scientific console, one warm-amber
+# accretion accent, the black hole as a real masthead image, restrained motion.
+
+BASE_CSS = r"""
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    /* Surfaces — near-black with a faint blue cast */
+    --bg:#0b0d12; --bg2:#12151c; --card:#161a24; --card-hi:#1b2030;
+    --border:#232838; --border-hi:#2f3648;
+    /* Brand accent — accretion-disk amber. ONE orange everywhere. */
+    --accent:#f0a030; --accent2:#e05828; --accent-sft:rgba(240,160,48,.10);
+    /* Secondary — data / links */
+    --cyan:#38bdf8;
+    /* Status */
+    --green:#22c55e; --red:#ef5350;
+    /* Text — verified >= 4.5:1 */
+    --white:#eef0f4; --text:#c8cdd8; --dim:#8a93a3; --faint:#5a6273;
+    /* Typography */
+    --mono:'SF Mono','JetBrains Mono','Fira Code','Cascadia Code',ui-monospace,monospace;
+    --fs-xs:.72rem; --fs-sm:.82rem; --fs-base:.92rem; --fs-md:1.05rem;
+    --fs-h2:.80rem; --fs-h1:1.5rem; --fs-hero:2.6rem;
+    /* Spacing (4px base) */
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:48px;
+    /* Radius / shadow */
+    --r-sm:8px; --r-md:12px; --r-lg:16px;
+    --shadow:0 2px 12px rgba(0,0,0,.35); --shadow-hi:0 8px 28px rgba(0,0,0,.5);
+  }
+  html { scroll-behavior:smooth; }
+  body {
+    font-family:'Inter','Helvetica Neue','Segoe UI',system-ui,sans-serif;
+    background:var(--bg); color:var(--text); min-height:100vh;
+    overflow-x:hidden; font-size:15px; line-height:1.6; letter-spacing:.02em;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* Single shared background layer at opacity .16 (no fixed-attachment jank) */
+  body::before {
+    content:''; position:fixed; inset:0; z-index:0;
+    background:url('/image/bg_blackhole.png') center top / cover no-repeat;
+    opacity:.16; pointer-events:none;
+  }
+
+  a { color:var(--cyan); text-decoration:none; }
+  a:hover { color:var(--white); }
+  code, .mono { font-family:var(--mono); }
+
+  /* ── Accessibility primitives ───────────────────────── */
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:2px; }
+  .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0; }
+  .skip-link { position:absolute;left:-999px;top:0;z-index:1000; }
+  .skip-link:focus { left:8px;top:8px;background:var(--card);color:var(--white);padding:8px 14px;border-radius:var(--r-sm);border:1px solid var(--accent); }
+  @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important; scroll-behavior:auto!important;} }
+
+  /* ── Sticky top nav (shared) ────────────────────────── */
+  header.nav { position:sticky; top:0; z-index:50; backdrop-filter:blur(10px);
+    background:rgba(11,13,18,.78); border-bottom:1px solid var(--border); }
+  header.nav nav { max-width:1200px; margin:0 auto; padding:0 var(--sp-5);
+    display:flex; align-items:center; gap:var(--sp-6); height:54px; }
+  header.nav .brand { font-weight:600; font-size:1.05rem; color:var(--accent);
+    letter-spacing:.14em; }
+  header.nav .brand:hover { color:var(--accent); }
+  header.nav .tabs { display:flex; gap:var(--sp-5); align-items:center; }
+  header.nav .tabs a { font-size:var(--fs-sm); font-weight:500; color:var(--dim);
+    padding:16px 2px; border-bottom:2px solid transparent; transition:color .2s,border-color .2s; }
+  header.nav .tabs a:hover { color:var(--white); }
+  header.nav .tabs a.active { color:var(--white); font-weight:600; border-bottom-color:var(--accent); }
+  @media (max-width:420px){ header.nav .brand { font-size:.9rem; } header.nav nav { gap:var(--sp-4); padding:0 var(--sp-3); } }
+
+  /* ── Page wrapper ───────────────────────────────────── */
+  .wrapper { position:relative; z-index:1; max-width:1120px; margin:0 auto; padding:var(--sp-5) var(--sp-5) var(--sp-7); }
+  .page-head { padding:var(--sp-5) 0 var(--sp-3); }
+  .page-head h1 { font-size:var(--fs-h1); font-weight:700; letter-spacing:.06em; color:var(--white); }
+  .page-head .sub { font-size:var(--fs-sm); color:var(--dim); margin-top:var(--sp-2); }
+
+  /* ── Cards (shared physics) ─────────────────────────── */
+  .card, .plot-card, .formula-box, .note-box, .params-box {
+    background:var(--card); border:1px solid var(--border); border-radius:var(--r-md);
+    box-shadow:var(--shadow);
+  }
+  .card { padding:var(--sp-5); transition:border-color .2s,box-shadow .2s,background .2s; margin-bottom:var(--sp-5); }
+  .card:hover { border-color:var(--border-hi); box-shadow:var(--shadow-hi); background:var(--card-hi); }
+  .card.full { grid-column:1/-1; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-5); }
+  @media (max-width:760px){ .grid { grid-template-columns:1fr; } }
+
+  .card h2, .plot-card h2 {
+    font-size:var(--fs-h2); font-weight:600; text-transform:uppercase; letter-spacing:.14em;
+    color:var(--accent); display:flex; align-items:center; gap:10px; margin-bottom:var(--sp-4);
+  }
+  .card h2 .tick, .plot-card h2 .tick { width:2px; height:14px; background:var(--accent); border-radius:1px; flex:none; }
+
+  /* ── Footer (shared) ────────────────────────────────── */
+  footer.site { text-align:center; color:var(--faint); font-size:var(--fs-xs);
+    border-top:1px solid var(--border); padding:var(--sp-6) 0 var(--sp-4); margin-top:var(--sp-6); letter-spacing:.04em; }
+  footer.site a { color:var(--faint); }
+  footer.site a:hover { color:var(--dim); }
+
+  /* ── Toast (shared) ─────────────────────────────────── */
+  .toast { position:fixed; bottom:32px; left:50%; transform:translateX(-50%);
+    background:var(--card); border:1px solid var(--border); padding:12px 24px;
+    border-radius:var(--r-sm); font-size:var(--fs-sm); font-weight:500; opacity:0;
+    transition:opacity .3s; pointer-events:none; z-index:99; box-shadow:var(--shadow-hi);
+    display:flex; align-items:center; gap:10px; }
+  .toast.show { opacity:1; }
+  .toast.success { color:var(--green); border-color:rgba(34,197,94,.3); }
+  .toast.error   { color:var(--red);   border-color:rgba(239,83,80,.3); }
+  .toast.info    { color:var(--cyan);  border-color:rgba(56,189,248,.3); }
+
+  /* ── Pills (shared, used on /plots) ─────────────────── */
+  .pill { font-size:var(--fs-xs); padding:5px 14px; border-radius:999px; cursor:pointer;
+    font-family:inherit; font-weight:500; letter-spacing:.03em; border:1px solid; transition:all .2s; background:transparent; }
+  .pill-fe   { border-color:rgba(239,83,80,.35);  background:rgba(239,83,80,.10);  color:var(--red); }
+  .pill-line { border-color:rgba(56,189,248,.35); background:rgba(56,189,248,.10); color:var(--cyan); }
+  .pill.off  { border-color:var(--border); background:transparent; color:var(--faint); }
+
+  /* ── Buttons (shared) ───────────────────────────────── */
+  .btn { padding:10px 24px; border-radius:var(--r-sm); font-size:var(--fs-sm); font-weight:600;
+    cursor:pointer; border:none; font-family:inherit; transition:all .2s; letter-spacing:.03em; }
+  .btn-primary { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#1a1206; box-shadow:0 2px 10px rgba(240,160,48,.2); }
+  .btn-primary:hover { box-shadow:0 4px 22px rgba(240,160,48,.35); transform:translateY(-1px); }
+  .btn-secondary { background:var(--bg2); color:var(--text); border:1px solid var(--border); }
+  .btn-secondary:hover { border-color:var(--border-hi); background:var(--card-hi); color:var(--white); }
+
+  /* ── Empty state (plots/convergence) ────────────────── */
+  .empty-state { text-align:center; padding:var(--sp-7) var(--sp-5); }
+  .empty-state .ico { font-size:2.4rem; color:var(--faint); margin-bottom:var(--sp-4); }
+  .empty-state h3 { color:var(--white); font-size:1.1rem; margin-bottom:var(--sp-2); }
+  .empty-state p { color:var(--dim); font-size:var(--fs-sm); max-width:420px; margin:0 auto var(--sp-5); }
+"""
+
+
+def TOP_NAV(active=""):
+    """Sticky primary nav, injected as the first body child on every page."""
+    tabs = [
+        ("config", "/", "Configurator"),
+        ("docs", "/docs", "Reference"),
+        ("plots", "/plots", "Results"),
+        ("conv", "/convergence", "Convergence"),
+    ]
+    items = []
+    for key, href, label in tabs:
+        cls = " active" if key == active else ""
+        cur = ' aria-current="page"' if key == active else ""
+        items.append(f'<a href="{href}" class="tab{cls}"{cur}>{label}</a>')
+    return (
+        '<a class="skip-link" href="#main">Skip to content</a>'
+        '<header class="nav"><nav aria-label="Primary">'
+        '<a class="brand" href="/">DAO</a>'
+        '<div class="tabs">' + "".join(it.replace('class="tab', 'class="') for it in items) + "</div>"
+        "</nav></header>"
+    )
+
+
+FOOTER = (
+    '<footer class="site">DAO &nbsp;·&nbsp; Yimin Huang &nbsp;·&nbsp; '
+    '<a href="mailto:huangym23@m.fudan.edu.cn">huangym23@m.fudan.edu.cn</a> '
+    '&nbsp;·&nbsp; <a href="/docs#references">References</a> '
+    '&nbsp;·&nbsp; <a href="/docs#license">MIT License</a></footer>'
+)
+
+
+# ─── HTML template (Configurator) ──────────────────────────────
 HTML = r"""
 <!DOCTYPE html>
 <html lang="en">
@@ -84,189 +249,226 @@ HTML = r"""
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<title>DAOv2.0 — X-ray Reflection Model</title>
+<title>DAO — X-ray Reflection Model</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg:#080a0f; --bg2:#0f1218; --card:#131720; --card-hi:#181d28;
-    --border:#1e2433; --border-hi:#2a3244;
-    --accent:#e8993a; --accent2:#d4622a; --cyan:#5cc8f0;
-    --text:#b8bfcc; --dim:#5f6878; --white:#e8ecf2;
-    --red:#e85050; --green:#3cc868; --radius:12px;
-    --shadow:0 2px 12px rgba(0,0,0,.4);
-  }
-  body {
-    font-family:'Inter','Helvetica Neue','Segoe UI',system-ui,sans-serif;
-    background:var(--bg); color:var(--text); min-height:100vh;
-    overflow-x:hidden; font-size:14px; line-height:1.6;
-    -webkit-font-smoothing:antialiased;
-  }
-  body::before {
-    content:''; position:fixed; inset:0; z-index:0;
-    background:url('/image/bg_blackhole.png') center top / cover no-repeat fixed;
-    opacity:.28; pointer-events:none;
-  }
-  body::after {
-    content:''; position:fixed; inset:0; z-index:0;
-    background:linear-gradient(180deg,transparent 0%,var(--bg) 55%);
-    pointer-events:none;
-  }
-  .wrapper { position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:24px 28px; }
+{{ base_css | safe }}
 
-  .hero { text-align:center; padding:72px 0 24px; }
-  .hero h1 {
-    font-size:2.4rem; font-weight:700; letter-spacing:.18em;
-    background:linear-gradient(90deg,#e8993a,#d4622a,#e8993a);
-    background-size:200% 100%;
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-    animation:shimmer 5s ease-in-out infinite;
-  }
-  @keyframes shimmer { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
-  .hero .sub { font-size:.9rem; color:var(--dim); margin-top:8px; letter-spacing:.04em; }
-  .hero .author { font-size:.82rem; color:#484f5c; margin-top:6px; }
-  .hero .author a { color:var(--accent); text-decoration:none; border-bottom:1px dotted rgba(232,153,58,.4); transition:border-color .2s; }
-  .hero .author a:hover { border-color:var(--accent); }
-  .hero .author a.link-cyan { color:var(--cyan); border-color:rgba(92,200,240,.4); }
-  .hero .author a.link-cyan:hover { border-color:var(--cyan); }
+  /* home page background fade under the tall hero */
+  body::after { content:''; position:fixed; inset:0; z-index:0;
+    background:linear-gradient(180deg,transparent 0%,var(--bg) 60%); pointer-events:none; }
+  .wrapper { z-index:1; }
 
-  .divider { height:1px; margin:24px auto; max-width:520px; background:linear-gradient(90deg,transparent 0%,#2a3244 20%,var(--accent) 50%,#2a3244 80%,transparent 100%); border:none; }
+  /* ── Hero masthead ──────────────────────────── */
+  .hero { position:relative; height:340px; border-radius:var(--r-lg); overflow:hidden;
+    display:flex; flex-direction:column; justify-content:center; align-items:center;
+    margin:var(--sp-5) 0 var(--sp-6); border:1px solid var(--border); }
+  .hero::before { content:''; position:absolute; inset:0;
+    background:url('/image/bg_blackhole.png') center 35%/cover no-repeat; }
+  .hero::after { content:''; position:absolute; inset:0;
+    background:radial-gradient(120% 90% at 50% 30%, rgba(240,160,48,.10), transparent 45%),
+               linear-gradient(180deg, rgba(11,13,18,.35) 0%, rgba(11,13,18,.55) 55%, var(--bg) 100%); }
+  .hero > * { position:relative; z-index:1; text-align:center; }
+  .hero .eyebrow { font-family:var(--mono); font-size:var(--fs-xs); letter-spacing:.22em;
+    color:var(--accent); margin-bottom:var(--sp-3); }
+  .hero .wordmark { font-size:var(--fs-hero); font-weight:700; letter-spacing:.14em;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+    animation:heroIn .6s ease both; }
+  @keyframes heroIn { from{opacity:0; letter-spacing:.30em;} to{opacity:1; letter-spacing:.14em;} }
+  .hero .descriptor { color:var(--dim); font-size:var(--fs-sm); margin-top:var(--sp-3); letter-spacing:.06em; }
+  .hero .author { color:var(--dim); font-size:var(--fs-xs); margin-top:var(--sp-2); }
+  .hero .author a { color:var(--dim); }
+  .hero .author a:hover { color:var(--white); }
 
-  .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:18px; }
-  @media (max-width:760px) { .grid { grid-template-columns:1fr; } }
+  /* ── How-it-works strip ─────────────────────── */
+  .howto { display:flex; flex-wrap:wrap; gap:var(--sp-2); margin:0 0 var(--sp-6); }
+  .howto .chip { font-size:var(--fs-sm); color:var(--dim); background:var(--bg2);
+    border:1px solid var(--border); border-radius:999px; padding:6px 14px; }
+  .howto .chip b { color:var(--accent); font-weight:700; margin-right:6px; }
 
-  .card {
-    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
-    padding:24px; box-shadow:var(--shadow); transition:border-color .25s,box-shadow .25s;
-  }
-  .card:hover { border-color:var(--border-hi); box-shadow:0 4px 20px rgba(0,0,0,.5); }
-  .card.full { grid-column:1/-1; }
-  .card h2 {
-    font-size:.82rem; font-weight:600; text-transform:uppercase; letter-spacing:.13em;
-    color:var(--accent); margin-bottom:18px; display:flex; align-items:center; gap:10px;
-  }
-  .card h2 .icon { font-size:1.05rem; opacity:.7; }
-
-  .model-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:10px; margin-bottom:20px; }
-  .model-btn {
-    background:var(--bg2); border:1.5px solid var(--border); border-radius:10px;
-    padding:14px 12px; cursor:pointer; text-align:center; transition:all .25s;
-  }
+  /* ── Model selector (radiogroup) ────────────── */
+  .model-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:10px; margin-bottom:var(--sp-5); }
+  .model-btn { background:var(--bg2); border:1.5px solid var(--border); border-radius:var(--r-sm);
+    padding:14px 12px; cursor:pointer; text-align:left; transition:all .2s; font-family:inherit;
+    position:relative; color:var(--text); }
   .model-btn:hover { border-color:var(--border-hi); background:var(--card-hi); }
-  .model-btn.active { border-color:var(--accent); background:rgba(232,153,58,.06); box-shadow:0 0 20px rgba(232,153,58,.08),inset 0 0 0 1px rgba(232,153,58,.1); }
-  .model-btn .name { font-size:.88rem; font-weight:600; color:var(--white); }
-  .model-btn .mdesc { font-size:.72rem; color:var(--dim); margin-top:4px; line-height:1.4; }
+  .model-btn.active { border-color:var(--accent); background:var(--accent-sft); }
+  .model-btn.active .check { opacity:1; }
+  .model-btn .check { position:absolute; top:10px; right:10px; color:var(--accent); opacity:0; font-size:.8rem; }
+  .model-btn[disabled] { opacity:.4; cursor:not-allowed; }
+  .model-btn .name { font-size:.9rem; font-weight:600; color:var(--white); }
+  .model-btn .mdesc { font-size:var(--fs-xs); color:var(--text); margin-top:4px; line-height:1.45; }
 
-  .field { display:grid; grid-template-columns:120px 1fr 85px; align-items:center; gap:12px; margin-bottom:12px; }
-  .field label { font-size:.82rem; font-weight:500; color:var(--cyan); text-align:right; white-space:nowrap; }
-  .field input[type=range] { -webkit-appearance:none; width:100%; height:5px; background:linear-gradient(90deg,#1a2030,#2a3248); border-radius:3px; outline:none; }
-  .field input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; background:var(--accent); border-radius:50%; cursor:pointer; box-shadow:0 0 8px rgba(232,153,58,.35); transition:box-shadow .2s; }
-  .field input[type=range]::-webkit-slider-thumb:hover { box-shadow:0 0 14px rgba(232,153,58,.5); }
-  .field .val { font-size:.82rem; color:var(--white); text-align:right; font-weight:500; background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:6px 10px; width:85px; font-family:inherit; transition:border-color .2s; }
-  .field .val:focus { border-color:var(--accent); outline:none; box-shadow:0 0 0 2px rgba(232,153,58,.15); }
-  .field-desc { font-size:.72rem; color:var(--dim); grid-column:2/-1; margin-top:-6px; margin-bottom:4px; }
+  /* ── Parameter fields ───────────────────────── */
+  .field { display:grid; grid-template-columns:120px 1fr 92px; align-items:center; gap:var(--sp-3); margin-bottom:var(--sp-1); }
+  .field label { font-size:var(--fs-sm); font-weight:500; color:var(--text); text-align:right; white-space:nowrap; }
+  .field input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:5px;
+    background:linear-gradient(90deg,#1a2030,#2a3248); border-radius:3px; outline:none; }
+  .field input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:16px; height:16px;
+    background:var(--accent); border-radius:50%; cursor:pointer; box-shadow:0 0 8px rgba(240,160,48,.35); }
+  .field input[type=range]::-moz-range-thumb { width:16px; height:16px; border:none;
+    background:var(--accent); border-radius:50%; cursor:pointer; box-shadow:0 0 8px rgba(240,160,48,.35); }
+  .field input[type=range]::-moz-range-track { height:5px; background:linear-gradient(90deg,#1a2030,#2a3248); border-radius:3px; }
+  .field .val { font-size:var(--fs-sm); color:var(--white); text-align:right; font-weight:500;
+    background:var(--bg2); border:1px solid var(--border); border-radius:var(--r-sm); padding:6px 8px;
+    width:92px; font-family:inherit; transition:border-color .2s,box-shadow .2s; }
+  .field .val:focus { border-color:var(--accent); outline:none; box-shadow:0 0 0 2px var(--accent-sft); }
+  .field .val.flash { border-color:var(--red); box-shadow:0 0 0 2px rgba(239,83,80,.2); }
+  .field-desc { font-size:var(--fs-xs); color:var(--dim); grid-column:2/-1; margin:-2px 0 var(--sp-3); }
+  .field-ends { grid-column:2/3; display:flex; justify-content:space-between; font-size:var(--fs-xs);
+    color:var(--faint); margin-top:-2px; }
+  @media (max-width:520px){
+    .field { grid-template-columns:1fr auto; }
+    .field label { grid-column:1/-1; text-align:left; }
+    .field-ends { grid-column:1/-1; }
+    .wrapper { padding:var(--sp-4) var(--sp-3); }
+  }
 
-  .toggle-row { display:flex; align-items:center; gap:14px; margin-bottom:12px; }
-  .toggle-row label { font-size:.82rem; font-weight:500; color:var(--cyan); min-width:120px; text-align:right; }
-  .toggle { position:relative; width:44px; height:24px; cursor:pointer; }
+  /* ── Toggles ────────────────────────────────── */
+  .toggle-row { display:flex; align-items:center; gap:var(--sp-4); margin-bottom:var(--sp-3); }
+  .toggle-row > label:first-child { font-size:var(--fs-sm); font-weight:500; color:var(--text); min-width:120px; text-align:right; }
+  .toggle { position:relative; width:44px; height:24px; cursor:pointer; flex:none; }
   .toggle input { opacity:0; width:0; height:0; }
-  .toggle .slider { position:absolute; inset:0; background:#1a2030; border-radius:12px; border:1px solid var(--border); transition:all .25s; }
-  .toggle .slider::before { content:''; position:absolute; width:18px; height:18px; left:2px; top:2px; background:#4a5060; border-radius:50%; transition:all .25s; }
-  .toggle input:checked+.slider { background:rgba(232,153,58,.2); border-color:rgba(232,153,58,.4); }
+  .toggle .slider { position:absolute; inset:0; background:#1a2030; border-radius:12px; border:1px solid var(--border); transition:all .2s; }
+  .toggle .slider::before { content:''; position:absolute; width:18px; height:18px; left:2px; top:2px; background:#4a5060; border-radius:50%; transition:all .2s; }
+  .toggle input:checked+.slider { background:var(--accent-sft); border-color:rgba(240,160,48,.4); }
   .toggle input:checked+.slider::before { transform:translateX(20px); background:var(--accent); }
+  .toggle input:focus-visible+.slider { box-shadow:0 0 0 3px var(--accent-sft); }
 
-  .derived { display:flex; gap:28px; flex-wrap:wrap; margin-top:12px; padding-top:12px; }
+  /* ── Derived panel ──────────────────────────── */
+  .divider { height:1px; margin:var(--sp-4) 0; background:linear-gradient(90deg,transparent,var(--border),transparent); border:none; }
+  .derived { display:flex; gap:var(--sp-6); flex-wrap:wrap; }
   .derived .item { text-align:center; }
-  .derived .item .dlabel { font-size:.72rem; color:var(--dim); font-weight:500; text-transform:uppercase; letter-spacing:.06em; }
-  .derived .item .dval { font-size:1.15rem; font-weight:700; color:var(--white); margin-top:2px; }
+  .derived .item .dlabel { font-size:var(--fs-xs); color:var(--dim); font-weight:500; }
+  .derived .item .dval { font-size:var(--fs-md); font-weight:700; color:var(--white); margin-top:2px; font-family:var(--mono); }
 
-  .cmd-box { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:16px 20px; font-size:.85rem; color:var(--green); word-break:break-all; line-height:1.7; font-family:'SF Mono','Fira Code','Cascadia Code',monospace; }
+  /* ── select ─────────────────────────────────── */
+  .field select { grid-column:2/-1; font-size:var(--fs-sm); color:var(--white); background:var(--bg2);
+    border:1px solid var(--border); border-radius:var(--r-sm); padding:7px 12px; font-family:inherit; cursor:pointer; }
+
+  /* ── Command box + sticky bar ───────────────── */
+  .cmd-cap { font-size:var(--fs-xs); color:var(--dim); margin-bottom:var(--sp-2); }
+  .cmd-box { background:var(--bg); border:1px solid var(--border); border-radius:var(--r-md);
+    padding:16px 18px; font-size:.85rem; color:var(--green); word-break:break-all; line-height:1.7; font-family:var(--mono); }
   .cmd-box .prompt { color:var(--dim); user-select:none; }
-  .cmd-hint { font-size:.75rem; color:var(--dim); margin-top:10px; line-height:1.5; }
-  .cmd-hint code { color:var(--cyan); font-family:'SF Mono','Fira Code',monospace; font-size:.78rem; }
+  .cmd-hint { font-size:var(--fs-xs); color:var(--dim); margin-top:var(--sp-3); line-height:1.5; }
+  .cmd-hint code { color:var(--cyan); font-size:.78rem; }
+  .actions { display:flex; gap:10px; margin-top:var(--sp-4); flex-wrap:wrap; }
 
-  .actions { display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
-  .btn { padding:10px 26px; border-radius:9px; font-size:.84rem; font-weight:600; cursor:pointer; border:none; font-family:inherit; transition:all .25s; letter-spacing:.03em; }
-  .btn-primary { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#000; box-shadow:0 2px 10px rgba(232,153,58,.2); }
-  .btn-primary:hover { box-shadow:0 4px 24px rgba(232,153,58,.35); transform:translateY(-1px); }
-  .btn-secondary { background:var(--bg2); color:var(--text); border:1px solid var(--border); }
-  .btn-secondary:hover { border-color:var(--border-hi); background:var(--card-hi); }
+  .cmd-bar { position:sticky; bottom:0; z-index:40; margin:var(--sp-4) calc(-1 * var(--sp-5)) calc(-1 * var(--sp-5));
+    padding:12px var(--sp-5); background:rgba(11,13,18,.92); backdrop-filter:blur(8px);
+    border-top:1px solid var(--border); display:flex; align-items:center; gap:var(--sp-4); border-radius:0 0 var(--r-md) var(--r-md); }
+  .cmd-bar .barcmd { flex:1; font-family:var(--mono); color:var(--green); font-size:.78rem;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cmd-bar .btn { padding:8px 18px; flex:none; }
 
-  .toast { position:fixed; bottom:32px; left:50%; transform:translateX(-50%); background:var(--card); color:var(--green); border:1px solid rgba(60,200,104,.2); padding:12px 28px; border-radius:10px; font-size:.84rem; font-weight:500; opacity:0; transition:opacity .3s; pointer-events:none; z-index:99; box-shadow:0 4px 20px rgba(0,0,0,.5); }
-  .toast.show { opacity:1; }
+  /* ── details / accordion ────────────────────── */
+  details.adv summary { cursor:pointer; font-size:var(--fs-sm); color:var(--dim); list-style:none;
+    display:flex; align-items:center; gap:8px; font-weight:500; }
+  details.adv summary::-webkit-details-marker { display:none; }
+  details.adv summary::before { content:'▸'; color:var(--accent); transition:transform .2s; }
+  details.adv[open] summary::before { transform:rotate(90deg); }
+  details.adv .body { margin-top:var(--sp-4); }
 
-  .queue-table { width:100%; border-collapse:collapse; font-size:.82rem; margin-top:12px; }
-  .queue-table th { text-align:left; color:var(--accent); font-weight:600; font-size:.75rem; text-transform:uppercase; letter-spacing:.08em; padding:10px 12px; border-bottom:1px solid var(--border); }
+  /* ── Queue table ────────────────────────────── */
+  .queue-table { width:100%; border-collapse:collapse; font-size:var(--fs-sm); margin-top:var(--sp-3); }
+  .queue-table th { text-align:left; color:var(--accent); font-weight:600; font-size:var(--fs-xs);
+    text-transform:uppercase; letter-spacing:.08em; padding:10px 12px; border-bottom:1px solid var(--border); }
   .queue-table td { padding:10px 12px; border-bottom:1px solid #151a24; color:var(--text); vertical-align:top; }
-  .queue-table tr:hover td { background:rgba(232,153,58,.03); }
+  .queue-table tr:hover td { background:var(--accent-sft); }
   .queue-table .q-idx { color:var(--dim); font-weight:600; width:40px; text-align:center; }
   .queue-table .q-model { color:var(--cyan); font-weight:600; width:100px; }
-  .queue-table .q-params { color:var(--text); font-size:.78rem; word-break:break-all; font-family:'SF Mono','Fira Code',monospace; }
-  .queue-table .q-actions { width:80px; text-align:center; white-space:nowrap; }
-  .queue-table .q-btn { background:none; border:none; cursor:pointer; font-size:.92rem; padding:4px 8px; border-radius:6px; transition:background .15s; }
-  .queue-table .q-btn:hover { background:rgba(255,255,255,.06); }
-  .queue-table .q-btn-del { color:var(--red); }
-  .queue-table .q-btn-load { color:var(--cyan); }
-  .queue-empty { text-align:center; color:var(--dim); font-size:.85rem; padding:28px 0; }
-  .batch-actions { display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; align-items:center; }
-  .batch-count { font-size:.8rem; color:var(--dim); margin-left:auto; font-weight:500; }
-
-  .footer { text-align:center; padding:32px 0 16px; font-size:.75rem; color:#363d4a; letter-spacing:.02em; }
+  .queue-table .q-params { color:var(--text); font-size:.78rem; word-break:break-all; font-family:var(--mono); }
+  .queue-table .q-actions { width:150px; text-align:right; white-space:nowrap; }
+  .q-btn { background:var(--bg2); border:1px solid var(--border); cursor:pointer; font-size:var(--fs-xs);
+    padding:4px 10px; border-radius:var(--r-sm); transition:all .15s; color:var(--text); margin-left:4px; }
+  .q-btn:hover { border-color:var(--border-hi); color:var(--white); }
+  .q-btn-del:hover { color:var(--red); border-color:rgba(239,83,80,.4); }
+  .queue-empty { text-align:center; color:var(--dim); font-size:var(--fs-sm); padding:28px 0; }
+  .batch-actions { display:flex; gap:10px; margin-top:var(--sp-4); flex-wrap:wrap; align-items:center; }
+  .batch-count { font-size:var(--fs-sm); color:var(--dim); margin-left:auto; font-weight:500; }
 </style>
 </head>
 <body>
-<div class="wrapper">
+{{ nav | safe }}
+<main id="main" class="wrapper">
 
   <div class="hero">
-    <h1>DAOv2.0</h1>
-    <div class="sub">X-ray Reflection Spectroscopy Model &nbsp;·&nbsp; Compton RT &nbsp;·&nbsp; Cloudy &nbsp;·&nbsp; HEASoft</div>
-    <div class="author">Yimin Huang &nbsp;·&nbsp; <a href="/docs">Parameter Reference</a> &nbsp;·&nbsp; <a href="/plots" class="link-cyan">Results Viewer</a> &nbsp;·&nbsp; <a href="/convergence" class="link-cyan">Convergence</a></div>
-    <hr class="divider">
+    <div class="eyebrow">X-RAY REFLECTION SPECTROSCOPY · v1.0</div>
+    <div class="wordmark">DAO</div>
+    <div class="descriptor">Compton RT &nbsp;·&nbsp; Cloudy &nbsp;·&nbsp; HEASoft</div>
+    <div class="author">Yimin Huang &nbsp;·&nbsp; <a href="mailto:huangym23@m.fudan.edu.cn">huangym23@m.fudan.edu.cn</a></div>
+  </div>
+
+  <div class="howto">
+    <div class="chip"><b>1</b>Pick a model &amp; set parameters</div>
+    <div class="chip"><b>2</b>Copy the command or build a batch</div>
+    <div class="chip"><b>3</b>Run ./maindaocl in your terminal</div>
+    <div class="chip"><b>4</b>View spectra &amp; convergence here</div>
   </div>
 
   <div class="card full">
-    <h2><span class="icon">◉</span> Corona Spectrum</h2>
-    <div class="model-grid" id="modelGrid"></div>
+    <h2><span class="tick" aria-hidden="true"></span>Corona Spectrum</h2>
+    <div class="model-grid" id="modelGrid" role="radiogroup" aria-label="Corona spectrum model"></div>
     <div id="coronaParams"></div>
   </div>
 
   <div class="grid">
     <div class="card">
-      <h2><span class="icon">◈</span> Slab Physics</h2>
+      <h2><span class="tick" aria-hidden="true"></span>Slab Physics</h2>
       <div id="slabParams"></div>
-      <hr class="divider" style="max-width:100%">
+      <div class="toggle-row" style="margin-top:6px">
+        <label for="angsca">Angle-dependent scattering (<code>-angsca</code>)</label>
+        <label class="toggle"><input type="checkbox" id="angsca" checked aria-label="Angle-dependent scattering" onchange="updateCmd();persist()"><span class="slider"></span></label>
+      </div>
+      <div class="field-desc">On = angle-dependent kernel; off = angle-averaged kernel.</div>
+      <hr class="divider">
       <div class="derived" id="derivedBlock"></div>
     </div>
     <div class="card">
-      <h2><span class="icon">◎</span> Accretion Disk</h2>
+      <h2><span class="tick" aria-hidden="true"></span>Accretion Disk</h2>
       <div id="diskParams"></div>
     </div>
   </div>
 
   <div class="card full">
-    <h2><span class="icon">⚙</span> Test Mode</h2>
-    <div class="toggle-row">
-      <label>Enable</label>
-      <label class="toggle"><input type="checkbox" id="testRt" onchange="toggleTest()"><span class="slider"></span></label>
-    </div>
-    <div id="testParams" style="display:none"></div>
+    <h2><span class="tick" aria-hidden="true"></span>Advanced</h2>
+    <details class="adv">
+      <summary>Advanced · compPS benchmark</summary>
+      <div class="body">
+        <div class="toggle-row">
+          <label for="testRt">Enable test mode</label>
+          <label class="toggle"><input type="checkbox" id="testRt" aria-label="Enable compPS test mode" onchange="toggleTest()"><span class="slider"></span></label>
+        </div>
+        <div class="field-desc">Isothermal pure-scattering slab vs Xspec compPS (Poutanen &amp; Svensson 1996),
+          illuminated by a bottom blackbody seed. kT<sub>e</sub> is the slab temperature; the corona is set to
+          <code>blackbody</code> automatically to supply the seed.</div>
+        <div id="testParams" style="display:none"></div>
+      </div>
+    </details>
   </div>
 
   <div class="card full">
-    <h2><span class="icon">▶</span> Current Configuration</h2>
+    <h2><span class="tick" aria-hidden="true"></span>Current Configuration</h2>
+    <div class="cmd-cap">Run this in your terminal:</div>
     <div class="cmd-box" id="cmdBox"><span class="prompt">$ </span><span id="cmdText"></span></div>
     <div class="actions">
-      <button class="btn btn-primary" onclick="addToQueue()">Add to Queue</button>
-      <button class="btn btn-secondary" onclick="copyCmd()">Copy Command</button>
+      <button class="btn btn-primary" onclick="copyCmd()">Copy Command</button>
+      <button class="btn btn-secondary" onclick="addToQueue()">Add to Queue</button>
       <button class="btn btn-secondary" onclick="resetAll()">Reset</button>
     </div>
     <div class="cmd-hint">
       Make sure your runtime environment is set before running
       (e.g. <code>source $HEADAS/headas-init.sh</code>).
     </div>
+    <div class="cmd-bar">
+      <span class="barcmd mono" id="barCmd"></span>
+      <button class="btn btn-primary" onclick="copyCmd()">Copy Command</button>
+    </div>
   </div>
 
   <div class="card full">
-    <h2><span class="icon">☰</span> Run Queue</h2>
+    <h2><span class="tick" aria-hidden="true"></span>Run Queue</h2>
     <div id="queueBody"></div>
     <div class="batch-actions">
       <button class="btn btn-primary" onclick="copyAllCmds()">Copy All</button>
@@ -276,8 +478,8 @@ HTML = r"""
     </div>
   </div>
 
-  <div class="footer">DAOv2.0 &nbsp;·&nbsp; Yimin Huang &nbsp;·&nbsp; Compton scattering radiative transfer</div>
-</div>
+</main>
+{{ footer | safe }}
 
 <div class="toast" id="toast"></div>
 
@@ -286,71 +488,151 @@ HTML = r"""
 const MODELS = {{ models_json | safe }};
 const SLAB   = {{ slab_json | safe }};
 const DISK   = {{ disk_json | safe }};
-const TEST   = [{"name":"T_test","label":"T<sub>test</sub>","desc":"Slab temperature [K]","default":1e8,"min":1e4,"max":1e10,"step":1e4}];
-const DEFAULTS = {nh:15,zeta:3,frac:1,incidence:0.7071067811865476,Afe:1,kT_disk:0.35,T_test:1e8};
+// compps benchmark slab params: kT_e is the slab temperature (emitted as -kT_e),
+// tau the vertical Thomson depth. Distinct field name 'kTe_slab' avoids a DOM-id
+// clash with a corona that also exposes kT_e.
+const TEST   = [
+  {"name":"kTe_slab","flag":"kT_e","label":"kT<sub>e</sub> (slab)","desc":"Slab uniform temperature [keV]","default":60,"min":1,"max":500,"step":0.5,"scale":"log"},
+  {"name":"tau","label":"τ<sub>slab</sub>","desc":"Slab vertical Thomson optical depth","default":0.5,"min":0.01,"max":5,"step":0.01},
+];
+const DEFAULTS = {nh:15,zeta:3,frac:-1,incidence:0.7071067811865476,Afe:1,kT_disk:0.35,kTe_slab:60,tau:0.5};
+const TIPS = {
+  Ecut:"≈ 2–3 kT_e",
+  E_low_cut:"Suppresses the IR divergence of a bare power law",
+  incidence:"Snaps to the nearest Gauss–Legendre quadrature node at runtime",
+  Afe:"Scales the 6.4–6.97 keV Fe K complex",
+  zeta:"ζ = log₁₀(ξ); ξ = 10^ζ erg cm s⁻¹",
+  nh:"n_H = 10^nh cm⁻³",
+};
 
-let corona = "{{ default_corona }}";
+const DEFAULT_CORONA = "{{ default_corona }}";
+const SKEY = "dao.session.v1";
+let corona = DEFAULT_CORONA;
 let vals = {};
+
+// ── helpers ───────────────────────────────
+function paramByName(name) {
+  for (const k in MODELS) for (const p of MODELS[k].params) if (p.name === name) return p;
+  for (const p of SLAB) if (p.name === name) return p;
+  for (const p of DISK) if (p.name === name) return p;
+  for (const p of TEST) if (p.name === name) return p;
+  return null;
+}
+function stripHtml(s){ return s.replace(/<[^>]+>/g,'').trim(); }
+function fmtNum(v) {
+  if (Math.abs(v) >= 1e4 || (Math.abs(v) < 0.01 && v !== 0)) return v.toExponential(2);
+  return parseFloat(v.toPrecision(6)).toString();
+}
 
 // ── Build fields ──────────────────────────
 function buildField(p, container) {
   const id = 'f_' + p.name;
+  const isLog = p.scale === 'log';
+  const aria = stripHtml(p.label);
+  const tip = TIPS[p.name] ? ` title="${TIPS[p.name]}"` : '';
+  let rmin = p.min, rmax = p.max, rstep = p.step, rval = p.default;
+  if (isLog) {
+    rmin = Math.log10(p.min); rmax = Math.log10(p.max);
+    rstep = (rmax - rmin) / 200; rval = Math.log10(p.default);
+  }
   const d = document.createElement('div');
   d.innerHTML = `
     <div class="field">
-      <label for="${id}">${p.label}</label>
-      <input type="range" id="${id}" min="${p.min}" max="${p.max}" step="${p.step}" value="${p.default}"
-             oninput="syncVal('${p.name}','${id}')">
-      <input type="text" class="val" id="${id}_v" value="${fmtNum(p.default)}"
+      <label for="${id}"${tip}>${p.label}</label>
+      <input type="range" id="${id}" data-log="${isLog?1:0}" min="${rmin}" max="${rmax}" step="${rstep}" value="${rval}"
+             aria-label="${aria}" oninput="syncVal('${p.name}','${id}')">
+      <input type="number" class="val" id="${id}_v" min="${p.min}" max="${p.max}" step="${p.step}"
+             value="${fmtNum(p.default)}" inputmode="decimal" aria-label="${aria} value"
              onchange="syncSlider('${p.name}','${id}')">
+      <div class="field-ends"><span>${fmtNum(p.min)}</span><span>${fmtNum(p.max)}</span></div>
     </div>
     <div class="field-desc">${p.desc}</div>`;
   container.appendChild(d);
   vals[p.name] = p.default;
 }
 
-function fmtNum(v) {
-  if (Math.abs(v) >= 1e4 || (Math.abs(v) < 0.01 && v !== 0)) return v.toExponential(2);
-  return parseFloat(v.toPrecision(6)).toString();
+function setFieldValue(name, v) {
+  const id = 'f_' + name;
+  const r = document.getElementById(id);
+  const box = document.getElementById(id + '_v');
+  if (!r) return;
+  const isLog = r.dataset.log === '1';
+  r.value = isLog ? Math.log10(v) : v;
+  if (box) box.value = fmtNum(v);
 }
 
 function syncVal(name, id) {
-  const v = parseFloat(document.getElementById(id).value);
+  const r = document.getElementById(id);
+  const isLog = r.dataset.log === '1';
+  let v = parseFloat(r.value);
+  if (isLog) v = Math.pow(10, v);
   document.getElementById(id+'_v').value = fmtNum(v);
   vals[name] = v;
-  updateCmd();
-  updateDerived();
+  updateCmd(); updateDerived(); persist();
 }
 
 function syncSlider(name, id) {
-  let v = parseFloat(document.getElementById(id+'_v').value);
-  if (isNaN(v)) return;
-  document.getElementById(id).value = v;
+  const box = document.getElementById(id+'_v');
+  const r = document.getElementById(id);
+  const p = paramByName(name);
+  let v = parseFloat(box.value);
+  if (isNaN(v) || !p) return;
+  const clamped = Math.min(p.max, Math.max(p.min, v));
+  if (clamped !== v) {
+    box.classList.add('flash');
+    setTimeout(() => box.classList.remove('flash'), 600);
+    v = clamped;
+  }
+  box.value = fmtNum(v);
+  r.value = (r.dataset.log === '1') ? Math.log10(v) : v;
   vals[name] = v;
-  updateCmd();
-  updateDerived();
+  updateCmd(); updateDerived(); persist();
 }
 
-// ── Corona model selector ─────────────────
+// ── Corona model selector (radiogroup) ────
 function buildModels() {
   const grid = document.getElementById('modelGrid');
   grid.innerHTML = '';
+  const testOn = document.getElementById('testRt') && document.getElementById('testRt').checked;
   Object.entries(MODELS).forEach(([key, m]) => {
-    const btn = document.createElement('div');
-    btn.className = 'model-btn' + (key === corona ? ' active' : '');
-    btn.innerHTML = `<div class="name">${m.label}</div><div class="mdesc">${m.desc}</div>`;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.setAttribute('role', 'radio');
+    const isActive = key === corona;
+    btn.setAttribute('aria-checked', isActive ? 'true' : 'false');
+    btn.tabIndex = isActive ? 0 : -1;
+    btn.className = 'model-btn' + (isActive ? ' active' : '');
+    btn.dataset.key = key;
+    if (testOn && key !== 'blackbody') btn.disabled = true;
+    btn.innerHTML = `<span class="check" aria-hidden="true">▸</span>
+      <div class="name">${m.label}</div><div class="mdesc">${m.desc}</div>`;
     btn.onclick = () => selectModel(key);
+    btn.onkeydown = (e) => onModelKey(e, key);
     grid.appendChild(btn);
   });
 }
 
+function onModelKey(e, key) {
+  const keys = Object.keys(MODELS);
+  let i = keys.indexOf(key);
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectModel(key); }
+  else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    e.preventDefault(); const nk = keys[(i + 1) % keys.length]; selectModel(nk); focusModel(nk);
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault(); const nk = keys[(i - 1 + keys.length) % keys.length]; selectModel(nk); focusModel(nk);
+  }
+}
+function focusModel(key) {
+  const el = document.querySelector(`.model-btn[data-key="${key}"]`);
+  if (el && !el.disabled) el.focus();
+}
+
 function selectModel(key) {
   corona = key;
-  // Remove old corona params from vals
   Object.keys(MODELS).forEach(k => MODELS[k].params.forEach(p => delete vals[p.name]));
   buildModels();
   buildCoronaParams();
-  updateCmd();
+  updateCmd(); updateDerived(); persist();
 }
 
 function buildCoronaParams() {
@@ -361,14 +643,14 @@ function buildCoronaParams() {
 
 // ── Derived quantities ────────────────────
 function updateDerived() {
-  const nh = vals.nh || 15, zeta = vals.zeta || 3;
+  const nh = vals.nh ?? 15, zeta = vals.zeta ?? 3;
   const xi = Math.pow(10, zeta);
   const nH = Math.pow(10, nh);
-  const Fx = xi * nH / (4 * Math.PI);
+  const J = xi * nH / Math.pow(4 * Math.PI, 2);
   document.getElementById('derivedBlock').innerHTML = `
-    <div class="item"><div class="dlabel">ξ</div><div class="dval">${xi.toExponential(2)}</div></div>
-    <div class="item"><div class="dlabel">n<sub>H</sub></div><div class="dval">${nH.toExponential(2)}</div></div>
-    <div class="item"><div class="dlabel">F<sub>x</sub></div><div class="dval">${Fx.toExponential(2)}</div></div>
+    <div class="item"><div class="dlabel">ξ [erg cm s⁻¹]</div><div class="dval">${xi.toExponential(2)}</div></div>
+    <div class="item"><div class="dlabel">n<sub>H</sub> [cm⁻³]</div><div class="dval">${nH.toExponential(2)}</div></div>
+    <div class="item" title="J = ξ·n_H/(4π)² — mean intensity that normalises the corona+disk illumination"><div class="dlabel">J [erg cm⁻² s⁻¹]</div><div class="dval">${J.toExponential(2)}</div></div>
   `;
 }
 
@@ -376,7 +658,12 @@ function updateDerived() {
 function toggleTest() {
   const on = document.getElementById('testRt').checked;
   document.getElementById('testParams').style.display = on ? 'block' : 'none';
-  updateCmd();
+  if (on && corona !== 'blackbody') {
+    selectModel('blackbody');
+    showToast('Test mode uses a blackbody seed — corona set to blackbody.', 'info');
+  }
+  buildModels();
+  updateCmd(); persist();
 }
 
 // ── Command builder ───────────────────────
@@ -389,117 +676,112 @@ function updateCmd() {
     const v = vals[p.name] ?? p.default;
     if (v !== DEFAULTS[p.name]) parts.push('-' + p.name + ' ' + fmtNum(v));
   }));
+  if (!document.getElementById('angsca').checked) parts.push('-angsca 0');
   if (document.getElementById('testRt').checked) {
-    parts.push('-test_rt');
+    parts.push('-test_rt compps');
     TEST.forEach(p => {
       const v = vals[p.name] ?? p.default;
-      if (v !== DEFAULTS[p.name]) parts.push('-' + p.name + ' ' + fmtNum(v));
+      parts.push('-' + (p.flag || p.name) + ' ' + fmtNum(v));
     });
   }
-  document.getElementById('cmdText').textContent = parts.join(' ');
+  const cmd = parts.join(' ');
+  document.getElementById('cmdText').textContent = cmd;
+  document.getElementById('barCmd').textContent = '$ ' + cmd;
 }
 
-// ── Actions ───────────────────────────────
+// ── Clipboard / actions ───────────────────
 function clipCopy(text) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard')).catch(() => fallbackCopy(text));
-  } else {
-    fallbackCopy(text);
-  }
+  } else { fallbackCopy(text); }
 }
 function fallbackCopy(text) {
   const ta = document.createElement('textarea');
   ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px';
   document.body.appendChild(ta); ta.select();
-  document.execCommand('copy');
-  document.body.removeChild(ta);
+  document.execCommand('copy'); document.body.removeChild(ta);
   showToast('Copied to clipboard');
 }
-
-function copyCmd() {
-  clipCopy(document.getElementById('cmdText').textContent);
-}
+function copyCmd() { clipCopy(document.getElementById('cmdText').textContent); }
 
 function resetAll() {
-  corona = "{{ default_corona }}";
+  localStorage.removeItem(SKEY);
+  corona = DEFAULT_CORONA;
   vals = {};
-  init();
+  document.getElementById('angsca').checked = true;
+  document.getElementById('testRt').checked = false;
+  buildModels();
+  buildCoronaParams();
+  ['slabParams','diskParams','testParams'].forEach(id => document.getElementById(id).innerHTML = '');
+  SLAB.forEach(p => buildField(p, document.getElementById('slabParams')));
+  DISK.forEach(p => buildField(p, document.getElementById('diskParams')));
+  TEST.forEach(p => buildField(p, document.getElementById('testParams')));
+  toggleTest();
+  updateDerived(); updateCmd(); persist();
   showToast('Reset to defaults');
 }
 
-function showToast(msg) {
+function showToast(msg, type='success') {
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  const glyph = type === 'error' ? '✕' : type === 'info' ? 'ℹ' : '✓';
+  t.className = 'toast ' + type;
+  t.textContent = glyph + '  ' + msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2000);
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ── localStorage persistence ──────────────
+function persist() {
+  try {
+    localStorage.setItem(SKEY, JSON.stringify({
+      corona, vals,
+      angsca: document.getElementById('angsca').checked,
+      testRt: document.getElementById('testRt').checked,
+      queue,
+    }));
+  } catch(e){}
 }
 
 // ── Batch queue ──────────────────────────
 let queue = [];
-
-function getCmd() {
-  return document.getElementById('cmdText').textContent;
-}
-
+function getCmd() { return document.getElementById('cmdText').textContent; }
 function getSnapshot() {
-  return { corona, vals: {...vals}, testRt: document.getElementById('testRt').checked };
+  return { corona, vals: {...vals},
+           testRt: document.getElementById('testRt').checked,
+           angsca: document.getElementById('angsca').checked };
 }
-
 function cmdSummary(cmd) {
-  // Extract key params for display
   const m = cmd.match(/-corona\s+(\S+)/);
   const model = m ? m[1] : '?';
   const rest = cmd.replace('./maindaocl', '').replace(/-corona\s+\S+/, '').trim();
   return { model, rest };
 }
-
 function addToQueue() {
   const cmd = getCmd();
-  const snap = getSnapshot();
-  queue.push({ cmd, snap });
-  renderQueue();
+  if (queue.some(q => q.cmd === cmd)) { showToast('Already in queue', 'info'); return; }
+  queue.push({ cmd, snap: getSnapshot() });
+  renderQueue(); persist();
   showToast(`Added to queue (${queue.length} total)`);
 }
-
-function removeFromQueue(idx) {
-  queue.splice(idx, 1);
-  renderQueue();
-}
-
+function removeFromQueue(idx) { queue.splice(idx, 1); renderQueue(); persist(); }
 function loadFromQueue(idx) {
   const snap = queue[idx].snap;
   corona = snap.corona;
   vals = {...snap.vals};
   document.getElementById('testRt').checked = snap.testRt;
-  toggleTest();
-  // Rebuild UI with snapshot values
+  if (snap.angsca !== undefined) document.getElementById('angsca').checked = snap.angsca;
+  document.getElementById('testParams').style.display = snap.testRt ? 'block' : 'none';
   buildModels();
-  const cp = document.getElementById('coronaParams');
-  cp.innerHTML = '';
-  MODELS[corona].params.forEach(p => {
-    buildField(p, cp);
-    const id = 'f_' + p.name;
-    const v = vals[p.name] ?? p.default;
-    document.getElementById(id).value = v;
-    document.getElementById(id + '_v').value = fmtNum(v);
-  });
+  const cp = document.getElementById('coronaParams'); cp.innerHTML = '';
+  MODELS[corona].params.forEach(p => { buildField(p, cp); setFieldValue(p.name, vals[p.name] ?? p.default); });
   ['slabParams','diskParams','testParams'].forEach(sec => {
-    const el = document.getElementById(sec);
-    el.innerHTML = '';
+    const el = document.getElementById(sec); el.innerHTML = '';
     const list = sec === 'slabParams' ? SLAB : sec === 'diskParams' ? DISK : TEST;
-    list.forEach(p => {
-      buildField(p, el);
-      const id = 'f_' + p.name;
-      const v = vals[p.name] ?? p.default;
-      document.getElementById(id).value = v;
-      document.getElementById(id + '_v').value = fmtNum(v);
-    });
+    list.forEach(p => { buildField(p, el); setFieldValue(p.name, vals[p.name] ?? p.default); });
   });
-  updateDerived();
-  updateCmd();
-  showToast(`Loaded run #${idx + 1}`);
+  updateDerived(); updateCmd(); persist();
+  showToast(`Loaded run #${idx + 1}`, 'info');
 }
-
 function renderQueue() {
   const body = document.getElementById('queueBody');
   const count = document.getElementById('queueCount');
@@ -518,55 +800,59 @@ function renderQueue() {
       <td class="q-model">${s.model}</td>
       <td class="q-params">${s.rest}</td>
       <td class="q-actions">
-        <button class="q-btn q-btn-load" onclick="loadFromQueue(${i})" title="Load into editor">↩</button>
-        <button class="q-btn q-btn-del" onclick="removeFromQueue(${i})" title="Remove">✕</button>
+        <button class="q-btn q-btn-load" onclick="loadFromQueue(${i})" aria-label="Load run ${i+1} into editor">↩ Load</button>
+        <button class="q-btn q-btn-del" onclick="removeFromQueue(${i})" aria-label="Remove run ${i+1}">✕ Remove</button>
       </td>
     </tr>`;
   });
   html += '</tbody></table>';
   body.innerHTML = html;
 }
-
 function copyAllCmds() {
-  if (queue.length === 0) { showToast('Queue is empty'); return; }
+  if (queue.length === 0) { showToast('Queue is empty', 'error'); return; }
   clipCopy(queue.map(q => q.cmd).join('\n'));
 }
-
 function exportScript() {
-  if (queue.length === 0) { showToast('Queue is empty'); return; }
-  let script = '#!/bin/bash\n# DAOv2.0 batch run — ' + new Date().toISOString().slice(0,10) + '\nset -e\n\n';
+  if (queue.length === 0) { showToast('Queue is empty', 'error'); return; }
+  let script = '#!/bin/bash\n# DAO batch run — ' + new Date().toISOString().slice(0,10) + '\nset -e\n\n';
   script += '# Set your runtime environment before running, e.g.:\n';
   script += '# export HEADAS=/path/to/heasoft/arch\n';
   script += '# source $HEADAS/headas-init.sh\n\n';
-  queue.forEach((q, i) => {
-    script += `echo "=== Run ${i+1}/${queue.length} ==="\n${q.cmd}\n\n`;
-  });
+  queue.forEach((q, i) => { script += `echo "=== Run ${i+1}/${queue.length} ==="\n${q.cmd}\n\n`; });
   const blob = new Blob([script], {type: 'text/x-shellscript'});
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'dao_batch.sh';
-  a.click();
+  a.href = URL.createObjectURL(blob); a.download = 'dao_batch.sh'; a.click();
   URL.revokeObjectURL(a.href);
   showToast('Exported dao_batch.sh');
 }
-
-function clearQueue() {
-  queue = [];
-  renderQueue();
-  showToast('Queue cleared');
-}
+function clearQueue() { queue = []; renderQueue(); persist(); showToast('Queue cleared', 'info'); }
 
 // ── Init ──────────────────────────────────
+function rehydrate() {
+  try {
+    const raw = localStorage.getItem(SKEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    if (s.corona && MODELS[s.corona]) corona = s.corona;
+    if (s.vals) vals = {...s.vals};
+    if (Array.isArray(s.queue)) queue = s.queue;
+    document.getElementById('angsca').checked = s.angsca !== false;
+    document.getElementById('testRt').checked = !!s.testRt;
+    return true;
+  } catch(e){ return false; }
+}
+
 function init() {
+  const restored = rehydrate();
   buildModels();
-  buildCoronaParams();
+  const cp = document.getElementById('coronaParams'); cp.innerHTML = '';
+  MODELS[corona].params.forEach(p => { buildField(p, cp); if (restored) setFieldValue(p.name, vals[p.name] ?? p.default); });
   ['slabParams','diskParams','testParams'].forEach(id => document.getElementById(id).innerHTML = '');
-  SLAB.forEach(p => buildField(p, document.getElementById('slabParams')));
-  DISK.forEach(p => buildField(p, document.getElementById('diskParams')));
-  TEST.forEach(p => buildField(p, document.getElementById('testParams')));
-  updateDerived();
-  updateCmd();
-  renderQueue();
+  SLAB.forEach(p => { buildField(p, document.getElementById('slabParams')); if (restored) setFieldValue(p.name, vals[p.name] ?? p.default); });
+  DISK.forEach(p => { buildField(p, document.getElementById('diskParams')); if (restored) setFieldValue(p.name, vals[p.name] ?? p.default); });
+  TEST.forEach(p => { buildField(p, document.getElementById('testParams')); if (restored) setFieldValue(p.name, vals[p.name] ?? p.default); });
+  document.getElementById('testParams').style.display = document.getElementById('testRt').checked ? 'block' : 'none';
+  updateDerived(); updateCmd(); renderQueue();
 }
 
 init();
@@ -581,13 +867,14 @@ init();
 def index():
     return render_template_string(
         HTML,
+        base_css=BASE_CSS,
+        nav=TOP_NAV("config"),
+        footer=FOOTER,
         models_json=json.dumps(CORONA_MODELS),
         slab_json=json.dumps(SLAB_PARAMS),
         disk_json=json.dumps(DISK_PARAMS),
         default_corona="nthcomp",
     )
-
-
 
 
 # ─── Docs page ──────────────────────────────────────────────────
@@ -599,110 +886,66 @@ DOCS_HTML = r"""
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<title>DAOv2.0 — Parameter Reference</title>
+<title>DAO — Parameter Reference</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0a0c10; --bg2: #12151c; --card: #161a24; --border: #232838;
-    --accent: #f0a030; --accent2: #e05828; --cyan: #38bdf8;
-    --text: #c8cdd8; --dim: #6b7280; --white: #eef0f4;
-  }
-  body {
-    font-family: 'Inter', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
-    background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px;
-  }
-  body::before {
-    content:''; position:fixed; inset:0; z-index:0;
-    background: url('/image/bg_blackhole.png') center top / cover no-repeat fixed;
-    opacity: 0.15; pointer-events: none;
-  }
-  .wrap { position:relative; z-index:1; max-width:900px; margin:0 auto; padding:30px 20px; }
-
-  .back {
-    display:inline-block; color:var(--accent); text-decoration:none; font-size:.82rem;
-    margin-bottom:20px; padding:6px 14px; border:1px solid var(--border); border-radius:6px;
-    transition: border-color .2s;
-  }
-  .back:hover { border-color: var(--accent); }
-
-  h1 {
-    font-size:1.6rem; font-weight:700; letter-spacing:.12em;
-    background: linear-gradient(90deg, #f0a030, #e05828);
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-    margin-bottom:6px;
-  }
-  .subtitle { font-size:.82rem; color:var(--dim); margin-bottom:30px; }
-
-  .section { margin-bottom: 36px; }
+{{ base_css | safe }}
+  /* docs reading column — deliberately narrower (documented exception) */
+  main.wrapper { max-width:820px; }
+  .section { margin-bottom:var(--sp-6); }
   .section h2 {
-    font-size:.9rem; text-transform:uppercase; letter-spacing:.1em;
-    color:var(--accent); margin-bottom:14px; padding-bottom:6px;
-    border-bottom:1px solid var(--border);
+    font-size:var(--fs-h2); text-transform:uppercase; letter-spacing:.14em;
+    color:var(--accent); margin-bottom:var(--sp-4); padding-bottom:6px;
+    border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px;
   }
-
+  .section h2 .tick { width:2px; height:14px; background:var(--accent); border-radius:1px; }
   table { width:100%; border-collapse:collapse; margin-bottom:8px; }
-  th {
-    text-align:left; font-size:.7rem; text-transform:uppercase; letter-spacing:.08em;
-    color:var(--dim); padding:8px 12px; border-bottom:1px solid var(--border);
-  }
-  td { padding:10px 12px; border-bottom:1px solid #1a1e28; font-size:.78rem; vertical-align:top; }
-  tr:hover td { background: rgba(240,160,48,.03); }
-  .p-flag { color:var(--cyan); font-weight:600; white-space:nowrap; }
-  .p-type { color:var(--dim); font-size:.7rem; }
+  th { text-align:left; font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.08em;
+    color:var(--dim); padding:8px 12px; border-bottom:1px solid var(--border); }
+  td { padding:10px 12px; border-bottom:1px solid #1a1e28; font-size:var(--fs-base); vertical-align:top; }
+  tr:hover td { background:var(--accent-sft); }
+  .p-flag { color:var(--cyan); font-weight:600; white-space:nowrap; font-family:var(--mono); }
+  .p-type { color:var(--dim); font-size:var(--fs-xs); }
   .p-default { color:var(--white); font-weight:500; }
   .p-desc { color:var(--text); line-height:1.5; }
-  .p-note { color:var(--dim); font-size:.7rem; font-style:italic; }
-
-  .formula-box {
-    background:var(--bg2); border:1px solid var(--border); border-radius:8px;
-    padding:14px 18px; margin:10px 0 16px; font-size:.85rem; color:var(--white);
-    line-height:1.8;
-  }
-  .formula-box .flabel { color:var(--cyan); font-weight:600; margin-right:8px; }
-
-  .note-box {
-    background: rgba(240,160,48,.06); border-left:3px solid var(--accent);
-    padding:12px 16px; border-radius:0 8px 8px 0; margin:14px 0;
-    font-size:.78rem; color:var(--text); line-height:1.6;
-  }
+  .p-note { color:var(--dim); font-size:var(--fs-xs); font-style:italic; }
+  .formula-box { padding:14px 18px; margin:10px 0 16px; font-size:.9rem; color:var(--white); line-height:1.8; }
+  .formula-box .flabel { color:var(--cyan); font-weight:600; margin-right:8px; font-family:var(--mono); }
+  .note-box { background:var(--accent-sft); border-left:3px solid var(--accent);
+    padding:12px 16px; border-radius:0 var(--r-md) var(--r-md) 0; margin:14px 0;
+    font-size:var(--fs-sm); color:var(--text); line-height:1.6; box-shadow:none; border-top:0; border-right:0; border-bottom:0; }
   .note-box strong { color:var(--accent); }
-
-  .tag {
-    display:inline-block; font-size:.6rem; padding:2px 6px; border-radius:4px;
-    font-weight:600; letter-spacing:.04em; vertical-align:middle; margin-left:4px;
-  }
-  .tag-required { background:rgba(239,68,68,.15); color:#ef4444; }
+  .tag { display:inline-block; font-size:.6rem; padding:2px 6px; border-radius:4px;
+    font-weight:600; letter-spacing:.04em; vertical-align:middle; margin-left:4px; }
+  .tag-required { background:rgba(239,83,80,.15); color:var(--red); }
   .tag-optional { background:rgba(56,189,248,.1); color:var(--cyan); }
-  .tag-model { background:rgba(240,160,48,.12); color:var(--accent); }
-
-  .footer { text-align:center; padding:30px 0 12px; font-size:.65rem; color:#333; }
+  .tag-model { background:var(--accent-sft); color:var(--accent); }
+  p.lead { font-size:var(--fs-base); color:var(--text); margin-bottom:14px; line-height:1.6; }
 </style>
 </head>
 <body>
-<div class="wrap">
+{{ nav | safe }}
+<main id="main" class="wrapper">
 
-  <a class="back" href="/">← Back to Configurator</a>
-
-  <h1>PARAMETER REFERENCE</h1>
-  <div class="subtitle">DAOv2.0 — X-ray Reflection Spectroscopy Model &nbsp;·&nbsp; Yimin Huang</div>
+  <div class="page-head">
+    <h1>Parameter Reference</h1>
+    <div class="sub">DAO — X-ray Reflection Spectroscopy Model &nbsp;·&nbsp; Yimin Huang &nbsp;·&nbsp; huangym23@m.fudan.edu.cn</div>
+  </div>
 
   <!-- ── Corona Models ────────────────────── -->
-  <div class="section">
-    <h2>Corona Spectrum Models</h2>
-
-    <p style="font-size:.78rem;color:var(--text);margin-bottom:14px;line-height:1.6;">
+  <div class="section" id="corona">
+    <h2><span class="tick" aria-hidden="true"></span>Corona Spectrum Models</h2>
+    <p class="lead">
       The corona model defines the illuminating X-ray continuum incident on the slab.
       Select with <span class="p-flag">-corona &lt;model&gt;</span>.
       Each model requires specific parameters listed below.
     </p>
-
     <div class="formula-box">
       <div><span class="flabel">powerlaw</span>
-        F(E) ∝ E<sup>−Γ</sup> · exp(−E<sub>lo</sub> / E)</div>
+        N(E) ∝ E<sup>−Γ</sup> · exp(−E<sub>lo</sub> / E)  [photons cm<sup>−2</sup> s<sup>−1</sup> keV<sup>−1</sup>]</div>
       <div><span class="flabel">cutoffpl</span>
-        F(E) ∝ E<sup>−Γ</sup> · exp(−E / E<sub>cut</sub>) · exp(−E<sub>lo</sub> / E)</div>
+        N(E) ∝ E<sup>−Γ</sup> · exp(−E / E<sub>cut</sub>) · exp(−E<sub>lo</sub> / E)  [photons cm<sup>−2</sup> s<sup>−1</sup> keV<sup>−1</sup>]</div>
       <div><span class="flabel">nthcomp</span>
-        Thermal Comptonisation — Zdziarski, Johnson & Magdziarz (1996).
+        Thermal Comptonisation — Zdziarski, Johnson &amp; Magdziarz (1996).
         Seed photons at kT<sub>bb</sub> Comptonised by electrons at kT<sub>e</sub>.</div>
       <div><span class="flabel">comptt</span>
         Comptonisation model — Titarchuk (1994).
@@ -710,7 +953,6 @@ DOCS_HTML = r"""
       <div><span class="flabel">blackbody</span>
         B(E) = (2E<sup>3</sup> / h<sup>2</sup>c<sup>2</sup>) · 1 / [exp(E / kT) − 1]</div>
     </div>
-
     <table>
       <tr><th>Flag</th><th>Type</th><th>Default</th><th>Models</th><th>Description</th></tr>
       <tr>
@@ -722,7 +964,7 @@ DOCS_HTML = r"""
       <tr>
         <td class="p-flag">-Gamma</td><td class="p-type">float</td><td class="p-default">2.0</td>
         <td><span class="tag tag-model">powerlaw</span><span class="tag tag-model">cutoffpl</span><span class="tag tag-model">nthcomp</span></td>
-        <td class="p-desc">Photon index Γ of the power-law continuum. Typical range: 1.4–3.0 for AGN.</td>
+        <td class="p-desc">Photon index Γ (photon-number spectrum, N(E) ∝ E<sup>−Γ</sup>). Typical range: 1.4–3.0 for AGN.</td>
       </tr>
       <tr>
         <td class="p-flag">-Ecut</td><td class="p-type">float</td><td class="p-default">300</td>
@@ -738,12 +980,12 @@ DOCS_HTML = r"""
           avoid the unphysical infrared divergence of a bare power law.</td>
       </tr>
       <tr>
-        <td class="p-flag">-kT_e</td><td class="p-type">float</td><td class="p-default">60</td>
+        <td class="p-flag">-kT_e</td><td class="p-type">float</td><td class="p-default">60 (nthcomp) / 50 (comptt)</td>
         <td><span class="tag tag-model">nthcomp</span><span class="tag tag-model">comptt</span></td>
         <td class="p-desc">Electron / plasma temperature [keV] of the Comptonising corona.</td>
       </tr>
       <tr>
-        <td class="p-flag">-kT_bb</td><td class="p-type">float</td><td class="p-default">0.1</td>
+        <td class="p-flag">-kT_bb</td><td class="p-type">float</td><td class="p-default">0.1 / 0.05</td>
         <td><span class="tag tag-model">nthcomp</span><span class="tag tag-model">comptt</span><span class="tag tag-model">blackbody</span></td>
         <td class="p-desc">Seed photon / blackbody temperature [keV]. For nthcomp and comptt this is the
           soft photon field entering the corona; for blackbody it is the emission temperature.</td>
@@ -757,14 +999,12 @@ DOCS_HTML = r"""
   </div>
 
   <!-- ── Slab Physics ─────────────────────── -->
-  <div class="section">
-    <h2>Slab Physics</h2>
-
-    <p style="font-size:.78rem;color:var(--text);margin-bottom:14px;line-height:1.6;">
+  <div class="section" id="slab">
+    <h2><span class="tick" aria-hidden="true"></span>Slab Physics</h2>
+    <p class="lead">
       These parameters define the physical conditions of the reflecting slab
       (the accretion disk atmosphere).
     </p>
-
     <table>
       <tr><th>Flag</th><th>Type</th><th>Default</th><th>Description</th></tr>
       <tr>
@@ -775,16 +1015,15 @@ DOCS_HTML = r"""
       </tr>
       <tr>
         <td class="p-flag">-zeta</td><td class="p-type">float</td><td class="p-default">3.0</td>
-        <td class="p-desc">Ionisation parameter exponent: ξ = 10<sup>ζ</sup> erg cm s<sup>−1</sup>.
+        <td class="p-desc">Ionisation parameter exponent. ζ = log<sub>10</sub>(ξ); ξ = 10<sup>ζ</sup> erg cm s<sup>−1</sup>.
           Controls the ionisation state of the slab. Low ξ → neutral (cold reflection);
           high ξ → highly ionised (Compton-dominated).
-          <div class="p-note">ξ = 4π F<sub>x</sub> / n<sub>H</sub> (Tarter+ 1969 definition).</div></td>
+          <div class="p-note">ξ = (4π)² J / n<sub>H</sub> (Tarter+ 1969 ionisation parameter).</div></td>
       </tr>
       <tr>
-        <td class="p-flag">-frac</td><td class="p-type">float</td><td class="p-default">100</td>
-        <td class="p-desc">Flux ratio f = F<sub>corona</sub> / F<sub>disk</sub>. Controls relative
-          normalisation of the illuminating corona vs the thermal disk emission.
-          If frac ≤ 0, no disk illumination (corona only, there are some problems now, please keep frac>0).</td>
+        <td class="p-flag">-frac</td><td class="p-type">float</td><td class="p-default">-1</td>
+        <td class="p-desc">frac = F<sub>corona</sub> / F<sub>disk</sub> sets the corona-to-disk illumination ratio.
+          frac ≤ 0 (the default, −1) illuminates with the corona only — no thermal disk component.</td>
       </tr>
       <tr>
         <td class="p-flag">-incidence</td><td class="p-type">float</td><td class="p-default">0.7071</td>
@@ -798,93 +1037,162 @@ DOCS_HTML = r"""
           Values &gt; 1 enhance the Fe K complex (6.4–6.97 keV); values &lt; 1 suppress it.</td>
       </tr>
     </table>
-
     <div class="note-box">
       <strong>Derived quantities:</strong><br>
-      ξ = 10<sup>ζ</sup>, &nbsp;
-      n<sub>H</sub> = 10<sup>nh</sup>, &nbsp;
-      F<sub>x</sub> = ξ · n<sub>H</sub> / 4π &nbsp;
-      (the illuminating flux that normalises the corona + disk spectra).
+      ξ = 10<sup>ζ</sup>, &nbsp; n<sub>H</sub> = 10<sup>nh</sup>, &nbsp;
+      J = ξ · n<sub>H</sub> / (4π)² &nbsp;
+      (the mean intensity that normalises the corona + disk spectra).
     </div>
   </div>
 
   <!-- ── Accretion Disk ───────────────────── -->
-  <div class="section">
-    <h2>Accretion Disk</h2>
-
+  <div class="section" id="disk">
+    <h2><span class="tick" aria-hidden="true"></span>Accretion Disk</h2>
     <table>
       <tr><th>Flag</th><th>Type</th><th>Default</th><th>Description</th></tr>
       <tr>
         <td class="p-flag">-kT_disk</td><td class="p-type">float</td><td class="p-default">0.35</td>
-        <td class="p-desc">Disk blackbody temperature [eV]. This sets the peak of the thermal
-          multi-colour disk emission that illuminates the slab from below.
-          Typical: 0.1–1.0 eV for AGN; higher for X-ray binaries.</td>
+        <td class="p-desc">Effective temperature of the disk blackbody that illuminates the slab from below [keV].</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ── Solver / Kernel ──────────────────── -->
+  <div class="section" id="solver">
+    <h2><span class="tick" aria-hidden="true"></span>Solver / Kernel</h2>
+    <table>
+      <tr><th>Flag</th><th>Type</th><th>Default</th><th>Description</th></tr>
+      <tr>
+        <td class="p-flag">-angsca</td><td class="p-type">bool</td><td class="p-default">true</td>
+        <td class="p-desc">Compton scattering kernel: <code>true</code>/<code>1</code>/<code>yes</code> →
+          angle-dependent kernel (<code>KernelCache</code>); <code>false</code>/<code>0</code>/<code>no</code> →
+          angle-averaged kernel (<code>avgKernelCache</code>).</td>
       </tr>
     </table>
   </div>
 
   <!-- ── Test Mode ────────────────────────── -->
-  <div class="section">
-    <h2>Test Mode</h2>
-
-    <p style="font-size:.78rem;color:var(--text);margin-bottom:14px;line-height:1.6;">
-      Test mode bypasses Cloudy and uses a synthetic uniform-temperature slab with
-      analytic opacities. Useful for validating the RT solver and Compton kernel.
+  <div class="section" id="test">
+    <h2><span class="tick" aria-hidden="true"></span>Test Mode</h2>
+    <p class="lead">
+      Test mode bypasses Cloudy and uses a synthetic slab with analytic opacities.
+      Useful for validating the RT solver and Compton kernel. The only mode token is
+      <code>compps</code> — an isothermal pure-scattering slab illuminated by a bottom
+      blackbody seed, benchmarked against Xspec <code>compPS</code> (Poutanen &amp; Svensson 1996).
     </p>
-
     <table>
       <tr><th>Flag</th><th>Type</th><th>Default</th><th>Description</th></tr>
       <tr>
-        <td class="p-flag">-test_rt</td><td class="p-type">flag</td><td class="p-default">off</td>
-        <td class="p-desc">Enable test mode. No Cloudy calls — uses a uniform slab with
-          temperature T<sub>test</sub> and Thomson opacity.</td>
+        <td class="p-flag">-test_rt &lt;mode&gt;</td><td class="p-type">flag + string</td><td class="p-default">off</td>
+        <td class="p-desc">Enable test mode (no Cloudy calls). The only mode token is
+          <code>compps</code> (compPS benchmark slab).
+          Pair with a <code>blackbody</code> corona for the seed.</td>
       </tr>
       <tr>
-        <td class="p-flag">-T_test</td><td class="p-type">float</td><td class="p-default">1e8</td>
-        <td class="p-desc">Uniform slab temperature [K] in test mode. Controls the Compton
-          scattering redistribution width (Δε/ε ∼ 4kT/m<sub>e</sub>c<sup>2</sup>).</td>
+        <td class="p-flag">-kT_e</td><td class="p-type">float</td><td class="p-default">60</td>
+        <td class="p-desc">Slab uniform temperature [keV] in <code>compps</code> test mode (re-uses the
+          corona <code>-kT_e</code> flag). Sets the mean fractional energy gain per scattering,
+          ≈ 4kT/m<sub>e</sub>c<sup>2</sup> (thermal Doppler width ∝ √(2kT/m<sub>e</sub>c<sup>2</sup>)).</td>
+      </tr>
+      <tr>
+        <td class="p-flag">-tau</td><td class="p-type">float</td><td class="p-default">0.5</td>
+        <td class="p-desc">Slab vertical Thomson optical depth in <code>compps</code> test mode
+          (matches the <code>compPS</code> <code>tau</code> parameter).</td>
       </tr>
     </table>
   </div>
 
   <!-- ── Execution flow ───────────────────── -->
   <div class="section">
-    <h2>Execution Flow</h2>
-
-    <div class="note-box" style="background:rgba(56,189,248,.05);border-left-color:var(--cyan);">
+    <h2><span class="tick" aria-hidden="true"></span>Execution Flow</h2>
+    <div class="note-box" style="background:rgba(56,189,248,.06);border-left-color:var(--cyan);">
       <strong style="color:var(--cyan);">Production mode:</strong><br>
       1. Parse CLI → <code>ModelParams</code><br>
       2. Initialise grids (angle, depth, energy)<br>
       3. Compute corona + disk illumination spectra<br>
       4. Precompute Compton kernel + scattering cross-sections (cached on disk)<br>
       5. Outer loop: Cloudy depth sweep → extract j<sub>ν</sub>, κ<sub>abs</sub>, κ<sub>sct</sub> → RT solve → update J, ξ, T → check convergence<br>
-      6. Save final spectra to <code>data/</code>
+      6. Save results to <code>results/&lt;hash&gt;/</code> each iteration
     </div>
-
-    <div class="note-box" style="background:rgba(56,189,248,.05);border-left-color:var(--cyan);">
-      <strong style="color:var(--cyan);">Test mode:</strong><br>
+    <div class="note-box" style="background:rgba(56,189,248,.06);border-left-color:var(--cyan);">
+      <strong style="color:var(--cyan);">Test mode (compps):</strong><br>
       1. Parse CLI → <code>ModelParams</code><br>
       2. Initialise grids with synthetic 1000-bin log-spaced energy grid<br>
-      3. Compute illumination<br>
-      4. Single RT solve with uniform temperature + Thomson opacity<br>
-      5. Save results
+      3. Compute bottom blackbody seed illumination<br>
+      4. Single RT solve on the isothermal pure-scattering slab (T = kT<sub>e</sub>)<br>
+      5. Save results to <code>results/&lt;hash&gt;/</code>
     </div>
   </div>
 
   <!-- ── Example Commands ─────────────────── -->
   <div class="section">
-    <h2>Example Commands</h2>
-
+    <h2><span class="tick" aria-hidden="true"></span>Example Commands</h2>
     <div class="formula-box" style="font-size:.78rem;line-height:2;">
       <div><span class="p-flag">./maindaocl</span> -corona cutoffpl -Gamma 2.0 -Ecut 300 -nh 16 -zeta 4 -frac 0.5</div>
       <div><span class="p-flag">./maindaocl</span> -corona nthcomp -Gamma 2.0 -kT_e 100 -kT_bb 0.05 -nh 15 -zeta 3</div>
       <div><span class="p-flag">./maindaocl</span> -corona comptt -kT_e 50 -kT_bb 0.05 -taup 1.0 -Afe 3.0</div>
-      <div><span class="p-flag">./maindaocl</span> -test_rt -corona nthcomp -Gamma 2.0 -kT_e 100 -kT_bb 0.05</div>
+      <div><span class="p-flag">./maindaocl</span> -test_rt compps -corona blackbody -kT_e 60 -kT_bb 0.1 -tau 0.5</div>
     </div>
   </div>
 
-  <div class="footer">DAOv2.0 &nbsp;·&nbsp; Yimin Huang &nbsp;·&nbsp; X-ray reflection model</div>
-</div>
+  <!-- ── References & Citation ────────────── -->
+  <div class="section" id="references">
+    <h2><span class="tick" aria-hidden="true"></span>References &amp; Citation</h2>
+    <p style="font-size:.82rem;color:var(--text);margin-bottom:14px;line-height:1.7;">
+      If you use DAO in published work, please cite the DAO paper together with the methods and
+      back-ends it is built on:
+    </p>
+    <table>
+      <tr><th>Component</th><th>Reference</th></tr>
+      <tr><td class="p-desc">Exact Compton redistribution kernel</td>
+          <td class="p-desc">Madej, Różańska, Majczyna &amp; Należyta 2017, MNRAS, 469, 2032 ·
+            <a href="https://ui.adsabs.harvard.edu/abs/2017MNRAS.469.2032M" target="_blank" rel="noopener">ADS</a></td></tr>
+      <tr><td class="p-desc">Compton cross section &amp; <code>compPS</code> benchmark</td>
+          <td class="p-desc">Poutanen &amp; Svensson 1996, ApJ, 470, 249 ·
+            <a href="https://ui.adsabs.harvard.edu/abs/1996ApJ...470..249P" target="_blank" rel="noopener">ADS</a></td></tr>
+      <tr><td class="p-desc">Atomic-physics back-end (Cloudy C25)</td>
+          <td class="p-desc">Gunasekera et al. 2025, arXiv:2508.01102 ·
+            <a href="https://ui.adsabs.harvard.edu/abs/2025arXiv250801102G" target="_blank" rel="noopener">ADS</a></td></tr>
+      <tr><td class="p-desc">XSPEC models &amp; HEASoft</td>
+          <td class="p-desc">Arnaud 1996, ASPC, 101, 17
+            (<a href="https://ui.adsabs.harvard.edu/abs/1996ASPC..101...17A" target="_blank" rel="noopener">ADS</a>) ·
+            HEASARC 2014, HEASoft, ascl:1408.004
+            (<a href="https://ui.adsabs.harvard.edu/abs/2014ascl.soft08004N" target="_blank" rel="noopener">ADS</a>)</td></tr>
+      <tr><td class="p-desc">Corona models — nthcomp / comptt</td>
+          <td class="p-desc">Zdziarski, Johnson &amp; Magdziarz 1996, MNRAS, 283, 193
+            (<a href="https://ui.adsabs.harvard.edu/abs/1996MNRAS.283..193Z" target="_blank" rel="noopener">ADS</a>) ·
+            Titarchuk 1994, ApJ, 434, 570
+            (<a href="https://ui.adsabs.harvard.edu/abs/1994ApJ...434..570T" target="_blank" rel="noopener">ADS</a>)</td></tr>
+      <tr><td class="p-desc">Ionisation parameter ξ</td>
+          <td class="p-desc">Tarter, Tucker &amp; Salpeter 1969, ApJ, 156, 943
+            (<a href="https://ui.adsabs.harvard.edu/abs/1969ApJ...156..943T" target="_blank" rel="noopener">ADS</a>)</td></tr>
+      <tr><td class="p-desc">RT solver — Bézier short characteristics</td>
+          <td class="p-desc">Auer 2003
+            (<a href="https://ui.adsabs.harvard.edu/abs/2003ASPC..288....3A" target="_blank" rel="noopener">ADS</a>) ·
+            de la Cruz Rodríguez &amp; Piskunov 2013
+            (<a href="https://ui.adsabs.harvard.edu/abs/2013ApJ...764...33D" target="_blank" rel="noopener">ADS</a>) ·
+            Suleimanov, Poutanen &amp; Werner 2012
+            (<a href="https://ui.adsabs.harvard.edu/abs/2012A%26A...545A.120S" target="_blank" rel="noopener">ADS</a>) ·
+            Hubeny &amp; Mihalas 2015 §12.4
+            (<a href="https://ui.adsabs.harvard.edu/abs/2014tsa..book.....H" target="_blank" rel="noopener">ADS</a>)</td></tr>
+    </table>
+  </div>
+
+  <!-- ── License ──────────────────────────── -->
+  <div class="section" id="license">
+    <h2><span class="tick" aria-hidden="true"></span>License</h2>
+    <p style="font-size:.82rem;color:var(--text);line-height:1.7;">
+      DAO source code is released under the <strong>MIT License</strong> (see the repository
+      <code>LICENSE</code> file). It <em>depends on, but does not bundle,</em> third-party software
+      that carries its own separate license, obtained independently:
+      <strong>Cloudy</strong> (<a href="https://opensource.org/licenses/Zlib" target="_blank" rel="noopener">zlib license</a>),
+      <strong>HEASoft / XSPEC</strong> (NASA HEASARC), and a C++ port of Jerzy Madej's publicly
+      available Compton-kernel Fortran code. See <code>README</code> for the full attribution.
+    </p>
+  </div>
+
+</main>
+{{ footer | safe }}
 </body>
 </html>
 """
@@ -892,7 +1200,7 @@ DOCS_HTML = r"""
 
 @app.route("/docs")
 def docs():
-    return render_template_string(DOCS_HTML)
+    return render_template_string(DOCS_HTML, base_css=BASE_CSS, nav=TOP_NAV("docs"), footer=FOOTER)
 
 
 # ─── Plots page ─────────────────────────────────────────────────
@@ -901,27 +1209,40 @@ import re
 
 @app.route("/api/runs")
 def api_runs():
-    """Scan results/<hash>/ directories, read params.json from each."""
+    """Scan results/<hash>/ directories, read params.json from each.
+
+    Directories are returned newest-first (by mtime); each run carries an
+    `mtime` field so the client can show a timestamp.
+    """
     results_dir = os.path.join(WORK_DIR, "results")
     runs = []
     if os.path.isdir(results_dir):
-        for name in sorted(os.listdir(results_dir)):
+        entries = []
+        for name in os.listdir(results_dir):
             run_path = os.path.join(results_dir, name)
             pj = os.path.join(run_path, "params.json")
             if os.path.isdir(run_path) and os.path.exists(pj):
                 try:
-                    with open(pj) as f:
-                        meta = json.load(f)
-                except Exception:
-                    meta = {}
-                # find available iterations
-                iters = sorted(set(
-                    int(mm.group(1))
-                    for fn in os.listdir(run_path)
-                    for mm in [re.search(r"iter(\d+)", fn)]
-                    if mm
-                ))
-                runs.append({"hash": name, "iters": iters, "meta": meta})
+                    mt = os.path.getmtime(run_path)
+                except OSError:
+                    mt = 0
+                entries.append((mt, name, run_path, pj))
+        # newest first
+        entries.sort(key=lambda e: e[0], reverse=True)
+        for mt, name, run_path, pj in entries:
+            try:
+                with open(pj) as f:
+                    meta = json.load(f)
+            except Exception:
+                meta = {}
+            # find available iterations
+            iters = sorted(set(
+                int(mm.group(1))
+                for fn in os.listdir(run_path)
+                for mm in [re.search(r"iter(\d+)", fn)]
+                if mm
+            ))
+            runs.append({"hash": name, "iters": iters, "meta": meta, "mtime": mt})
     return jsonify(runs=runs)
 
 
@@ -1176,166 +1497,126 @@ PLOTS_HTML = r"""
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<title>DAOv2.0 — Results Viewer</title>
+<title>DAO — Results Viewer</title>
 <script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0a0c10; --bg2: #12151c; --card: #161a24; --border: #232838;
-    --accent: #f0a030; --accent2: #e05828; --cyan: #38bdf8;
-    --text: #c8cdd8; --dim: #6b7280; --white: #eef0f4;
-    --green: #22c55e;
-  }
-  body {
-    font-family: 'Inter', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
-    background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px;
-  }
-  body::before {
-    content:''; position:fixed; inset:0; z-index:0;
-    background: url('/image/bg_blackhole.png') center top / cover no-repeat fixed;
-    opacity: 0.1; pointer-events: none;
-  }
-  .wrap { position:relative; z-index:1; max-width:1200px; margin:0 auto; padding:20px; }
-
-  .top-bar {
-    display:flex; align-items:center; gap:16px; margin-bottom:20px; flex-wrap:wrap;
-  }
-  .back {
-    color:var(--accent); text-decoration:none; font-size:.82rem;
-    padding:6px 14px; border:1px solid var(--border); border-radius:6px;
-  }
-  .back:hover { border-color: var(--accent); }
-  .top-bar h1 {
-    font-size:1.3rem; font-weight:700; letter-spacing:.1em;
-    background: linear-gradient(90deg, #f0a030, #e05828);
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-  }
-
-  .controls {
-    display:flex; gap:12px; align-items:center; flex-wrap:wrap;
-    margin-bottom:20px;
-  }
-  .controls label { font-size:.78rem; color:var(--dim); }
-  .controls select {
-    background:var(--bg2); color:var(--white); border:1px solid var(--border);
-    border-radius:6px; padding:6px 12px; font-family:inherit; font-size:.8rem;
-    outline:none; min-width:180px;
-  }
+{{ base_css | safe }}
+  main.wrapper { max-width:1200px; }
+  .controls { display:flex; gap:var(--sp-4); align-items:center; flex-wrap:wrap; margin-bottom:var(--sp-5); }
+  .controls label { font-size:var(--fs-sm); color:var(--dim); }
+  .controls select { background:var(--bg2); color:var(--white); border:1px solid var(--border);
+    border-radius:var(--r-sm); padding:7px 12px; font-family:inherit; font-size:var(--fs-sm); outline:none; min-width:220px; }
   .controls select:focus { border-color:var(--accent); }
-
-  .params-box {
-    background:var(--card); border:1px solid var(--border); border-radius:8px;
-    padding:12px 16px; margin-bottom:20px; font-size:.75rem; color:var(--text);
-    line-height:1.8;
-  }
+  .params-box { padding:12px 16px; margin-bottom:var(--sp-5); font-size:var(--fs-xs); color:var(--text); line-height:1.8; }
   .params-box .pk { color:var(--cyan); }
   .params-box .pv { color:var(--white); font-weight:600; }
-
-  .plot-card {
-    background:var(--card); border:1px solid var(--border); border-radius:10px;
-    padding:16px; margin-bottom:20px;
-  }
-  .plot-card h2 {
-    font-size:.82rem; text-transform:uppercase; letter-spacing:.1em;
-    color:var(--accent); margin-bottom:10px;
-  }
+  .plot-card { padding:16px; margin-bottom:var(--sp-5); }
+  .plot-caption { font-size:var(--fs-xs); color:var(--dim); margin-top:8px; line-height:1.5; }
   .plot-area { width:100%; height:480px; }
-
-  .status {
-    text-align:center; padding:40px; color:var(--dim); font-size:.85rem;
-  }
-
-  .footer { text-align:center; padding:20px 0 10px; font-size:.65rem; color:#333; }
+  @media (max-width:520px){ .plot-area { height:min(60vh,480px); } }
+  .status { text-align:center; padding:40px; color:var(--dim); font-size:var(--fs-sm); }
 </style>
 </head>
 <body>
-<div class="wrap">
+{{ nav | safe }}
+<main id="main" class="wrapper">
 
-  <div class="top-bar">
-    <a class="back" href="/">← Configurator</a>
-    <h1>RESULTS VIEWER</h1>
-  </div>
+  <div class="page-head"><h1>Results Viewer</h1><div class="sub">Emergent spectra &amp; temperature profiles per run/iteration</div></div>
 
-  <div class="controls">
-    <label>Run:</label>
-    <select id="runSelect" onchange="onRunChange()">
-      <option value="">— select a run —</option>
-    </select>
-    <label>Iteration:</label>
-    <select id="iterSelect" onchange="loadData()">
-      <option value="">—</option>
-    </select>
+  <div class="controls" id="controls">
+    <label for="runSelect">Run:</label>
+    <select id="runSelect" onchange="onRunChange()"></select>
+    <label for="iterSelect">Iteration:</label>
+    <select id="iterSelect" onchange="loadData()"></select>
   </div>
 
   <div class="params-box" id="paramsBox" style="display:none"></div>
 
   <div id="plotsContainer" style="display:none">
     <div class="plot-card">
-      <h2 style="display:flex;align-items:center;gap:12px;">
-        1. Emergent Intensity at Surface (outgoing &mu; &gt; 0)
-        <button id="feToggle" onclick="toggleFeLines()" style="font-size:.72rem;padding:5px 14px;border-radius:20px;border:1px solid rgba(255,100,100,.3);background:rgba(255,100,100,.08);color:#ff8888;cursor:pointer;font-family:inherit;font-weight:500;letter-spacing:.03em;transition:all .2s;">Fe lines: ON</button>
+      <h2 style="justify-content:flex-start;gap:12px;">
+        <span class="tick" aria-hidden="true"></span>1. Emergent intensity at surface (outgoing μ &gt; 0)
+        <button id="feToggle" class="pill pill-fe" onclick="toggleFeLines()">Fe lines: ON</button>
       </h2>
       <div class="plot-area" id="plotEmergent"></div>
+      <div class="plot-caption">Incident corona shown as 2 I<sub>cor</sub>/μ<sub>inc</sub> (flux→intensity over two hemispheres);
+        disk seed shown as I<sub>disk</sub>/2, so seed and emergent beams are comparable.</div>
     </div>
     <div class="plot-card">
-      <h2 style="display:flex;align-items:center;gap:12px;">
-        2. Mean Outgoing Intensity
-        <button id="btnLineLabels" onclick="toggleLineLabels()"
-                style="font-size:.72rem;padding:5px 14px;border-radius:20px;
-                       border:1px solid rgba(100,180,255,.3);background:rgba(100,180,255,.08);
-                       color:#64b4ff;cursor:pointer;font-family:inherit;font-weight:500;
-                       letter-spacing:.03em;transition:all .2s;">
-          Line IDs: OFF
-        </button>
-        <span id="lineLabelStatus" style="font-size:.68rem;color:var(--dim);"></span>
+      <h2 style="justify-content:flex-start;gap:12px;">
+        <span class="tick" aria-hidden="true"></span>2. Angle-averaged outgoing intensity (mean over μ &gt; 0)
+        <button id="btnLineLabels" class="pill pill-line off" onclick="toggleLineLabels()">Line IDs: OFF</button>
+        <span id="lineLabelStatus" style="font-size:var(--fs-xs);color:var(--dim);"></span>
       </h2>
       <div class="plot-area" id="plotMean"></div>
     </div>
     <div class="plot-card">
-      <h2>3. Temperature Profile</h2>
+      <h2><span class="tick" aria-hidden="true"></span>3. Temperature profile</h2>
       <div class="plot-area" id="plotProfile"></div>
     </div>
   </div>
 
-  <div class="status" id="statusMsg">Select a run to view results.</div>
+  <div class="status" id="statusMsg">Loading…</div>
+  <div id="emptyState" style="display:none"></div>
 
-  <div class="footer">DAOv2.0 &nbsp;·&nbsp; Yimin Huang</div>
-</div>
+</main>
+{{ footer | safe }}
 
 <script>
 const PLOT_BG = '#161a24';
 const GRID_COLOR = '#232838';
 const FONT_COLOR = '#c8cdd8';
-const LAYOUT_BASE = {
-  paper_bgcolor: '#0a0c10', plot_bgcolor: PLOT_BG,
-  font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
-  margin: { l:70, r:30, t:30, b:60 },
-  legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:10} },
-  xaxis: { gridcolor: GRID_COLOR, zerolinecolor: GRID_COLOR },
-  yaxis: { gridcolor: GRID_COLOR, zerolinecolor: GRID_COLOR },
-};
-
+const PAPER_BG = '#0b0d12';
+const DIM_HEX = '#8a93a3';
+const FAINT_HEX = '#5a6273';
+const FE_HEX = '#ef5350';
+const LINE_HEX = '#38bdf8';
 const COLORS = ['#f0a030','#e05828','#38bdf8','#22c55e','#a78bfa','#f472b6','#facc15','#67e8f9'];
 
 let allRuns = [];
 
+function tsLabel(mtime) {
+  if (!mtime) return '';
+  const d = new Date(mtime * 1000);
+  return d.toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+}
+
 async function init() {
   const r = await fetch('/api/runs');
   const d = await r.json();
-  allRuns = d.runs;
+  allRuns = d.runs;  // already newest-first from server
   const sel = document.getElementById('runSelect');
+  sel.innerHTML = '';
+  if (!allRuns.length) { showEmpty(); return; }
   allRuns.forEach(run => {
     const o = document.createElement('option');
     o.value = run.hash;
     const m = run.meta;
-    let label = `${run.hash}`;
-    if (m.corona) label += ` — ${m.corona}`;
+    let label = '';
+    if (m.corona) label += `${m.corona}`;
     if (m.nh !== undefined) label += `  nh=${m.nh}`;
     if (m.zeta !== undefined) label += `  z=${m.zeta}`;
-    if (m.Gamma !== undefined && m.Gamma > 0) label += `  G=${m.Gamma}`;
+    const ts = tsLabel(run.mtime);
+    label += ts ? `  · ${ts}` : `  · ${run.hash}`;
     o.textContent = label;
     sel.appendChild(o);
   });
+  // auto-select newest
+  sel.value = allRuns[0].hash;
+  onRunChange();
+}
+
+function showEmpty() {
+  document.getElementById('controls').style.display = 'none';
+  document.getElementById('statusMsg').style.display = 'none';
+  const e = document.getElementById('emptyState');
+  e.style.display = 'block';
+  e.innerHTML = `<div class="empty-state plot-card">
+    <div class="ico" aria-hidden="true">◎</div>
+    <h3>No results yet</h3>
+    <p>Configure a model and run ./maindaocl — finished runs appear here automatically.</p>
+    <a class="btn btn-primary" href="/">Open Configurator</a>
+  </div>`;
 }
 
 function onRunChange() {
@@ -1343,22 +1624,13 @@ function onRunChange() {
   const run = allRuns.find(r => r.hash === rid);
   const iterSel = document.getElementById('iterSelect');
   iterSel.innerHTML = '';
-  if (!run) {
-    document.getElementById('plotsContainer').style.display = 'none';
-    document.getElementById('paramsBox').style.display = 'none';
-    document.getElementById('statusMsg').style.display = 'block';
-    document.getElementById('statusMsg').textContent = 'Select a run to view results.';
-    return;
-  }
+  if (!run) return;
   run.iters.forEach(it => {
     const o = document.createElement('option');
-    o.value = it;
-    o.textContent = `Iteration ${it}`;
+    o.value = it; o.textContent = `Iteration ${it}`;
     iterSel.appendChild(o);
   });
-  // Select last iteration
   if (run.iters.length > 0) iterSel.value = run.iters[run.iters.length - 1];
-  // Show params
   showParams(run.meta);
   loadData();
 }
@@ -1396,7 +1668,6 @@ async function loadData() {
   document.getElementById('statusMsg').style.display = 'none';
   document.getElementById('plotsContainer').style.display = 'block';
 
-  // Get incidence angle from run metadata
   const run = allRuns.find(r => r.hash === rid);
   const mu_inc = Math.abs((run && run.meta && run.meta.incidence) || 0.7071);
 
@@ -1414,18 +1685,13 @@ function toggleFeLines() {
   showFeLines = !showFeLines;
   const btn = document.getElementById('feToggle');
   btn.textContent = showFeLines ? 'Fe lines: ON' : 'Fe lines: OFF';
-  btn.style.color = showFeLines ? '#ff8888' : '#555';
-  btn.style.borderColor = showFeLines ? 'rgba(255,100,100,.3)' : 'rgba(100,100,100,.2)';
-  btn.style.background = showFeLines ? 'rgba(255,100,100,.08)' : 'rgba(100,100,100,.05)';
+  btn.className = 'pill ' + (showFeLines ? 'pill-fe' : 'off');
   plotEmergent(lastEmData, lastMuInc, lastFeLines);
 }
 
 function autoLogRange(traces) {
-  // Find peak across all traces, set range to [peak*1e-6, peak*5] (like plot_results.py)
   let peak = -Infinity;
-  traces.forEach(t => {
-    t.y.forEach(v => { if (v > 0 && v > peak) peak = v; });
-  });
+  traces.forEach(t => { t.y.forEach(v => { if (v > 0 && v > peak) peak = v; }); });
   if (!isFinite(peak) || peak <= 0) return undefined;
   return [Math.log10(peak * 1e-6), Math.log10(peak * 5)];
 }
@@ -1439,20 +1705,17 @@ function plotEmergent(em, mu_inc, fe_lines) {
   const E_keV = E_eV.map(e => e / 1e3);
   const traces = [];
 
-  // I_corona scaled: 2 * I_corona / mu_inc
   traces.push({
     x: E_keV, y: E_eV.map((e, i) => e * 2.0 * em.I_corona[i] / mu_inc),
     name: 'E × 2I_cor/μ_inc', mode: 'lines',
-    line: { color: '#888', width: 1.5, dash: 'dash' }
+    line: { color: DIM_HEX, width: 1.5, dash: 'dash' }
   });
-  // I_disk scaled: I_disk / 2
   traces.push({
     x: E_keV, y: E_eV.map((e, i) => e * em.I_disk[i] / 2.0),
     name: 'E × I_disk/2', mode: 'lines',
-    line: { color: '#555', width: 1.5, dash: 'dot' }
+    line: { color: FAINT_HEX, width: 1.5, dash: 'dot' }
   });
 
-  // Outgoing angles (mu > 0): E[eV] * I
   let ci = 0;
   em.mu_vals.forEach(mu => {
     if (mu > 0) {
@@ -1467,37 +1730,33 @@ function plotEmergent(em, mu_inc, fe_lines) {
   });
 
   const yr = autoLogRange(traces);
-
-  // Fe K line vertical markers + labels
   const shapes = [];
   const annotations = [];
   if (showFeLines && fe_lines && fe_lines.length > 0 && yr) {
-    // Show only the 6 strongest lines by relint
     const top6 = [...fe_lines].sort((a, b) => b.relint - a.relint).slice(0, 6);
     top6.forEach((fl, idx) => {
       shapes.push({
         type: 'line', xref: 'x', yref: 'paper',
         x0: fl.E_keV, x1: fl.E_keV, y0: 0, y1: 1,
-        line: { color: 'rgba(255,100,100,0.5)', width: 1, dash: 'dot' }
+        line: { color: 'rgba(239,83,80,0.5)', width: 1, dash: 'dot' }
       });
       annotations.push({
         x: Math.log10(fl.E_keV), xref: 'x', yref: 'paper',
         y: 1.0 - idx * 0.06, text: fl.label,
-        showarrow: false, font: { color: '#ff8888', size: 11 },
+        showarrow: false, font: { color: FE_HEX, size: 11 },
         xanchor: 'left', xshift: 4
       });
     });
   }
 
   Plotly.react(div, traces, {
-    paper_bgcolor: '#0a0c10', plot_bgcolor: PLOT_BG,
+    paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
     font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
     margin: { l:70, r:30, t:40, b:60 },
     legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:10} },
     xaxis: { type:'log', title:'E [keV]', range:[Math.log10(1e-3), Math.log10(1000)], gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
-    yaxis: { type:'log', title:'E × I [erg² cm⁻² s⁻¹ erg⁻¹ sr⁻¹]', range:yr, gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
-    shapes: shapes,
-    annotations: annotations,
+    yaxis: { type:'log', title:'E I_E  [erg cm⁻² s⁻¹ sr⁻¹]', range:yr, gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
+    shapes: shapes, annotations: annotations,
   }, {responsive:true});
 }
 
@@ -1507,48 +1766,41 @@ function plotMeanOutgoing(em) {
 
   const E_eV = em.E;
   const E_keV = E_eV.map(e => e / 1e3);
-
-  // Compute mean over outgoing angles (mu > 0)
   const outgoing_keys = em.mu_vals.filter(mu => mu > 0).map(mu => mu.toFixed(4));
   const n_out = outgoing_keys.length;
   const mean_I = E_eV.map((_, ie) => {
-    let sum = 0;
-    outgoing_keys.forEach(k => { sum += em.angles[k][ie]; });
+    let sum = 0; outgoing_keys.forEach(k => { sum += em.angles[k][ie]; });
     return n_out > 0 ? sum / n_out : 0;
   });
 
-  const traces = [
-    {
-      x: E_keV, y: E_eV.map((e, i) => e * mean_I[i]),
-      name: 'E × Mean outgoing I', mode: 'lines',
-      line: { color: '#f0a030', width: 2 }
-    },
-  ];
+  const traces = [{
+    x: E_keV, y: E_eV.map((e, i) => e * mean_I[i]),
+    name: 'E × Mean outgoing I', mode: 'lines',
+    line: { color: '#f0a030', width: 2 }
+  }];
 
   const yr = autoLogRange(traces);
   Plotly.react(div, traces, {
-    paper_bgcolor: '#0a0c10', plot_bgcolor: PLOT_BG,
+    paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
     font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
     margin: { l:70, r:30, t:30, b:60 },
     legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:10} },
     xaxis: { type:'log', title:'E [keV]', range:[Math.log10(1e-3), Math.log10(1000)], gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
-    yaxis: { type:'log', title:'E × I [erg² cm⁻² s⁻¹ erg⁻¹ sr⁻¹]', range:yr, gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
+    yaxis: { type:'log', title:'E I_E  [erg cm⁻² s⁻¹ sr⁻¹]', range:yr, gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
   }, {responsive:true});
 }
 
 function plotProfile(prof) {
   const div = document.getElementById('plotProfile');
   if (!prof) { div.innerHTML = '<div class="status">No profile data.</div>'; return; }
-
   const traces = [{
     x: prof.tau_mid, y: prof.T_K,
     name: 'T', mode: 'lines+markers',
     line: { color: '#e05828', width: 2 },
     marker: { size: 4, color: '#f0a030' }
   }];
-
   Plotly.react(div, traces, {
-    paper_bgcolor: '#0a0c10', plot_bgcolor: PLOT_BG,
+    paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
     font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
     margin: { l:70, r:30, t:30, b:60 },
     legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:10} },
@@ -1557,86 +1809,62 @@ function plotProfile(prof) {
   }, {responsive:true});
 }
 
-// ── Line label overlay on Mean Outgoing Intensity plot ─────────
+// ── Line label overlay ─────────────────────────────────────────
 let lineLabelsOn = false;
 let lineLabelsData = null;
 const ROMAN = {1:'I',2:'II',3:'III',4:'IV',5:'V',6:'VI',7:'VII',8:'VIII',
                9:'IX',10:'X',11:'XI',12:'XII',13:'XIII',14:'XIV',15:'XV',
                16:'XVI',17:'XVII',18:'XVIII',19:'XIX',20:'XX',21:'XXI',
                22:'XXII',23:'XXIII',24:'XXIV',25:'XXV',26:'XXVI',27:'XXVII'};
-
 function fmtSpecies(lab) {
   const m = lab.match(/^([A-Z][a-z]?)\s*(\d+)$/);
-  if (m) { const n = parseInt(m[2]); if (ROMAN[n]) return m[1]+'\u2009'+ROMAN[n]; }
+  if (m) { const n = parseInt(m[2]); if (ROMAN[n]) return m[1]+' '+ROMAN[n]; }
   return lab;
 }
-
 async function toggleLineLabels() {
   const btn = document.getElementById('btnLineLabels');
   const status = document.getElementById('lineLabelStatus');
   const div = document.getElementById('plotMean');
   const rid = document.getElementById('runSelect').value;
-
   if (lineLabelsOn) {
     lineLabelsOn = false;
     btn.textContent = 'Line IDs: OFF';
-    btn.style.borderColor = 'rgba(100,180,255,.3)';
-    btn.style.background = 'rgba(100,180,255,.08)';
+    btn.className = 'pill pill-line off';
     status.textContent = '';
     Plotly.relayout(div, { annotations: [], shapes: [] });
     return;
   }
-
   if (!lineLabelsData || lineLabelsData.hash !== rid) {
     status.textContent = 'Loading...';
     const r = await fetch(`/api/line_labels/${rid}`);
     const d = await r.json();
     lineLabelsData = { hash: rid, lines: d.lines || [] };
   }
-
-  if (lineLabelsData.lines.length === 0) {
-    status.textContent = 'No line labels found.';
-    return;
-  }
-
+  if (lineLabelsData.lines.length === 0) { status.textContent = 'No line labels found.'; return; }
   const annotations = [];
   const shapes = [];
   const MAX_LABELS = 60;
   const MIN_SEP = 0.015;
   const placedLogE = [];
   const topLines = lineLabelsData.lines.slice(0, 100);
-
   for (const ln of topLines) {
     if (annotations.length >= MAX_LABELS) break;
     const keV = ln.eV / 1e3;
     const logE = Math.log10(keV);
     if (placedLogE.some(p => Math.abs(logE - p) < MIN_SEP)) continue;
     placedLogE.push(logE);
-
     const isFluor = ln.type === 'F';
     const name = fmtSpecies(ln.label) + (isFluor ? ' (fl)' : '');
-    const col = isFluor ? 'rgba(240,80,80,0.85)' : 'rgba(100,180,255,0.85)';
-    const lcol = isFluor ? 'rgba(240,80,80,0.2)' : 'rgba(100,180,255,0.15)';
-
-    shapes.push({
-      type:'line', xref:'x', yref:'paper',
-      x0:keV, x1:keV, y0:0, y1:1,
-      line:{color:lcol, width:0.8},
-    });
-    annotations.push({
-      x:Math.log10(keV), y:1, xref:'x', yref:'paper',
-      text:name, showarrow:false,
-      font:{size:9, color:col, family:'Inter, sans-serif'},
-      textangle:-90, xanchor:'left', yanchor:'top', yshift:-4,
-    });
+    const col = isFluor ? 'rgba(239,83,80,0.85)' : 'rgba(56,189,248,0.85)';
+    const lcol = isFluor ? 'rgba(239,83,80,0.2)' : 'rgba(56,189,248,0.15)';
+    shapes.push({ type:'line', xref:'x', yref:'paper', x0:keV, x1:keV, y0:0, y1:1, line:{color:lcol, width:0.8} });
+    annotations.push({ x:Math.log10(keV), y:1, xref:'x', yref:'paper', text:name, showarrow:false,
+      font:{size:9, color:col, family:'Inter, sans-serif'}, textangle:-90, xanchor:'left', yanchor:'top', yshift:-4 });
   }
-
   lineLabelsOn = true;
   btn.textContent = 'Line IDs: ON';
-  btn.style.borderColor = 'rgba(100,180,255,.6)';
-  btn.style.background = 'rgba(100,180,255,.18)';
+  btn.className = 'pill pill-line';
   status.textContent = `${annotations.length} lines`;
-
   Plotly.relayout(div, { annotations, shapes });
 }
 
@@ -1648,7 +1876,7 @@ init();
 
 @app.route("/plots")
 def plots():
-    return render_template_string(PLOTS_HTML)
+    return render_template_string(PLOTS_HTML, base_css=BASE_CSS, nav=TOP_NAV("plots"), footer=FOOTER)
 
 
 # ─── Convergence page ────────────────────────────────────────────
@@ -1660,148 +1888,111 @@ CONVERGENCE_HTML = r"""
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<title>DAOv2.0 — Temperature Convergence</title>
+<title>DAO — Temperature Convergence</title>
 <script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0a0c10; --bg2: #12151c; --card: #161a24; --border: #232838;
-    --accent: #f0a030; --accent2: #e05828; --cyan: #38bdf8;
-    --text: #c8cdd8; --dim: #6b7280; --white: #eef0f4;
-  }
-  body {
-    font-family: 'Inter', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
-    background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px;
-  }
-  body::before {
-    content:''; position:fixed; inset:0; z-index:0;
-    background: url('/image/bg_blackhole.png') center top / cover no-repeat fixed;
-    opacity: 0.1; pointer-events: none;
-  }
-  .wrap { position:relative; z-index:1; max-width:1200px; margin:0 auto; padding:20px; }
-
-  .top-bar {
-    display:flex; align-items:center; gap:16px; margin-bottom:20px; flex-wrap:wrap;
-  }
-  .back {
-    color:var(--accent); text-decoration:none; font-size:.82rem;
-    padding:6px 14px; border:1px solid var(--border); border-radius:6px;
-  }
-  .back:hover { border-color: var(--accent); }
-  .top-bar h1 {
-    font-size:1.3rem; font-weight:700; letter-spacing:.1em;
-    background: linear-gradient(90deg, #f0a030, #e05828);
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-  }
-
-  .controls {
-    display:flex; gap:12px; align-items:center; flex-wrap:wrap;
-    margin-bottom:20px;
-  }
-  .controls label { font-size:.78rem; color:var(--dim); }
-  .controls select {
-    background:var(--bg2); color:var(--white); border:1px solid var(--border);
-    border-radius:6px; padding:6px 12px; font-family:inherit; font-size:.8rem;
-    outline:none; min-width:180px;
-  }
+{{ base_css | safe }}
+  main.wrapper { max-width:1200px; }
+  .controls { display:flex; gap:var(--sp-4); align-items:center; flex-wrap:wrap; margin-bottom:var(--sp-5); }
+  .controls label { font-size:var(--fs-sm); color:var(--dim); }
+  .controls select { background:var(--bg2); color:var(--white); border:1px solid var(--border);
+    border-radius:var(--r-sm); padding:7px 12px; font-family:inherit; font-size:var(--fs-sm); outline:none; min-width:220px; }
   .controls select:focus { border-color:var(--accent); }
-
-  .params-box {
-    background:var(--card); border:1px solid var(--border); border-radius:8px;
-    padding:12px 16px; margin-bottom:20px; font-size:.75rem; color:var(--text);
-    line-height:1.8;
-  }
+  .params-box { padding:12px 16px; margin-bottom:var(--sp-5); font-size:var(--fs-xs); color:var(--text); line-height:1.8; }
   .params-box .pk { color:var(--cyan); }
   .params-box .pv { color:var(--white); font-weight:600; }
-
-  .plot-card {
-    background:var(--card); border:1px solid var(--border); border-radius:10px;
-    padding:16px; margin-bottom:20px;
-  }
-  .plot-card h2 {
-    font-size:.82rem; text-transform:uppercase; letter-spacing:.1em;
-    color:var(--accent); margin-bottom:10px;
-  }
+  .plot-card { padding:16px; margin-bottom:var(--sp-5); }
   .plot-area { width:100%; height:540px; }
-
-  .status {
-    text-align:center; padding:40px; color:var(--dim); font-size:.85rem;
-  }
-
-  .footer { text-align:center; padding:20px 0 10px; font-size:.65rem; color:#333; }
+  @media (max-width:520px){ .plot-area { height:min(60vh,480px); } }
+  .status { text-align:center; padding:40px; color:var(--dim); font-size:var(--fs-sm); }
 </style>
 </head>
 <body>
-<div class="wrap">
+{{ nav | safe }}
+<main id="main" class="wrapper">
 
-  <div class="top-bar">
-    <a class="back" href="/">← Configurator</a>
-    <a class="back" href="/plots">← Results Viewer</a>
-    <h1>TEMPERATURE CONVERGENCE</h1>
-  </div>
+  <div class="page-head"><h1>Temperature Convergence</h1><div class="sub">Iteration-by-iteration temperature &amp; surface mean intensity</div></div>
 
-  <div class="controls">
-    <label>Run:</label>
-    <select id="runSelect" onchange="onRunChange()">
-      <option value="">— select a run —</option>
-    </select>
+  <div class="controls" id="controls">
+    <label for="runSelect">Run:</label>
+    <select id="runSelect" onchange="onRunChange()"></select>
   </div>
 
   <div class="params-box" id="paramsBox" style="display:none"></div>
 
   <div id="plotsContainer" style="display:none">
     <div class="plot-card">
-      <h2>1. Temperature Profile — All Iterations</h2>
+      <h2><span class="tick" aria-hidden="true"></span>1. Temperature profile — all iterations</h2>
       <div class="plot-area" id="plotTempIter"></div>
     </div>
     <div class="plot-card">
-      <h2>2. Surface Mean Intensity J<sub>0</sub>(E) — All Iterations</h2>
+      <h2><span class="tick" aria-hidden="true"></span>2. Surface mean intensity J<sub>0</sub>(E) — all iterations</h2>
       <div class="plot-area" id="plotJ0Iter"></div>
     </div>
   </div>
 
-  <div class="status" id="statusMsg">Select a run to view temperature convergence.</div>
+  <div class="status" id="statusMsg">Loading…</div>
+  <div id="emptyState" style="display:none"></div>
 
-  <div class="footer">DAOv2.0 &nbsp;·&nbsp; Yimin Huang</div>
-</div>
+</main>
+{{ footer | safe }}
 
 <script>
 const PLOT_BG = '#161a24';
 const GRID_COLOR = '#232838';
 const FONT_COLOR = '#c8cdd8';
+const PAPER_BG = '#0b0d12';
 const COLORS_POOL = ['#f0a030','#e05828','#38bdf8','#22c55e','#a78bfa','#f472b6','#facc15','#67e8f9'];
 
 let allRuns = [];
 
+function tsLabel(mtime) {
+  if (!mtime) return '';
+  const d = new Date(mtime * 1000);
+  return d.toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+}
+
 async function init() {
   const r = await fetch('/api/runs');
   const d = await r.json();
-  allRuns = d.runs;
+  allRuns = d.runs;  // newest-first
   const sel = document.getElementById('runSelect');
+  sel.innerHTML = '';
+  if (!allRuns.length) { showEmpty(); return; }
   allRuns.forEach(run => {
     const o = document.createElement('option');
     o.value = run.hash;
     const m = run.meta;
-    let label = `${run.hash}`;
-    if (m.corona) label += ` — ${m.corona}`;
+    let label = '';
+    if (m.corona) label += `${m.corona}`;
     if (m.nh !== undefined) label += `  nh=${m.nh}`;
     if (m.zeta !== undefined) label += `  z=${m.zeta}`;
-    if (m.Gamma !== undefined && m.Gamma > 0) label += `  G=${m.Gamma}`;
+    const ts = tsLabel(run.mtime);
+    label += ts ? `  · ${ts}` : `  · ${run.hash}`;
     o.textContent = label;
     sel.appendChild(o);
   });
+  sel.value = allRuns[0].hash;
+  onRunChange();
+}
+
+function showEmpty() {
+  document.getElementById('controls').style.display = 'none';
+  document.getElementById('statusMsg').style.display = 'none';
+  const e = document.getElementById('emptyState');
+  e.style.display = 'block';
+  e.innerHTML = `<div class="empty-state plot-card">
+    <div class="ico" aria-hidden="true">◎</div>
+    <h3>No results yet</h3>
+    <p>Configure a model and run ./maindaocl — finished runs appear here automatically.</p>
+    <a class="btn btn-primary" href="/">Open Configurator</a>
+  </div>`;
 }
 
 function onRunChange() {
   const rid = document.getElementById('runSelect').value;
   const run = allRuns.find(r => r.hash === rid);
-  if (!run) {
-    document.getElementById('plotsContainer').style.display = 'none';
-    document.getElementById('paramsBox').style.display = 'none';
-    document.getElementById('statusMsg').style.display = 'block';
-    document.getElementById('statusMsg').textContent = 'Select a run to view temperature convergence.';
-    return;
-  }
+  if (!run) return;
   showParams(run.meta);
   loadProfiles(rid);
 }
@@ -1851,25 +2042,21 @@ function plotTempIter(profiles) {
   const iters = Object.keys(profiles).map(Number).sort((a, b) => a - b);
   const n = iters.length;
   const traces = [];
-
   iters.forEach((it, idx) => {
     const color = iterColor(idx, n);
     const p = profiles[String(it)];
     traces.push({
-      x: p.tau_mid, y: p.T_K,
-      name: `iter ${it}`,
-      mode: 'lines',
+      x: p.tau_mid, y: p.T_K, name: `iter ${it}`, mode: 'lines',
       line: { color: color, width: idx === n - 1 ? 2.5 : 1.2 },
       opacity: 0.4 + 0.6 * (n > 1 ? idx / (n - 1) : 1),
     });
   });
-
   Plotly.react(div, traces, {
-    paper_bgcolor: '#0a0c10', plot_bgcolor: PLOT_BG,
+    paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
     font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
     margin: { l:70, r:30, t:30, b:60 },
     legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:9}, orientation:'h', y:-0.15 },
-    xaxis: { type:'log', title:'\u03c4 (Thomson)', gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
+    xaxis: { type:'log', title:'τ (Thomson)', gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
     yaxis: { type:'log', title:'T [K]', gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
   }, {responsive:true});
 }
@@ -1888,37 +2075,30 @@ function plotJ0Iter(moments) {
     div.innerHTML = '<div class="status">No moments data across iterations.</div>';
     return;
   }
-
   const iters = Object.keys(moments).map(Number).sort((a, b) => a - b);
   const n = iters.length;
   const traces = [];
-
   iters.forEach((it, idx) => {
     const color = iterColor(idx, n);
     const m = moments[String(it)];
     const E_keV = m.E.map(e => e / 1e3);
     const EJ0 = m.E.map((e, i) => e * m.J0[i]);
     traces.push({
-      x: E_keV, y: EJ0,
-      name: `iter ${it}`,
-      mode: 'lines',
+      x: E_keV, y: EJ0, name: `iter ${it}`, mode: 'lines',
       line: { color: color, width: idx === n - 1 ? 2.5 : 1.2 },
       opacity: 0.4 + 0.6 * (n > 1 ? idx / (n - 1) : 1),
     });
   });
-
-  // Auto y-range
   let peak = -Infinity;
   traces.forEach(t => t.y.forEach(v => { if (v > 0 && v > peak) peak = v; }));
   const yr = isFinite(peak) && peak > 0 ? [Math.log10(peak * 1e-6), Math.log10(peak * 5)] : undefined;
-
   Plotly.react(div, traces, {
-    paper_bgcolor: '#0a0c10', plot_bgcolor: PLOT_BG,
+    paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
     font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
     margin: { l:70, r:30, t:30, b:60 },
     legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:9}, orientation:'h', y:-0.15 },
     xaxis: { type:'log', title:'E [keV]', range:[Math.log10(1e-3), Math.log10(1000)], gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
-    yaxis: { type:'log', title:'E \u00d7 J\u2080 [erg cm\u207b\u00b2 s\u207b\u00b9 sr\u207b\u00b9]', range:yr, gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
+    yaxis: { type:'log', title:'E × J₀ [erg cm⁻² s⁻¹ sr⁻¹]', range:yr, gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
   }, {responsive:true});
 }
 
@@ -1930,14 +2110,14 @@ init();
 
 @app.route("/convergence")
 def convergence():
-    return render_template_string(CONVERGENCE_HTML)
+    return render_template_string(CONVERGENCE_HTML, base_css=BASE_CSS, nav=TOP_NAV("conv"), footer=FOOTER)
 
 
 # ─── Main ───────────────────────────────────────────────────────
 def main():
     port = 5200
     url = f"http://127.0.0.1:{port}"
-    print(f"\n  DAOv2.0 — X-ray Reflection Spectroscopy Model")
+    print(f"\n  DAO — X-ray Reflection Spectroscopy Model")
     print(f"  Author: Yimin Huang\n")
     print(f"  Opening browser → {url}\n")
     threading.Timer(1.0, lambda: webbrowser.open(url)).start()

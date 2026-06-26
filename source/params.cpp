@@ -21,17 +21,16 @@ ModelParams read_params(int argc, char *argv[])
 	p.taup  = -1;    // unset
 	p.kT_disk = 0.35;
 	strncpy(p.corona, "", sizeof(p.corona));
-	p.frac      = 100;  // flux ratio: F_corona/F_disk. If frac <= 0, no I_disk (corona only)
+	p.frac      = -1;   // flux ratio: F_corona/F_disk. If frac <= 0, no I_disk (corona only, default)
 	p.incidence = 0.7071067811865476;  // cos(45 deg)
 	p.test_rt   = false;
-	strncpy(p.test_mode, "scatter", sizeof(p.test_mode));
+	strncpy(p.test_mode, "none", sizeof(p.test_mode));
 	p.tau_slab  = 0.5;   // total vertical Thomson optical depth (compps mode)
 	p.angsca = true;
 	p.E_rt_lo   = 10.0;      // 0.01 keV in eV
 	p.E_rt_hi   = 1000.0e3;   // 1000 keV in eV
 	p.maxiter   = 500;
 	p.Afe       = 1.0;     // Fe/Fe_solar (linear), 1.0 = solar
-	p.T_test    = 1.0e8;   // default test temperature [K]
 	p.run_hash[0] = '\0';
 	p.run_dir[0]  = '\0';
 	// Approximated kernel has some issue; we need fix. (ktype=0)
@@ -58,12 +57,10 @@ ModelParams read_params(int argc, char *argv[])
 		else if (strcmp(argv[i], "-test_rt") == 0)
 		{
 			p.test_rt = true;
-			// optional mode token: "-test_rt compps"  (default "scatter")
+			// required mode token: "-test_rt compps" (or test_avg)
 			if (i+1 < argc && argv[i+1][0] != '-')
 				strncpy(p.test_mode, argv[++i], sizeof(p.test_mode) - 1);
 		}
-		else if (strcmp(argv[i], "-T_test") == 0 && i+1 < argc)
-			p.T_test = atof(argv[++i]);
 		else if (strcmp(argv[i], "-tau") == 0 && i+1 < argc)
 			p.tau_slab = atof(argv[++i]);
 		else if (strcmp(argv[i], "-kT_disk") == 0 && i+1 < argc)
@@ -161,10 +158,10 @@ ModelParams read_params(int argc, char *argv[])
 		snprintf(buf, sizeof(buf),
 			"%s|mode=%s|nh=%.6g|zeta=%.6g|frac=%.6g|inc=%.6g|Afe=%.6g|"
 			"Gamma=%.6g|Ecut=%.6g|Elo=%.6g|kTe=%.6g|kTbb=%.6g|"
-			"taup=%.6g|kTd=%.6g|test=%d|Tt=%.6g|tau=%.6g|ang=%d",
+			"taup=%.6g|kTd=%.6g|test=%d|tau=%.6g|ang=%d",
 			p.corona, p.test_mode, p.nh, p.zeta, p.frac, p.incidence, p.Afe,
 			p.Gamma, p.E_cut, p.E_lo_cut, p.kT_e, p.kT_bb,
-			p.taup, p.kT_disk, (int)p.test_rt, p.T_test, p.tau_slab,
+			p.taup, p.kT_disk, (int)p.test_rt, p.tau_slab,
 			(int)p.angsca);
 		// FNV-1a 32-bit hash
 		unsigned int h = 2166136261u;
@@ -211,7 +208,6 @@ ModelParams read_params(int argc, char *argv[])
 			fprintf(fp, "  \"kT_disk\": %.6g,\n", p.kT_disk);
 			fprintf(fp, "  \"test_rt\": %s,\n", p.test_rt ? "true" : "false");
 			fprintf(fp, "  \"test_mode\": \"%s\",\n", p.test_mode);
-			fprintf(fp, "  \"T_test\": %.6g,\n", p.T_test);
 			fprintf(fp, "  \"tau_slab\": %.6g,\n", p.tau_slab);
 			fprintf(fp, "  \"maxiter\": %d,\n", p.maxiter);
 			fprintf(fp, "  \"E_rt_lo\": %.6g,\n", p.E_rt_lo);

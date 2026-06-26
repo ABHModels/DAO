@@ -138,10 +138,7 @@ void IllumSpec::compute(const ModelParams& par)
 	// This function return J; 
 	double xi = pow(10.0, par.zeta);
 	double nH = pow(10.0, par.nh);
-	double Fx = xi * 1.21 * nH / pow(phys::four_pi,2);
-	// to match the xillver (*0.5 for elminate the 2 factor in compton_rt)
-	// double Fx = xi * nH / (2*M_PI*0.7071);
-
+	double Fx = xi * nH / pow(phys::four_pi,2);
 
 	// Rescale so that corona + disk = Fx, split by frac = F_corona / F_disk
 	if (par.frac > 0) {

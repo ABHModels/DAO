@@ -30,8 +30,7 @@ struct ModelParams
 
 	// --- Test mode ---
 	bool   test_rt;    // if true, skip Cloudy, use synthetic atmosphere
-	char   test_mode[16]; // "scatter" (default) or "compps" (compps benchmark slab) or "avgang"
-	double T_test;     // uniform slab temperature [K] (test mode)
+	char   test_mode[16]; // required: "compps" (compPS benchmark slab) or "test_avg"
 	double tau_slab;   // total vertical Thomson optical depth (compps test mode)
 
 	// --- Abundances ---

@@ -1,10 +1,10 @@
-# DAOv2.0 — X-ray Reflection Spectroscopy Model
+# DAO — X-ray Reflection Spectroscopy Model
 
 **Disk-corona Atmosphere with Opacity**
 
 A Compton scattering radiative transfer (RT) solver for computing X-ray reflection spectra from accretion disk atmospheres. The code couples **Cloudy** (Gary Ferland's spectral synthesis code) for atomic physics with a custom RT solver based on a cubic Bezier interpolant, and uses **HEASoft/Xspec** models for corona spectra.
 
-**Author:** Yimin Huang
+**Author:** Yimin Huang (Fudan University; University of Bristol) · huangym23@m.fudan.edu.cn
 
 ---
 
@@ -27,7 +27,7 @@ A Compton scattering radiative transfer (RT) solver for computing X-ray reflecti
 
 ## Physics Overview
 
-DAOv2.0 solves the angle- and energy-dependent radiative transfer equation in a plane-parallel slab (accretion disk atmosphere) illuminated by an X-ray corona from above and a thermal disk from below. The code iterates between:
+DAO solves the angle- and energy-dependent radiative transfer equation in a plane-parallel slab (accretion disk atmosphere) illuminated by an X-ray corona from above and a thermal disk from below. The code iterates between:
 
 1. **Cloudy** — computes emissivity j_nu, absorption opacity kappa_abs, and thermal structure at each depth point given the local radiation field
 2. **RT solver** — solves the transfer equation with Compton scattering using a cubic Bezier interpolant for the formal solution, with Lambda iteration
@@ -53,20 +53,23 @@ Bootstrap Cloudy  →  get energy grid (~3300 bins from Cloudy's rfield)
 init_rt_grids()  →  angle (4-pt GL quadrature), depth (Thomson tau), energy grids
     │
     ▼
-rad.illum.compute()  →  corona spectrum (via dispatch) + disk blackbody, normalise to F_x
+rad.illum.compute()  →  corona spectrum (via dispatch) + disk blackbody, normalise to ionization parameter
     │
     ▼
 Precompute KernelCache (load from disk or compute + save)
     │
     ▼
 Dispatch:
-    ├── test mode  →  run_test_rt()  (synthetic uniform slab, no Cloudy)
+    ├── test mode  →  run_test_rt()  (no Cloudy):
+    │                   compps : isothermal pure-scattering slab illuminated from
+    │                            bottom by a blackbody seed, benchmarked against
+    │                            Xspec compPS (Poutanen & Svensson 1996)
     └── production →  Outer loop:
                         ├── Cloudy depth sweep → extract j_nu, kappa_abs, kappa_sct
                         ├── RT solve (cubic Bezier formal solution + Lambda iteration)
                         ├── Compute moments J, ionisation parameter xi
-                        ├── Check convergence (mean |dT/T|, mean |d(log xi)|)
-                        └── Save results every 5 iterations + iteration 1
+                        ├── Check convergence (max |dT/T|, max |d(log xi)|)
+                        └── Save results
 ```
 
 ### Corona Model Dispatch
@@ -93,7 +96,7 @@ The cache directory is controlled by the `COMPTON_CACHE_DIR` environment variabl
 
 | Software | Version | Purpose |
 |----------|---------|---------|
-| **Cloudy** | C23+ | Atomic physics, emissivity/opacity, thermal equilibrium |
+| **Cloudy** | C25+ (we also test for C23)| Atomic physics, emissivity/opacity, thermal equilibrium | 
 | **HEASoft** | 6.33+ | Xspec model libraries (nthcomp, comptt) |
 | **g++** | C++17 | Compiler |
 | **Python 3** | 3.8+ | Web UI (optional) |
@@ -112,16 +115,26 @@ CLOUDY_LIB = /path/to/cloudy/source
 ```
 Edit these paths in `Makefile` to match your installation.
 
-**Custom continuum-mesh resolution file (required).** DAOv2.0 ships with a tailored Cloudy resolution file at `resolution/smooth_hump.ini` that boosts the spectral resolving power around the iron K region (~30 keV, R ~ 600) while keeping it modest elsewhere. You must install it as Cloudy's `continuum_mesh.ini`:
+**Custom continuum-mesh resolution file (required).** DAO ships with a tailored Cloudy resolution file at `resolution/smooth_hump.ini` that boosts the spectral resolving power around the iron K region (~30 keV, R ~ 600) while keeping it modest elsewhere. You must install it as Cloudy's `continuum_mesh.ini`:
 
 ```bash
 # Back up Cloudy's default mesh first
 cp /path/to/cloudy/data/continuum_mesh.ini /path/to/cloudy/data/continuum_mesh.ini.bak
+
+# (Optional) Choose your own resolution before installing. Edit the parameters at
+# the top of resolution/make_smooth_hump.py — R_base, R_peak, E_center, sigma,
+# N_zones, and the energy bounds — then regenerate the table (the default value has good accuracy):
+python resolution/make_smooth_hump.py        # writes resolution/smooth_hump.ini (+ a preview PNG)
+
 # Install the DAOv2 resolution file
 cp resolution/smooth_hump.ini /path/to/cloudy/data/continuum_mesh.ini
 ```
 
-Without this step, the energy grid produced by Cloudy will not match the resolution assumed by the RT solver around the Fe K region, and emergent spectra will under-resolve key features.
+The resolving power follows a Gaussian "hump" in log energy,
+`R(E) = R_base + (R_peak − R_base)·exp(−½ z²)` with `z = (log₁₀E_keV − log₁₀E_center)/sigma`,
+peaked at `E_center` and falling to `R_base` elsewhere. See `resolution/README.md` for the parameters and file format.
+
+**Without this step, the energy grid produced by Cloudy will be too coarse/large to run the scattering kernel correctly.**
 
 ### 2. HEASoft / Xspec
 
@@ -178,29 +191,49 @@ The `-corona` flag is **required**. Each model requires specific parameters:
 # CompTT
 ./maindaocl -corona comptt -kT_e 50 -kT_bb 0.05 -taup 1.0 -Afe 3.0
 
-# Test mode (no Cloudy, uniform slab)
-./maindaocl -test_rt -corona nthcomp -Gamma 2.0 -kT_e 100 -kT_bb 0.05
+# Test mode — compPS benchmark slab (Poutanen & Svensson 1996): isothermal, pure
+# scattering, illuminated by a bottom blackbody seed. kT_e is the slab temperature.
+./maindaocl -test_rt compps -corona blackbody -kT_e 60 -kT_bb 0.1 -tau 0.5
 ```
 
 ### Full Parameter List
 
+**Corona model (required)**
+
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `-corona` | string | **required** | Corona model: `powerlaw`, `cutoffpl`, `nthcomp`, `comptt`, `blackbody` |
-| `-Gamma` | float | — | Photon index (powerlaw, cutoffpl, nthcomp) |
-| `-Ecut` | float | — | High-energy cutoff [keV] (cutoffpl) |
-| `-E_low_cut` | float | 0.1 | Low-energy exp cutoff [keV] (powerlaw, cutoffpl) |
-| `-kT_e` | float | — | Electron temperature [keV] (nthcomp, comptt) |
-| `-kT_bb` | float | — | Seed photon temperature [keV] (nthcomp, comptt, blackbody) |
-| `-taup` | float | — | Plasma optical depth (comptt) |
-| `-nh` | float | 15 | log hydrogen density [cm^-3] |
-| `-zeta` | float | 3.0 | Ionisation parameter exponent: xi = 10^zeta |
-| `-frac` | float | 100 | Flux ratio F_corona / F_disk |
-| `-incidence` | float | 0.7071 | cos(theta) incidence angle (snapped to GL node) |
+| `-Gamma` | float | unset | Photon index Γ (powerlaw, cutoffpl, nthcomp) |
+| `-Ecut` | float | unset | High-energy cutoff [keV] (cutoffpl) |
+| `-E_low_cut` | float | 0.1 | Low-energy exponential cutoff [keV] (powerlaw, cutoffpl) |
+| `-kT_e` | float | unset | Electron temperature [keV] (nthcomp, comptt) |
+| `-kT_bb` | float | unset | Seed photon temperature [keV] (nthcomp, comptt, blackbody) |
+| `-taup` | float | unset | Plasma optical depth (comptt) |
+
+**Slab / illumination**
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-nh` | float | 15 | log₁₀ hydrogen density [cm⁻³] |
+| `-zeta` | float | 3.0 | Ionisation parameter exponent: ξ = 10^zeta |
+| `-frac` | float | -1 | Flux ratio F_corona / F_disk; `≤ 0` (default) → corona only (no disk component) |
+| `-incidence` | float | 0.7071 | cos(θ) of the corona incidence angle (snapped to the nearest GL node) |
+| `-kT_disk` | float | 0.35 | Disk blackbody temperature [keV] (thermal component illuminating from below) |
 | `-Afe` | float | 1.0 | Iron abundance [solar] |
-| `-kT_disk` | float | 0.35 | Disk blackbody temperature [eV] |
-| `-test_rt` | flag | off | Enable test mode (skip Cloudy) |
-| `-T_test` | float | 1e8 | Slab temperature [K] in test mode |
+
+**Solver / kernel**
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-angsca` | bool | true | Scattering kernel: `true`/`1`/`yes` → angle-dependent `KernelCache`; `false`/`0`/`no` → angle-averaged `avgKernelCache` |
+
+**Test mode (skip Cloudy)**
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-test_rt <mode>` | flag + string | off | Enable test mode (no Cloudy). Mode token is **required**: `compps` (compPS benchmark slab) or `test_avg`. |
+| `-kT_e` | float | unset | Slab uniform temperature [keV] in `compps` test mode (re-uses the corona `-kT_e` flag). |
+| `-tau` | float | 0.5 | Slab vertical Thomson optical depth (`compps` test mode) |
 
 ### Run Management
 
@@ -245,7 +278,7 @@ DAOv2/
 │   ├── radiation.h/cpp                RadField arrays, moments, convergence check
 │   ├── corona_models.h/cpp            Corona spectrum dispatch (powerlaw, nthcomp, comptt, ...)
 │   ├── cloudy_interface.h             Emissivity/opacity extraction interface
-│   ├── cloudy_interface_v2.cpp        Cloudy emissivity/opacity extraction, normalization
+│   ├── cloudy_interface_v2.cpp        Cloudy emissivity/opacity extraction
 │   ├── cloudy_exception.h             Cloudy error handling
 │   ├── rt_grids.h/cpp                 Angle (GL quadrature), depth (Thomson tau), energy grids
 │   ├── constants.h                    Physical constants (CGS), unit conversions
@@ -268,10 +301,10 @@ DAOv2/
 
 ### Cloudy — Spectral Synthesis & Atomic Physics
 
-- **Ferland G.J., Chatzikos M., Guzman F. et al., 2017, RMxAA, 53, 385** — "The 2017 Release of Cloudy"
-  [ADS](https://ui.adsabs.harvard.edu/abs/2017RMxAA..53..385F) | [Cloudy website](https://gitlab.nublado.org/cloudy/cloudy)
+- **Gunasekera C.M., van Hoof P.A.M., Dehghanian M. et al., 2025, arXiv:2508.01102** — most recent release of Cloudy (C25)
+  [ADS](https://ui.adsabs.harvard.edu/abs/2025arXiv250801102G) | [Cloudy website](https://gitlab.nublado.org/cloudy/cloudy)
 
-Cloudy provides the atomic physics backend: emissivity, opacity, thermal equilibrium, and ionisation balance at each depth point. DAOv2.0 calls Cloudy as a subroutine via `cdInit()` / `cdDrive()`.
+Cloudy provides the atomic physics backend: emissivity, opacity, thermal equilibrium, and ionisation balance at each depth point. DAO calls Cloudy as a subroutine via `cdInit()` / `cdDrive()`.
 
 ### Compton Scattering Kernel
 
@@ -308,11 +341,6 @@ Short characteristics formal solution using a cubic Bezier interpolant, with Lam
 - **Suleimanov V., Poutanen J., Werner K., 2012, A&A, 545, A120** — Application to neutron star spectrum
   [ADS](https://ui.adsabs.harvard.edu/abs/2012A%26A...545A.120S)
 
-### Emissivity Extraction from Cloudy
-
-- Conversion: `j_nu = (ConEmitLocal[1] + DiffuseLineEmission) * anu(j) * eV_to_erg / widflx(j)`
-- Opacity: `kappa_abs = opacity_abs + OpacStatic`, `kappa_sct = n_e * sigma_compton(E,T)`
-
 ### Corona Models (HEASoft/Xspec)
 
 - **Zdziarski A.A., Johnson W.N., Magdziarz P., 1996, MNRAS, 283, 193** — nthcomp thermal Comptonisation
@@ -324,7 +352,7 @@ Short characteristics formal solution using a cubic Bezier interpolant, with Lam
 
 ### Ionisation Parameter
 
-- **Tarter C.B., Tucker W.H., Salpeter E.E., 1969, ApJ, 156, 943** — Definition of ionisation parameter xi = 4pi F_x / n_H
+- **Tarter C.B., Tucker W.H., Salpeter E.E., 1969, ApJ, 156, 943** — Definition of ionisation parameter xi = 4pi F_x / n_H, i.e., in the code, we calculate xi by (4pi)^2 J/n_H
   [ADS](https://ui.adsabs.harvard.edu/abs/1969ApJ...156..943T)
 
 ---
@@ -352,34 +380,32 @@ Each run saves to `results/<hash>/` with:
 
 ---
 
-## Important Notes
-
-1. **Cloudy headers**: Files that include Cloudy headers must include `cddefines.h` before any other Cloudy header.
-
-2. **fopen**: Cloudy redefines `fopen` to a compile error. Use `open_data()` for Cloudy I/O, or `#undef fopen` before raw file operations (e.g., before `cdInit()`).
-
-3. **SED files**: `table SED` input files must floor values at `1e-30` — Cloudy's log-interpolation asserts on zeros.
-
-4. **Energy range**: The Compton kernel is initialized once covering 0.1–1000 keV. Below 0.1 keV, Thomson scattering applies.
-
-5. **Temperature cache**: Constants `T_CACHE_LO` (10^4 K), `T_CACHE_HI` (10^9 K), `N_T_CACHE` (50) in `constants.h` are shared by `KernelCache` and `ScatteringCache`.
-
-6. **ConEmitLocal index**: Use `ConEmitLocal[1]` (iteration phase), not `[0]` (search phase, always zero).
-
-7. **Unit convention**: All radiation quantities use **per-eV** units internally. Use `phys::eV_to_erg` (not `EN1RYD`) for conversions.
-
-8. **Run deduplication**: Same parameters always produce the same hash and overwrite the same output directory.
-
----
-
 ## License & Acknowledgements
 
-This project relies on and gratefully acknowledges:
+### License
 
-- **Cloudy** by Gary Ferland and collaborators — atomic physics and spectral synthesis backend.
-- **HEASoft / Xspec** by NASA HEASARC — Comptonisation model libraries (`nthcomp`, `comptt`).
-- **Prof. Jerzy Madej** (University of Warsaw) — for sharing the original Fortran source code of the exact Compton redistribution function, on which this implementation is based.
+The original DAO source code in this repository is released under the **MIT License** (see [`LICENSE`](LICENSE)).
 
-If you use DAOv2.0 in published work, please cite the references listed in the [Algorithms & References](#algorithms--references) section, in particular Madej et al. (2017) for the Compton kernel and Ferland et al. (2017) for Cloudy.
+DAO **depends on** the following third-party software, each of which carries its own separate license and must be obtained independently (DAO does not bundle their distributions):
+
+| Component | License | Source |
+|-----------|---------|--------|
+| **Cloudy** (Gary J. Ferland and collaborators) — atomic physics / spectral synthesis backend | [zlib license](https://opensource.org/licenses/Zlib) | <https://gitlab.nublado.org/cloudy/cloudy> |
+| **HEASoft / XSPEC** (NASA HEASARC) — Comptonisation model libraries (`nthcomp`, `comptt`) | NASA open-source (HEASARC) | <https://heasarc.gsfc.nasa.gov/docs/software/heasoft/> |
+| **Compton redistribution function** — `source/compton_kernel.cpp` is a C++ port of the publicly available Fortran code by Jerzy Madej (please cite [Madej, Różańska, Majczyna & Należyta, 2017, MNRAS, 469, 2032](https://ui.adsabs.harvard.edu/abs/2017MNRAS.469.2032M)) | as published by the author | <https://www.astrouw.edu.pl/~jm/software.html> |
+
+Cloudy's zlib license permits free use, modification, and redistribution. DAO uses Cloudy as an **unmodified** backend: it links against a separately installed Cloudy and accesses it only through Cloudy's public API — headers, library functions, and data structures. **DAO does not modify, copy, or redistribute Cloudy's source code**, so no altered Cloudy source is shipped. A few physics steps are handled in DAO's own code rather than delegated to Cloudy:
+
+- the per-line escape probabilities — computed by **calling** Cloudy's `rt_escprob` routines;
+- the removal of Cloudy's bound-electron Compton-recoil opacity term — **reproducing**, on DAO's own grid, the calculation in Cloudy's `opacity_addtotal.cpp`, because Cloudy folds that term into its opacity and exposes no API to subtract it;
+- the inner-shell fluorescence emission — **reproducing** the calculation in Cloudy's `prt_lines.cpp`, using Cloudy's `t_yield` atomic data and inner-shell photoionization rates.
+
+These reimplementations reference Cloudy's data structures and methods (cited in-line), but a physical formula plus the required API symbol names are not themselves Cloudy source code. Cloudy remains under its [zlib license](https://opensource.org/licenses/Zlib) (© 1978–2025 Gary J. Ferland and others).
+
+### Acknowledgements
+
+We gratefully acknowledge **Prof. Jerzy Madej** (University of Warsaw) for his publicly available Fortran implementation of the exact Compton redistribution function, on which our C++ port is based, and for his extraordinary contributions to the theory of exact Comptonisation.
+
+If you use DAO in published work, please cite the references listed in the [Algorithms & References](#algorithms--references) section, in particular Madej et al. (2017) for the Compton kernel and Gunasekera et al. (2025) for Cloudy.
 
 For questions, suggestions, or collaboration, please open an issue on GitHub or contact the author.

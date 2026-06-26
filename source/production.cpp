@@ -49,7 +49,7 @@ void run_production(RadField& rad, const RTGrids& g,
 	const double cir = 3e-3;
 	double max_dT = 1.0, max_dXi = 1.0;
 	int outer_iter = 0;
-	const int max_outer = 20;
+	const int max_outer = 50;
 	while (((max_dT > cir || max_dXi > cir) && outer_iter<max_outer))
 	{
 		++outer_iter;

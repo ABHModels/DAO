@@ -15,81 +15,39 @@
 #include "yield.h"
 #include "ionbal.h"
 #include "dense.h"
+#include "hmi.h"
 #include "lines.h"
 #include "transition.h"
 #include "iso.h"
 #include "taulines.h"
 #include "physconst.h"
 
-// ============================================================
 void CloudyInput::init(const ModelParams& par)
 {
 	nh  = par.nh;
 	Afe = par.Afe;
 }
 
-// ============================================================
-// extract_cloudy_output
-//
-// Pull emissivity and opacity from Cloudy after cdDrive().
-//
-// Cloudy runs as a thin single-zone atomic physics backend
-// ("no line transfer", "stop zone 1").  It provides level
-// populations, ionization balance, and cross-sections.
-// Our RT solver handles the actual radiative transfer.
-//
-// The emissivity has three components:
-//
-//   (A) Continuum (free-free, free-bound, two-photon)
-//       Source: rfield.ConEmitLocal
-//       No escape probability — smooth continuum, no self-absorption.
-//
-//   (B) Bound-bound line emission
-//       Source: cdEmis_ip (Hazy2 Section 8.6.6)
-//       Each line gets its own escape probability beta(tau):
-//         emiss_eff = emiss_raw * beta(tau_cell)
-//       where tau_cell = kappa_line * dr_cell.
-//       This accounts for line self-absorption within the RT cell.
-//       The escape function beta depends on the line's redistribution
-//       type (PRD for resonance lines, CRD for others).
-//
-//   (C) Inner-shell fluorescence (e.g. Fe K-alpha 6.4 keV)
-//       Source: t_yield (Kaastra & Mewe 1993)
-//       No escape probability — the fluorescence photon energy is
-//       below the K-edge of the daughter ion, so it cannot be
-//       reabsorbed by the same bound-bound transition.  Absorption
-//       is by K-shell photoionization of other ions (continuum
-//       opacity, already in opacity_abs).
-//
-// The opacity is continuum only:
-//   kabs = opacity_abs (photoionization + free-free + H- + etc.)
-//   Line opacity is NOT included — line self-absorption is handled
-//   by the per-line escape probability above.
-//
-// Note on Ly-alpha:
-//   With "no line transfer", Cloudy still computes escape probability
-//   for Ly-alpha lines (iRedisFun == ipLY_A) of all iso-sequence
-//   species (rt_line_one.cpp:410).  So cdEmis_ip for Ly-alpha returns
-//   emiss * Pesc_cloudy.  We divide out Pesc_cloudy before applying
-//   our own beta(tau_cell) to avoid double-counting.
-//   For all other lines, Pesc_cloudy = 1 (no correction needed).
-//
+// Pull emissivity and opacity from Cloudy after cdDrive(). Cloudy runs as a
+// single-zone atomic-physics backend ("no line transfer", "stop zone 1");
+// our RT solver does the transfer. Emissivity has three components:
+// (A) continuum, (B) bound-bound lines, (C) inner-shell fluorescence.
+// Opacity (kabs) is continuum only -- line self-absorption is handled by the
+// per-line escape probability in (B).
 void extract_cloudy_output(int id, RadField& rad, const RTGrids& g, int outer_iter)
 {
-	// ---- Thermodynamic state from Cloudy ----
-	rad.T_K[id]     = cdTemp_last();     // electron temperature [K]
-	rad.n_e[id]     = cdEDEN_last();     // electron density [cm^-3]
-	rad.heating[id] = cdHeating_last();  // total heating [erg cm^-3 s^-1]
-	rad.cooling[id] = cdCooling_last();  // total cooling [erg cm^-3 s^-1]
+	// Thermodynamic state
+	rad.T_K[id]     = cdTemp_last();
+	rad.n_e[id]     = cdEDEN_last();
+	rad.heating[id] = cdHeating_last();
+	rad.cooling[id] = cdCooling_last();
 
-	// ---- Map our energy grid to Cloudy's continuum index ----
-	// j0 is the Cloudy index corresponding to our bin 0.
+	// Map our energy grid to Cloudy's continuum index (j0 = Cloudy index of our bin 0)
 	double E_lo_ryd = g.ene[0] / phys::eV_per_Ryd;
 	long j0 = 0;
 	while (j0 < rfield.nflux && rfield.anu(j0) < E_lo_ryd * 0.999)
 		++j0;
 
-	// ---- Zero output arrays ----
 	for (int i = 0; i < g.NE; ++i)
 	{
 		rad.jnu[id][i]      = 0.0;
@@ -97,20 +55,9 @@ void extract_cloudy_output(int id, RadField& rad, const RTGrids& g, int outer_it
 		rad.jnu_line[id][i] = 0.0;
 	}
 
-	// =============================================================
-	// (A) Continuum emissivity and opacity
-	//
-	// ConEmitLocal[nzone][j]: photons cm^-3 s^-1 per energy bin.
-	// Convert to erg cm^-3 s^-1 eV^-1 sr^-1:
-	//   multiply by h*nu [erg/photon] = anu [Ryd] * eV_to_erg
-	//   divide by bin width [eV]      = widflx [Ryd] * eV_per_Ryd
-	//   divide by 4*pi [sr]
-	// The eV_per_Ryd cancels, giving: anu * eV_to_erg / widflx / 4pi
-	//
-	// opacity_abs: continuum absorption [cm^-1]
-	//   Includes photoionization, free-free, H-, H2+, grains.
-	//   Does NOT include line opacity.
-	// =============================================================
+	// (A) Continuum emissivity + opacity. ConEmitLocal is photons cm^-3 s^-1
+	// per bin; convert to erg cm^-3 s^-1 eV^-1 sr^-1 via anu*eV_to_erg/widflx/4pi.
+	// opacity_abs = continuum absorption (photoionization, free-free, H-, ...).
 	for (int i = 0; i < g.NE; ++i)
 	{
 		long j = j0 + i;
@@ -121,15 +68,38 @@ void extract_cloudy_output(int id, RadField& rad, const RTGrids& g, int outer_it
 		rad.kabs[id][i] = opac.opacity_abs[j];
 	}
 
-	// =============================================================
-	// (B) Bound-bound line emission with per-line escape probability
-	//
-	// For each line:
-	//   1. Get raw emissivity from cdEmis_ip
-	//   2. Undo Cloudy's Pesc for Ly-alpha lines
-	//   3. Compute per-line κ, τ, β(τ)
-	//   4. Escaped emission: emiss × β  → goes into jnu_line (spectral)
-	// =============================================================
+	// Remove Cloudy's bound-electron Compton recoil opacity from kabs.
+	// Cloudy folds it into opacity_abs as absorption (opacity_addtotal.cpp), and
+	// "No scattering opacity" does not remove it. Our solver handles all electron
+	// scattering via ksct + the Compton kernel, so leaving it would double-count
+	// scattering as absorption (crashing the 20-100 keV albedo and erasing the
+	// Compton hump). Subtract exactly what Cloudy added so kabs is pure photoabs.
+	for (long nelem = 0; nelem < LIMELM; ++nelem)
+	{
+		if (!dense.lgElmtOn[nelem]) continue;
+		for (long ion = 0; ion < nelem + 1; ++ion)
+		{
+			double factor = dense.xIonDense[nelem][ion];
+			if (nelem == ipHYDROGEN) factor += hmi.H2_total * 2.0;
+			if (factor <= 0.0) continue;
+			factor *= ionbal.nCompRecoilElec[nelem - ion];
+			if (factor <= 0.0) continue;
+			long jstart = ionbal.ipCompRecoil[nelem][ion] - 1;
+			for (int i = 0; i < g.NE; ++i)
+			{
+				long j = j0 + i;
+				if (j < jstart || j - 1 + opac.iopcom < 0) continue;
+				rad.kabs[id][i] -= opac.OpacStack[j - 1 + opac.iopcom] * factor;
+			}
+		}
+	}
+	for (int i = 0; i < g.NE; ++i)
+		if (rad.kabs[id][i] < 0.0) rad.kabs[id][i] = 0.0;
+
+	// (B) Bound-bound lines with per-line escape probability beta(tau_cell),
+	// where beta depends on the redistribution type (PRD / CRD-wing / CRD-core).
+	// "no line transfer" leaves Pesc=1 for all lines except Ly-alpha, which
+	// Cloudy still computes; undo that Pesc first, then apply our own beta.
 	double dr_cell = g.dr[id];
 
 	for (long ip = 0; ip < LineSave.nsum; ++ip)
@@ -149,12 +119,12 @@ void extract_cloudy_output(int id, RadField& rad, const RTGrids& g, int outer_it
 		long j = tr.ipCont() - 1;
 		if (j < j0 || j >= j0 + g.NE) continue;
 
-		// Undo Cloudy's Pesc for Ly-alpha type lines
+		// Undo Cloudy's residual Ly-alpha Pesc
 		realnum Ptot = tr.Emis().Pesc_total();
-		if (tr.Emis().iRedisFun() == ipLY_A && Ptot > 0. && Ptot < 1.) 
+		if (tr.Emis().iRedisFun() == ipLY_A && Ptot > 0. && Ptot < 1.)
 			emiss /= Ptot;
 
-		// Per-line escape probability
+		// Per-line escape probability beta(tau_cell)
 		double beta = 1.0;
 		double pop = tr.Emis().PopOpc();
 		double op  = tr.Emis().opacity();
@@ -186,45 +156,20 @@ void extract_cloudy_output(int id, RadField& rad, const RTGrids& g, int outer_it
 			}
 		}
 
-		// Escaped line emission → jnu_line (determines spectral shape)
+		// Escaped line emission -> jnu_line (sets spectral shape)
 		int i = (int)(j - j0);
 		double dE_eV = rfield.widflx(j) * phys::eV_per_Ryd;
 		double emiss_per_eV_sr = emiss / (dE_eV * phys::four_pi);
 		rad.jnu_line[id][i] += emiss_per_eV_sr*beta;
 	}
 
-	// =============================================================
-	// (C) Inner-shell fluorescence (no escape probability)
-	//
-	// Physical mechanism:
-	//   1. An X-ray photon (E > K-edge) ejects a K-shell electron:
-	//        X^+q + gamma -> X^+(q+1) + e^-(K-shell)
-	//
-	//   2. An outer-shell electron fills the K-shell vacancy.
-	//      Two competing decay channels:
-	//        Auger:         energy ejects another electron (no photon)
-	//        Fluorescence:  energy emitted as an X-ray photon
-	//      The fluorescence yield omega = P(photon) / P(total).
-	//      omega increases with Z:  ~0.01 (O), ~0.34 (Fe), ~0.97 (U)
-	//      because the radiative rate scales as Z^4 while the Auger
-	//      rate is roughly constant.
-	//
-	//   3. The fluorescence photon (e.g. Fe K-alpha at 6.4 keV)
-	//      has energy BELOW the K-edge of the daughter ion.
-	//      It cannot be reabsorbed by the same bound-bound transition
-	//      — there is no such transition.  The only absorption channel
-	//      is K-shell photoionization of less-ionized ions, which is
-	//      continuum opacity (already in opacity_abs).
-	//      Therefore: no escape probability is needed.
-	//
-	// Data source: Kaastra & Mewe (1993, A&AS 97, 443).
-	// Cloudy stores the atomic data in t_yield.
-	//
-	// Rate:  n_phot = n_ion * Gamma_shell * omega  [phot cm^-3 s^-1]
-	//   n_ion       = parent ion density [cm^-3]
-	//   Gamma_shell = inner-shell photoionization rate [s^-1]
-	//   omega       = fluorescence yield (dimensionless, 0 to 1)
-	// =============================================================
+	// (C) Inner-shell fluorescence (e.g. Fe K-alpha 6.4 keV), no escape probability.
+	// A K-shell photoionization leaves a vacancy that decays radiatively with
+	// fluorescence yield omega (Auger otherwise). The photon lies below the
+	// daughter ion's K-edge, so it is not reabsorbed by that transition -- the
+	// only sink is continuum K-shell photoionization (already in opacity_abs).
+	// Rate n_phot = n_ion * Gamma_shell * omega, following Cloudy's prt_lines.cpp;
+	// atomic data from t_yield (Kaastra & Mewe 1993, A&AS 97, 443).
 	for (long ifl = 0; ifl < t_yield::Inst().nlines(); ++ifl)
 	{
 		long ip = t_yield::Inst().ipoint(ifl) - 1;
@@ -243,89 +188,59 @@ void extract_cloudy_output(int id, RadField& rad, const RTGrids& g, int outer_it
 		rad.jnu_line[id][i] += n_phot * conv_fl / phys::four_pi;
 	}
 
-	// =============================================================
-	// Combine: jnu_total = jnu_continuum (boosted) + jnu_line (escaped)
-	//
-	// Per-line Pesc was already applied in (B) above.
-	// Fluorescence in (C) has no Pesc (physically correct).
-	// Continuum boost in (D) conserves energy.
-	// =============================================================
+	// Combine: jnu = continuum (A) + escaped lines (B) + fluorescence (C)
 	for (int i = 0; i < g.NE; ++i)
 		rad.jnu[id][i] += rad.jnu_line[id][i];
 }
 
-// ============================================================
-// issue_constant — Cloudy commands that stay the same for all
-// depth points.  Called once before the depth loop.
-//
-// Design philosophy:
-//   Cloudy runs as a thin single-zone ATOMIC PHYSICS backend.
-//   It provides level populations, ionization balance, emissivity,
-//   and opacity.  Our external RT solver handles all radiative
-//   transfer (continuum attenuation, Compton scattering, line
-//   escape probability).  Therefore we disable Cloudy's own RT
-//   and simplify its physics to what we need.
-//
+// Cloudy commands issued once before the depth loop. Cloudy is run as a
+// single-zone atomic-physics backend with its own RT disabled; our solver
+// handles continuum attenuation, Compton scattering, and line escape.
 void CloudyInput::issue_constant()
 {
-	// --- Abundances and atomic data ---
 	cdRead("abundances \"solar84.abn\"");  // Grevesse & Anders 1984 solar
 	cdRead("init \"xray12.ini\"");         // X-ray optimised continuum mesh
 	char abuf[256];
 	snprintf(abuf, sizeof(abuf), "element scale iron %.4f", Afe);
-	cdRead(abuf);                          // scale Fe abundance
+	cdRead(abuf);
 	snprintf(abuf, sizeof(abuf), "hden %.6f", nh);
-	cdRead(abuf);                          // hydrogen density [cm^-3]
+	cdRead(abuf);
 
-	// --- Disable physics not needed for X-ray RT ---
-	cdRead("no grain physics");       // no dust (X-ray regime)
-	cdRead("no fine opacities");      // no fine-resolution continuum opacity
-	cdRead("no molecules");           // no H2, CO, etc. (hot plasma)
-	cdRead("No scattering opacity");  // we handle Compton scattering ourselves
-	cdRead("no level2 lines");        // disable minor lines (speed)
-	
-	// --- Line transfer: handled by OUR RT solver ---
-	// "no line transfer" makes Cloudy set Pesc=1 for all lines
-	// EXCEPT Ly-alpha (iRedisFun == ipLY_A), which Cloudy still
-	// computes internally (rt_line_one.cpp:410).
-	// We apply our own per-line escape probability beta(tau_cell)
-	// in extract_cloudy_output, and undo Cloudy's Pesc for Ly-alpha
-	// to avoid double-counting.
+	// Disable physics not needed for X-ray RT
+	cdRead("no grain physics");
+	cdRead("no fine opacities");
+	cdRead("no molecules");
+	cdRead("No scattering opacity");   // we handle Compton scattering ourselves
+	cdRead("no level2 lines");
+
+	// "no line transfer" sets Pesc=1 for all lines except Ly-alpha, which we
+	// undo in extract_cloudy_output; we apply our own per-line beta(tau).
 	cdRead("no line transfer");
-
-	// --- Disable H-like Ly-alpha pumping from the incident SED ---
 	cdRead("Database H-like Lyman pumping off");
 
-	// --- Solver settings ---
-	cdRead("iterate convergence");          // iterate until converged
-	cdRead("High temperature approach");    // numerical stability at T > 10^7 K
-	cdRead("stop zone 1");                  // single thin zone (atomic physics only)
-	cdRead("set temperature convergence 0.005");  // 0.5% T convergence
+	cdRead("iterate convergence");
+	cdRead("High temperature approach");   // numerical stability at T > 1e7 K
+	cdRead("stop zone 1");
+	cdRead("set temperature convergence 0.005");
 
-	// --- Atomic database ---
-	// "mixed" = use CHIANTI where available, Stout for the rest.
-	// CHIANTI provides better data for highly ionized species
-	// (Fe XVII–XXIV, Si XIII, S XV, etc.).
-	cdRead("Database Chianti mixed");
+	cdRead("Database Chianti mixed");   // CHIANTI where available, else Stout
 }
 
-// ============================================================
+// Write the incident SED as a Cloudy "table SED" and set its intensity.
+// SED column is J0 directly (= F_nu shape); do NOT apply wid/E (= log-grid
+// spacing, which would distort the shape). "units eV" must be on the first
+// data line. Values are floored at 1e-30 (not dropped) so absorption troughs
+// are preserved rather than bridged over by Cloudy's log-log interpolation.
 void CloudyInput::issue_depth(int id, const RadField& rad, const RTGrids& g,const ModelParams& par)
 {
-	// --- SED shape: write J0/E as table SED ---
-	// Cloudy's "table SED" expects: E  SED(E)
-	// where SED(E) = J0(E) × ΔE / E  (photon-number-weighted shape).
-	// "units eV" MUST appear on the first data line — otherwise
-	// Cloudy reads energies as Rydbergs (default), causing a
-	// factor-of-13.6 energy mismatch.
 	FILE* fsed = open_data("SED_TEST_API_INCI.dat", "w");
-	fprintf(fsed, "# E_eV  J0*wid/E\n");
+	fprintf(fsed, "# E_eV  J0 (F_nu shape)\n");
 
 	bool units_written = false;
 	for (int i = 0; i < g.NE; ++i)
 	{
-		double val = rad.J0[id][i] * g.wid[i] / g.ene[i];
-		if (val <= 1e-30) continue;
+		double val = rad.J0[id][i];
+		if (val < 1e-30) val = 1e-30;
 		if (!units_written)
 		{
 			fprintf(fsed, "%.8e  %.8e units eV\n", g.ene[i], val);
@@ -340,15 +255,12 @@ void CloudyInput::issue_depth(int id, const RadField& rad, const RTGrids& g,cons
 	fclose(fsed);
 	cdRead("table SED \"SED_TEST_API_INCI.dat\"");
 
-	// --- Intensity normalisation ---
 	char buf[256];
 	snprintf(buf, sizeof(buf), "intensity %.8f range %.8f to %.8f ev",(rad.log_xi[id]-log10(phys::four_pi))+par.nh,g.E_IN_LO,g.E_IN_HI);
 	cdRead(buf);
 }
 
-// ============================================================
-// Bootstrap Cloudy to extract the energy grid.
-// ============================================================
+// Bootstrap Cloudy once to extract its energy grid.
 void bootstrap_cloudy_energy_grid(RTGrids& g, const char* save_file)
 {
 	fprintf(stdout, "Bootstrapping Cloudy for energy grid...\n");
@@ -378,23 +290,23 @@ void bootstrap_cloudy_energy_grid(RTGrids& g, const char* save_file)
 
 	fprintf(stdout, "  Energy grid: NE=%d  E=[%.3f, %.3f] eV\n",
 	        g.NE, g.ene[0], g.ene[g.NE - 1]);
-			
+
 	char buf[256];
 	cdVersion(buf);
 	fprintf(stdout, "  Cloudy version: %s\n",buf);
 }
 
+// Final post-convergence pass: same SED as issue_depth(), plus dump iron fractions.
 void CloudyInput::issue_depth_lastest(int id, const RadField& rad, const RTGrids& g,const ModelParams& par)
 {
-	// after the whole iteration, output the line labels and the iron fraction
 	FILE* fsed = open_data("SED_TEST_API_INCI.dat", "w");
-	fprintf(fsed, "# E_eV  J0*wid/E\n");
+	fprintf(fsed, "# E_eV  J0 (F_nu shape)\n");
 
 	bool units_written = false;
 	for (int i = 0; i < g.NE; ++i)
 	{
-		double val = rad.J0[id][i] * g.wid[i] / g.ene[i];
-		if (val <= 1e-30) continue;
+		double val = rad.J0[id][i];
+		if (val < 1e-30) val = 1e-30;
 		if (!units_written)
 		{
 			fprintf(fsed, "%.8e  %.8e units eV\n", g.ene[i], val);
@@ -409,12 +321,10 @@ void CloudyInput::issue_depth_lastest(int id, const RadField& rad, const RTGrids
 	fclose(fsed);
 	cdRead("table SED \"SED_TEST_API_INCI.dat\"");
 
-	// --- Intensity normalisation ---
 	char buf[256];
 	snprintf(buf, sizeof(buf), "intensity %.8f range %.8f to %.8f ev",(rad.log_xi[id]-log10(phys::four_pi))+par.nh,g.E_IN_LO,g.E_IN_HI);
 	cdRead(buf);
 
-	// line labels
 	char fname[256];
 	snprintf(fname, sizeof(fname), "\"%s%i.iron\"", par.run_hash,id);
 	snprintf(buf, sizeof(buf), "save element iron %s", fname);

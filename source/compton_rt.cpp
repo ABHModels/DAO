@@ -419,9 +419,6 @@ void compton_rt_solve(RadField& rad, const RTGrids& g,
 		                        source, dt_ang,
 		                        intensity);
 
-		// Mean intensity first: the angle-mean source function consumes it,
-		// and it is computed from the (unchanged) current intensity, so the
-		// convergence check below sees the same values as before.
 		mean_intensity(ND, NM, NE, g.wt, intensity, meani);
 
 		source_dispatch(kcache, ND, NM, NE,

@@ -1,6 +1,11 @@
 // ============================================================
 // maindaocl — Compton scattering RT solver using Cloudy
 //
+// Author:  Yimin Huang (Fudan University; University of Bristol)
+// Contact: huangym23@m.fudan.edu.cn  (alt: hyimin0924@gmail.com)
+// License: MIT (see LICENSE). Cloudy and HEASoft/Xspec are separate
+//          dependencies under their own licenses.
+//
 // 1. Read input
 // 2. Bootstrap Cloudy to get energy grid
 // 3. Calculate grids (angle, depth, energy from Cloudy)
@@ -76,8 +81,7 @@ int main(int argc, char *argv[])
 			if (is_test)
 			{
 				const double kB_eV  = phys::k_B / phys::eV_to_erg;   // [eV/K]
-				double T_slab = is_compps ? (par.kT_e * 1.0e3 / kB_eV)
-										: par.T_test;
+				double T_slab = par.kT_e * 1.0e3 / kB_eV;   // slab Te [keV] -> [K]
 				kcache.init(g.NE, g.ene, g.NA, g.mu, g.wt, par.ktype, 1, &T_slab);
 			}
 			else
@@ -99,8 +103,7 @@ int main(int argc, char *argv[])
 			if (is_test)
 			{
 				const double kB_eV  = phys::k_B / phys::eV_to_erg;   // [eV/K]
-				double T_slab = is_compps ? (par.kT_e * 1.0e3 / kB_eV)
-										: par.T_test;
+				double T_slab = par.kT_e * 1.0e3 / kB_eV;   // slab Te [keV] -> [K]
 				kcache.init(g.NE, g.ene, g.NA, g.mu, g.wt, par.ktype, 1, &T_slab);
 			}
 			else

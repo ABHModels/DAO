@@ -10,10 +10,10 @@ Data and plotting scripts to reproduce the paper's figures.
 |-----------|-------|
 | `figure1` | Escape probability for subordinate lines; validated against Cloudy `rt_escprob.cpp`. |
 | `figure2` | 2-D slices of the Compton redistribution kernel for Fe Kα and the Compton hump. |
-| `figure3` | DAOv2.0 reflection spectra vs `reflionx` and `xillvercp` over a log ξ scan. |
+| `figure3` | DAO reflection spectra vs `reflionx` and `xillvercp` over a log ξ scan (`figure_benchmark`, native DAO normalisation; `figure_benchmark_xillvernorm`, same comparison with the `xillver` flux-normalisation convention). |
 | `figure4` | Incidence-angle sensitivity of the reflection spectrum vs `pexrav`. |
-| `figure5` | Iron ionization fraction vs Thomson optical depth (DAOv1.0 vs DAOv2.0). |
-| `figure6` | Comptonized slab: DAOv2.0 emergent spectra and limb-darkening law vs `compPS`. |
+| `figure5` | Iron ionization fraction vs Thomson optical depth (DAOv1.0 vs DAO). |
+| `figure6` | Comptonized slab: DAO emergent spectra and limb-darkening law vs `compPS`. |
 
 ## How to use
 

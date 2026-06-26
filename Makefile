@@ -3,7 +3,7 @@
 # ============================================================
 
 # Cloudy paths — the ONLY thing you change per version
-CLOUDY_SRC  = /paths to your cloudy/source
+CLOUDY_SRC  = /path/to/cloudy/source
 #eg. CLOUDY_SRC=  ./cloudyc25/source
 CLOUDY_LIB  = $(CLOUDY_SRC)
 CLOUDY_ROOT = $(CLOUDY_SRC)/..

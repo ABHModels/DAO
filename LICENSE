@@ -1,0 +1,48 @@
+MIT License
+
+Copyright (c) 2026 Yimin Huang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+This MIT license applies only to the original DAO source code in this
+repository. DAO depends on third-party software that carries its own separate
+license (DAO does not bundle their distributions):
+
+  - Cloudy (Gary J. Ferland and collaborators) is licensed under the zlib
+    license <https://opensource.org/licenses/Zlib> and must be obtained
+    separately from <https://gitlab.nublado.org/cloudy/cloudy>. Cloudy is used
+    unmodified, through its public API (headers, library functions, and data
+    structures); DAO does not modify, copy, or redistribute Cloudy's source.
+    Two blocks in source/cloudy_interface_v2.cpp reimplement, on DAO's own
+    grid, calculations documented in Cloudy's source -- the bound-electron
+    Compton-recoil opacity (opacity_addtotal.cpp) and the inner-shell
+    fluorescence emission (prt_lines.cpp) -- using Cloudy's data structures;
+    both are cited in-line.
+
+  - HEASoft / XSPEC (NASA HEASARC) must be obtained separately from
+    <https://heasarc.gsfc.nasa.gov/docs/software/heasoft/>.
+
+  - The exact Compton redistribution function in source/compton_kernel.cpp is a
+    C++ port of the publicly available Fortran code by Jerzy Madej
+    <https://www.astrouw.edu.pl/~jm/software.html>. If you use it, please cite:
+        Madej J., Rozanska A., Majczyna A., Nalezyta M., 2017,
+        MNRAS, 469, 2032
+        <https://ui.adsabs.harvard.edu/abs/2017MNRAS.469.2032M>.
