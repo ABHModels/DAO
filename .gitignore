@@ -42,3 +42,6 @@ venv/
 README_new.md
 ui_new.py
 *.bak
+
+# Paper Draft
+draft/
