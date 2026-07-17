@@ -40,6 +40,7 @@ static void fill_test_data(RadField& rad, const RTGrids& g,
 			memcpy(rad.ksct[id], rad.ksct[0], g.NE * sizeof(double));
 
 		rad.heating[id] = 0.0;
+		rad.line_heat[id] = 0.0;
 		rad.cooling[id] = 0.0;
 	}
 
@@ -292,4 +293,3 @@ template void run_test_rt<KernelCache>(
 	RadField&, const RTGrids&, ModelParams&, KernelCache&);
 template void run_test_rt<avgKernelCache>(
 	RadField&, const RTGrids&, ModelParams&, avgKernelCache&);
-

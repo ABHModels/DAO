@@ -31,11 +31,13 @@ license (DAO does not bundle their distributions):
     separately from <https://gitlab.nublado.org/cloudy/cloudy>. Cloudy is used
     unmodified, through its public API (headers, library functions, and data
     structures); DAO does not modify, copy, or redistribute Cloudy's source.
-    Two blocks in source/cloudy_interface_v2.cpp reimplement, on DAO's own
-    grid, calculations documented in Cloudy's source -- the bound-electron
-    Compton-recoil opacity (opacity_addtotal.cpp) and the inner-shell
-    fluorescence emission (prt_lines.cpp) -- using Cloudy's data structures;
-    both are cited in-line.
+    Several blocks in source/cloudy_interface_v2.cpp reproduce, on DAO's own
+    slab and energy grids, calculations documented in Cloudy's source: the
+    bound-electron Compton-recoil opacity (opacity_addtotal.cpp), the
+    inner-shell fluorescence emission (prt_lines.cpp), and the line
+    escape-probability branching for continuum destruction and
+    electron-scattering escape (rt_escprob.cpp and related transition APIs).
+    These use Cloudy's public data structures and are cited in-line.
 
   - HEASoft / XSPEC (NASA HEASARC) must be obtained separately from
     <https://heasarc.gsfc.nasa.gov/docs/software/heasoft/>.

@@ -1,281 +1,375 @@
-"""Escape probability for subordinate lines: CRD with Voigt wings.
+"""Line escape in DAO: how the escape-probability branching reshapes line power.
 
-Left:  geometry of the cell-by-cell solver — stacked plasma cells
-       bathed by the mean radiation field J_nu, emitting continuum
-       j_con directly and line photons after escape factor beta_l.
-Right: beta_l(tau_l) = (1 - p_w) beta_K2(tau_l) + p_w
-       (Hummer 1982; Ferland et al. 2017).
+Two-row small-multiple figure (4 columns = 4 representative lines chosen by
+write_line_escape_diagnostics(), one per escape-physics regime):
 
-Author:      Yimin Huang
-Affiliation: Fudan University; University of Bristol
-Email:       huangym23@m.fudan.edu.cn
+  Top row    -- WHAT it does: local line power vs Thomson depth, comparing the
+                 optically-thin emissivity with the power that actually escapes;
+                 the shaded band is the power removed by trapping/destruction.
+  Bottom row -- HOW it is done: the surviving fraction
+                 P = (beta + P_el)(1 + y) / (beta + P_el + y + P_dest)
+                 decomposed into its four competing channels -- line (Sobolev)
+                 escape beta, electron-scattering escape P_el, continuum
+                 destruction P_dest, and collisional quenching y = C_ul/A_ul.
+
+Only continuum destruction (P_dest) is fed back as an explicit DAO heating term.
+The collisional de-excitation rate y = C_ul/A_ul enters the survival
+normalization but is not added as a separate DAO heating source.
+
+Data (local to this folder; model 603b2ef4, latest iteration 025):
+  line_escape_selected_603b2ef4.dat -- per-depth channel profiles for the four
+    representative lines.
+  line_escape_lines_603b2ef4.dat    -- per-line slab summary.
 """
 
 import os
+import re
 
 import numpy as np
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+OUT = os.path.join(HERE, "escape_probability.pdf")
+LINES_FILE = os.path.join(HERE, "line_escape_lines_603b2ef4.dat")
+SELECTED_FILE = os.path.join(HERE, "line_escape_selected_603b2ef4.dat")
+
+os.environ.setdefault("MPLBACKEND", "Agg")
+
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle, FancyArrowPatch
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
+from matplotlib.ticker import LogLocator, NullFormatter
 
-# Self-contained: write the figure next to this script, regardless of cwd.
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(SCRIPT_DIR, "escape_probability.pdf")
-# Palette matched to beamer theme
-C_AZURE = "#2A62AF"
-C_INK   = "#12203A"
-C_VERM  = "#C4302B"
-C_GOLD  = "#CDAD6D"
-C_SLATE = "#6C7484"
-C_MIST  = "#E4E8F0"
-C_CELL  = "#CFE0F5"
+C_GRID = "#D6D9DE"
 
 
-# ---------------------------------------------------------------
-# Cloudy's esca0k2 — Hummer's K_2 one-sided escape probability for
-# a pure Doppler profile (a = 0).
+def selected_file_is_representative(path):
+    with open(path, "r", encoding="utf-8") as fh:
+        for _ in range(40):
+            line = fh.readline()
+            if not line:
+                break
+            if "representative escape-physics cases" in line:
+                return True
+    return False
+
+
+def clean_line_label(label, energy_eV):
+    label = " ".join(label.split())
+    if not label:
+        label = f"{energy_eV:.0f} eV"
+    return f"{label} ({energy_eV:.0f} eV)"
+
+
+def read_line_summary(path):
+    rows = []
+    with open(path, "r", encoding="utf-8") as fh:
+        for line in fh:
+            if not line.strip() or line.startswith("#"):
+                continue
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) < 16:
+                continue
+            rows.append({
+                "rank": int(parts[0]),
+                "ip": int(parts[1]),
+                "E_eV": float(parts[2]),
+                "wave": float(parts[3]),
+                "thin_sum": float(parts[4]),
+                "escaped_sum": float(parts[5]),
+                "heat_sum": float(parts[6]),
+                "slab_ratio": float(parts[7]),
+                "heat_ratio": float(parts[8]),
+                "mean_beta": float(parts[9]),
+                "mean_Pelec": float(parts[10]),
+                "mean_Pdest": float(parts[11]),
+                "mean_y": float(parts[12]),
+                "mean_tauT": float(parts[13]),
+                "max_tau_line": float(parts[14]),
+                "label": parts[15],
+                "comment": parts[16] if len(parts) > 16 else "",
+            })
+    return sorted(rows, key=lambda row: row["rank"])
+
+
+def read_selected_profiles(path):
+    groups = {}
+    with open(path, "r", encoding="utf-8") as fh:
+        for line in fh:
+            if not line.strip() or line.startswith("#"):
+                continue
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) < 14:
+                continue
+            sel = int(parts[0])
+            row = {
+                "selected": sel,
+                "depth": int(parts[1]),
+                "tau": float(parts[2]),
+                "ip": int(parts[3]),
+                "E_eV": float(parts[4]),
+                "thin": float(parts[5]),
+                "escaped": float(parts[6]),
+                "ratio": float(parts[7]),
+                "heat": float(parts[8]),
+                "beta": float(parts[9]),
+                "Pelec": float(parts[10]),
+                "Pdest": float(parts[11]),
+                "y": float(parts[12]),
+                "label": parts[13],
+                "comment": parts[14] if len(parts) > 14 else "",
+            }
+            groups.setdefault(sel, []).append(row)
+
+    profiles = []
+    for sel in sorted(groups):
+        rows = sorted(groups[sel], key=lambda r: r["tau"])
+        if not rows:
+            continue
+        tau = np.array([r["tau"] for r in rows])
+        ratio = np.array([r["ratio"] for r in rows])
+        beta = np.array([r["beta"] for r in rows])
+        pelec = np.array([r["Pelec"] for r in rows])
+        pdest = np.array([r["Pdest"] for r in rows])
+        yq = np.array([r["y"] for r in rows])
+        thin = np.array([r["thin"] for r in rows])
+        escaped = np.array([r["escaped"] for r in rows])
+        E = rows[0]["E_eV"]
+        label = clean_line_label(rows[0]["label"], E)
+        thin_sum = np.sum(thin)
+        escaped_sum = np.sum(escaped)
+        profiles.append({
+            "selected": sel,
+            "ip": rows[0]["ip"],
+            "E_eV": E,
+            "raw_label": rows[0]["label"],
+            "comment": rows[0].get("comment", ""),
+            "tau": tau,
+            "ratio": ratio,
+            "beta": beta,
+            "pelec": pelec,
+            "pdest": pdest,
+            "y": yq,
+            "thin": thin,
+            "escaped": escaped,
+            "label": label,
+            "thin_sum": thin_sum,
+            "escaped_sum": escaped_sum,
+            "zeros_thin": int(np.sum(thin == 0.0)),
+            "zeros_escaped": int(np.sum(escaped == 0.0)),
+            "slab_ratio": escaped_sum / thin_sum if thin_sum > 0 else 0.0,
+        })
+    return profiles
+
+
+def selected_lines_from_diagnostic(lines_path, selected_path, n=4):
+    summaries = {row["ip"]: row for row in read_line_summary(lines_path)}
+    selected = []
+    for profile in read_selected_profiles(selected_path)[:n]:
+        line = dict(profile)
+        summary = summaries.get(line["ip"])
+        if summary is not None:
+            line.update({
+                "rank": summary["rank"],
+                "label": clean_line_label(summary["label"], summary["E_eV"]),
+                "thin_sum": summary["thin_sum"],
+                "escaped_sum": summary["escaped_sum"],
+                "slab_ratio": summary["slab_ratio"],
+                "heat_ratio": summary["heat_ratio"],
+                "max_tau_line": summary["max_tau_line"],
+            })
+        else:
+            line.setdefault("rank", -1)
+            line.setdefault("heat_ratio", 0.0)
+            line.setdefault("max_tau_line", 0.0)
+        selected.append(line)
+    if len(selected) < n:
+        raise RuntimeError(
+            f"only found {len(selected)} selected line profiles in {selected_path}"
+        )
+    return selected
+
+
+# ---------------------------------------------------------------------------
+# Journal figure.
 #
-# Direct line-by-line port of esca0k2() in
-#   cloudy/source/rt_escprob.cpp  (lines 425-481)
-#
-# Rational-approximation coefficients are from
-#   Hummer, D.G., 1981, JQSRT, 26, 187
-# and the K_2 function itself is the static one-sided escape
-# probability that appears as the unmarked lower-envelope curve in
-#   Hummer & Rybicki, 1982, ApJ, 254, 767, Fig. 2
-# (their Eqs. 2.11-2.12).
-#
-# Argument convention: input is the LINE-CENTER optical depth taume,
-# related to Hummer's tau by tau = taume * sqrt(pi). Limits:
-#   taume -> 0   :  esca0k2 -> 1
-#   taume >> 1   :  esca0k2 -> 1 / [2 tau sqrt(ln(tau/sqrt(pi)))]
-# ---------------------------------------------------------------
-SQRTPI = np.sqrt(np.pi)
-_A = np.array([1.00, -0.1117897, -0.1249099917, -9.136358767e-3,
-               -3.370280896e-4])
-_B = np.array([1.00,  0.1566124168, 9.013261660e-3, 1.908481163e-4,
-               -1.547417750e-7, -6.657439727e-9])
-_C = np.array([1.000, 19.15049608, 100.7986843, 129.5307533, -31.43372468])
-_D = np.array([1.00, 19.68910391, 110.2576321, 169.4911399, -16.69969409,
-               -36.664480000])
+# Two-row small-multiple layout (no dual y-axes): the top row shows what the
+# escape branching does to the emergent line power, the bottom row shows how it
+# is done -- the survival fraction P decomposed into its four competing
+# channels.  The four columns are the representative lines chosen by
+# write_line_escape_diagnostics(), one per escape-physics regime.
+# ---------------------------------------------------------------------------
+
+# Semantic colours (colourblind-safe; from the validated data-viz palette).
+C_ORIG = "#52514e"   # original / optically-thin line power (ink, dashed)
+C_ESC = "#2a78d6"    # escaped line power  (blue)
+C_REMOVED = "#8a8f98"  # line power not surviving as escaped emission
+C_SURV = "#111417"   # survival fraction P (ink, heavy)
+C_CH_BETA = "#2a78d6"   # beta  -- line (Sobolev) escape       (blue)
+C_CH_ELEC = "#1baf7a"   # P_elec -- electron-scattering escape (aqua)
+C_CH_DEST = "#e34948"   # P_dest -- continuum destruction      (red)
+C_CH_Y = "#eb6834"      # y      -- collisional de-excitation  (orange)
+
+_ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
+          "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX",
+          "XX", "XXI", "XXII", "XXIII", "XXIV", "XXV", "XXVI", "XXVII"]
 
 
-def _esca0k2_scalar(taume):
-    tau = taume * SQRTPI
-    if tau < 0.01:
-        return 1.0 - 2.0 * tau
-    elif tau <= 11.0:
-        suma = _A[0] + tau*(_A[1] + tau*(_A[2] + tau*(_A[3] + _A[4]*tau)))
-        sumb = (_B[0] + tau*(_B[1] + tau*(_B[2] + tau*(_B[3]
-                + tau*(_B[4] + _B[5]*tau)))))
-        return tau / 2.5066283 * np.log(tau / SQRTPI) + suma / sumb
-    else:
-        arg = 1.0 / np.log(tau / SQRTPI)
-        sumc = _C[0] + arg*(_C[1] + arg*(_C[2] + arg*(_C[3] + _C[4]*arg)))
-        sumd = (_D[0] + arg*(_D[1] + arg*(_D[2] + arg*(_D[3]
-                + arg*(_D[4] + _D[5]*arg)))))
-        return (sumc / sumd) / (2.0 * tau * np.sqrt(np.log(tau / SQRTPI)))
+def spectroscopic_label(raw_label, comment, E_eV):
+    """Turn a Cloudy line label ('O  8   18.9689A') into 'O VIII 18.97 Å'."""
+    m = re.match(r"\s*([A-Z][a-z]?)\s+(\d+)\s+([\d.]+)\s*([A-Za-z]*)",
+                 raw_label or "")
+    if not m:
+        return clean_line_label(raw_label, E_eV)
+    elem, stage = m.group(1), int(m.group(2))
+    wave, unit = float(m.group(3)), m.group(4)
+    roman = _ROMAN[stage] if 0 < stage < len(_ROMAN) else str(stage)
+    unit = "Å" if unit.upper().startswith("A") else unit   # Angstrom
+    lam = f"{wave:.2f}" if wave < 100 else f"{wave:.1f}"
+    # H-/He-like Lyman-alpha resonance lines get the familiar spectroscopic tag.
+    tag = ""
+    if comment and ("1^2S -   2^2P" in comment or "1^1S -   2^1P" in comment):
+        tag = " Lyα"   # Lyman-alpha
+    return f"{elem} {roman}{tag}  {lam} {unit}"
 
 
-def beta_K2(tau):
-    """Hummer K_2 one-sided escape probability (Cloudy esca0k2)."""
-    tau = np.atleast_1d(np.asarray(tau, dtype=float))
-    return np.array([_esca0k2_scalar(t) for t in tau]).reshape(tau.shape)
+plt.rcParams.update({
+    "font.size": 9.5,
+    "axes.linewidth": 0.8,
+    "xtick.direction": "in",
+    "ytick.direction": "in",
+    "mathtext.fontset": "cm",
+    "axes.labelpad": 3.0,
+})
 
+lines_file = LINES_FILE
+selected_file = SELECTED_FILE
+is_representative_selected = selected_file_is_representative(selected_file)
+selected_lines = selected_lines_from_diagnostic(lines_file, selected_file, n=4)
 
-# ---------------------------------------------------------------
-# Cloudy's esc_PRD_1side — partial (incomplete) redistribution,
-# one-sided escape probability with damping wings.
-#
-# Direct port of esc_PRD_1side() in
-#   cloudy/source/rt_escprob.cpp  (lines 116-162)
-#
-# Form:  beta = 1 / (1 + b(a, tau) * tau),  with
-#   atau = a * tau
-#   b = 1.6 + 3 (2a)^{-0.12} * f(atau)
-#   f(atau) = sqrt(atau)/(1+sqrt(atau))   for atau <= 1
-#   f(atau) = 1/(1+atau)                  for atau > 1
-#   b capped at 6
-# Argument: tau is the line-center optical depth, a is the Voigt
-# damping parameter (a = Gamma / (4 pi Delta nu_D)).
-# ---------------------------------------------------------------
-def _esc_PRD_1side_scalar(tau, a):
-    if tau < 0.0:
-        return np.nan
-    atau = a * tau
-    pref = 3.0 * (2.0 * a) ** (-0.12)
-    if atau > 1.0:
-        b = 1.6 + pref / (1.0 + atau)
-    else:
-        sa = np.sqrt(atau)
-        b = 1.6 + pref * sa / (1.0 + sa)
-    b = min(6.0, b)
-    return 1.0 / (1.0 + b * tau)
-
-
-def beta_PRD(tau, a):
-    """Cloudy esc_PRD_1side — incomplete-redistribution escape prob."""
-    tau = np.atleast_1d(np.asarray(tau, dtype=float))
-    return np.array([_esc_PRD_1side_scalar(t, a) for t in tau]).reshape(tau.shape)
-
-
-fig, (axL, axR) = plt.subplots(
-    1, 2, figsize=(10.4, 4.4),
-    gridspec_kw={"width_ratios": [1.0, 1.15]},
-    constrained_layout=True,
+fig, axes = plt.subplots(
+    2, 4, figsize=(11.0, 5.6), sharex=True, sharey="row",
+    gridspec_kw=dict(height_ratios=[1.0, 1.0], hspace=0.10, wspace=0.06),
 )
+fig.subplots_adjust(left=0.08, right=0.985, top=0.865, bottom=0.135)
+letters = ["(a)", "(b)", "(c)", "(d)"]
+TINY = 1.0e-6   # probability floor for the log axis: below this a channel is off
 
-# ===============================================================
-# Left: celled-plasma geometry
-# ===============================================================
-axL.set_xlim(0, 1)
-axL.set_ylim(0, 1)
-axL.set_aspect("equal")
-axL.set_axis_off()
+for col, line in enumerate(selected_lines):
+    tau = line["tau"]
+    thin = line["thin"]
+    esc = line["escaped"]
 
-# Stack of cells (optical depth grows downward)
-cell_tops = [0.88, 0.70, 0.52, 0.34, 0.16]
-tau_labels = [r"$\tau_{d-1}$", r"$\tau_{d}$", r"$\tau_{d+1}$",
-              r"$\tau_{d+2}$", r"$\tau_{d+3}$"]
-x_lo, x_hi = 0.22, 0.86
+    # ------- top row: emergent line power -------------------------------
+    axt = axes[0][col]
+    mt = thin > 0.0
+    me = esc > 0.0
+    # Shade the power removed by the escape branching (thin -> escaped).
+    both = mt & me
+    axt.fill_between(tau[both], np.maximum(esc[both], TINY), thin[both],
+                     where=thin[both] > esc[both], color=C_REMOVED,
+                     alpha=0.22, lw=0, zorder=1, label="removed")
+    axt.plot(tau[mt], thin[mt], color=C_ORIG, lw=1.6, ls=(0, (5, 2)),
+             zorder=3, label="optically thin")
+    axt.plot(tau[me], esc[me], color=C_ESC, lw=2.3, zorder=4, label="escaped")
+    axt.set_yscale("log")
+    axt.set_xscale("log")
 
-# tau grid lines + labels
-for y, lbl in zip(cell_tops, tau_labels):
-    axL.plot([x_lo - 0.03, x_hi + 0.03], [y, y],
-             color=C_SLATE, lw=0.8, ls="--", zorder=1)
-    axL.text(x_lo - 0.05, y, lbl, ha="right", va="center",
-             fontsize=10.5, color=C_INK)
+    # Panel header: (letter) ion + wavelength ; energy + escape fraction.
+    ion = spectroscopic_label(line.get("raw_label", ""),
+                              line.get("comment", ""), line.get("E_eV", 0.0))
+    axt.set_title(f"{letters[col]}  {ion}", loc="left", fontsize=10.5, pad=6)
+    axt.text(0.05, 0.06,
+             r"$%.0f\,$eV" % line.get("E_eV", 0.0) + "\n"
+             + r"$\Sigma_{\rm esc}/\Sigma_{\rm thin}=%.2f$" % line["slab_ratio"],
+             transform=axt.transAxes, fontsize=10.5, color=C_SURV,
+             va="bottom", ha="left", linespacing=1.4)
 
-# Fill each cell with plasma (dots)
-rng = np.random.default_rng(7)
-for i in range(len(cell_tops) - 1):
-    yt, yb = cell_tops[i], cell_tops[i + 1]
-    highlight = (i == 1)  # cell d is between tau_d and tau_{d+1}
-    face = C_CELL if highlight else C_MIST
-    axL.add_patch(Rectangle(
-        (x_lo, yb), x_hi - x_lo, yt - yb,
-        facecolor=face, edgecolor="none", zorder=2, alpha=0.9,
-    ))
-    # plasma dots
-    n_dots = 28
-    xs = rng.uniform(x_lo + 0.02, x_hi - 0.02, n_dots)
-    ys = rng.uniform(yb + 0.015, yt - 0.015, n_dots)
-    axL.scatter(xs, ys, s=7, color=C_SLATE, alpha=0.55, zorder=3)
+    # ------- bottom row: survival fraction and its channels -------------
+    # Only where the line actually emits (thin > 0) are the branching ratios
+    # defined; elsewhere the diagnostic stores 0, so mask to avoid floor spikes.
+    axb = axes[1][col]
+    mp = thin > 0.0
+    tp = tau[mp]
+    axb.plot(tp, np.clip(line["ratio"][mp], TINY, 1.5), color=C_SURV, lw=2.4,
+             zorder=6, label=r"$P$ (survival)")
+    axb.plot(tp, np.clip(line["beta"][mp], TINY, None), color=C_CH_BETA, lw=1.5,
+             zorder=5, label=r"$\beta$ (line escape)")
+    axb.plot(tp, np.clip(line["pelec"][mp], TINY, None), color=C_CH_ELEC, lw=1.5,
+             zorder=5, label=r"$P_{\rm el}$ ($e^-$ scattering)")
+    axb.plot(tp, np.clip(line["pdest"][mp], TINY, None), color=C_CH_DEST, lw=1.5,
+             zorder=5, label=r"$P_{\rm dest}$ (destruction)")
+    axb.plot(tp, np.clip(line["y"][mp], TINY, None), color=C_CH_Y, lw=1.5,
+             zorder=4, label=r"$y$ (coll. quench)")
+    axb.axhline(1.0, color=C_GRID, lw=0.8, ls=(0, (1, 2)), zorder=1)
+    axb.set_yscale("log")
+    axb.set_xscale("log")
+    axb.set_ylim(TINY, 2.0)
 
-# Direction-of-tau arrow on the far left
-axL.annotate(
-    "", xy=(x_lo - 0.15, cell_tops[-1] - 0.02),
-    xytext=(x_lo - 0.15, cell_tops[0] + 0.02),
-    arrowprops=dict(arrowstyle="->", color=C_SLATE, lw=1.1),
-)
-axL.text(x_lo - 0.17, (cell_tops[0] + cell_tops[-1]) / 2,
-         r"$\tau$", ha="right", va="center",
-         fontsize=12, color=C_SLATE)
+    for ax in (axt, axb):
+        ax.grid(True, which="major", color=C_GRID, lw=0.6, zorder=0)
+        ax.tick_params(which="both", top=True, right=True, labelsize=8.6)
+        ax.xaxis.set_major_locator(LogLocator(numticks=6))
+        ax.xaxis.set_minor_locator(
+            LogLocator(subs=np.arange(2, 10) * 0.1, numticks=100))
+        ax.xaxis.set_minor_formatter(NullFormatter())
 
-# ----- Highlighted cell d -----
-yt, yb = cell_tops[1], cell_tops[2]   # tau_d to tau_{d+1}
-xm = (x_lo + x_hi) / 2
-ym = (yt + yb) / 2
+# Full slab depth (tau_T up to ~5). These H-/He-like ions of O and Ne exist
+# only in the photoionized tau_T < 0.05 skin; deeper the gas recombines to
+# lower stages, so the lines have zero emissivity and the profiles are empty --
+# it is the ions that stop, not the depth grid.
+tau_lo = min(l["tau"][l["tau"] > 0].min() for l in selected_lines)
+tau_hi = max(l["tau"].max() for l in selected_lines)
+axes[0][0].set_xlim(tau_lo * 0.75, tau_hi * 1.1)   # shared via sharex
 
-# Mean radiation field J̄ — incoming from both sides of the cell
-# (gold curved arrows)
-for x0 in np.linspace(x_lo + 0.1, x_hi - 0.1, 3):
-    axL.add_patch(FancyArrowPatch(
-        (x0 - 0.03, yt + 0.06), (x0, yt),
-        arrowstyle="-|>", color=C_GOLD, lw=1.3, mutation_scale=10,
-        connectionstyle="arc3,rad=0.15", zorder=4,
-    ))
-    axL.add_patch(FancyArrowPatch(
-        (x0 + 0.03, yb - 0.06), (x0, yb),
-        arrowstyle="-|>", color=C_GOLD, lw=1.3, mutation_scale=10,
-        connectionstyle="arc3,rad=0.15", zorder=4,
-    ))
+# Shared top-row power scale (labels only on column 1, via sharey="row").
+allthin = np.concatenate([l["thin"][l["thin"] > 0] for l in selected_lines])
+allesc = np.concatenate([l["escaped"][l["escaped"] > 0] for l in selected_lines])
+axes[0][0].set_ylim(max(allesc.min() * 0.5, allthin.max() * 1e-6),
+                    allthin.max() * 3.0)
 
-axL.text(x_hi + 0.05, ym + 0.02, r"$\bar J_\nu$",
-         color=C_GOLD, fontsize=13, va="center", weight="bold")
-axL.text(x_hi + 0.05, ym - 0.04, "(mean\nradiation\nfield)",
-         color=C_GOLD, fontsize=7.8, va="top", ha="left")
+axes[1][0].set_xlabel("")  # x label is set once, centred, below
 
-# Continuum emissivity j_con (blue outgoing arrow, top-left)
-axL.add_patch(FancyArrowPatch(
-    (x_lo + 0.22, yt), (x_lo + 0.03, yt + 0.12),
-    arrowstyle="-|>", color=C_AZURE, lw=2.0, mutation_scale=14,
-    connectionstyle="arc3,rad=0.25", zorder=5,
-))
-axL.text(x_lo - 0.02, yt + 0.13, r"$j_{\rm con}$",
-         color=C_AZURE, fontsize=13, weight="bold",
-         ha="left", va="bottom")
+for col in range(4):
+    axes[1][col].set_xlabel(r"Thomson depth  $\tau_{\rm T}$", fontsize=10)
+axes[0][0].set_ylabel(r"Local line power" "\n" r"[erg cm$^{-3}$ s$^{-1}$]",
+                      fontsize=10)
+axes[1][0].set_ylabel(r"Branching terms" "\n" r"in survival factor", fontsize=10)
 
-# Escaped line emissivity β_ℓ j_line (red outgoing arrow, top-right)
-axL.add_patch(FancyArrowPatch(
-    (x_hi - 0.22, yt), (x_hi - 0.03, yt + 0.12),
-    arrowstyle="-|>", color=C_VERM, lw=2.0, mutation_scale=14,
-    connectionstyle="arc3,rad=-0.25", zorder=5,
-))
-axL.text(x_hi - 0.02, yt + 0.13,
-         r"$\beta_\ell\, j_{\rm line}$",
-         color=C_VERM, fontsize=13, weight="bold",
-         ha="right", va="bottom")
+# Two legends: power (top row) and channels (bottom row), as figure legends.
+power_handles = [
+    Line2D([0], [0], color=C_ORIG, lw=1.6, ls=(0, (5, 2)), label="optically thin"),
+    Line2D([0], [0], color=C_ESC, lw=2.3, label="escaped"),
+    Patch(facecolor=C_REMOVED, alpha=0.22, label="not surviving as line emission"),
+]
+fig.legend(handles=power_handles, ncol=3, frameon=False, fontsize=9,
+           loc="upper center", bbox_to_anchor=(0.5, 0.975),
+           handlelength=1.8, columnspacing=1.6)
 
-# Highlight box outline
-axL.add_patch(Rectangle(
-    (x_lo, yb), x_hi - x_lo, yt - yb,
-    facecolor="none", edgecolor=C_INK, lw=1.6, zorder=6,
-))
-axL.text(xm, (yt + yb) / 2, "cell $d$",
-         ha="center", va="center",
-         fontsize=10.5, color=C_INK, style="italic",
-         bbox=dict(boxstyle="round,pad=0.25", facecolor="white",
-                   edgecolor=C_INK, lw=0.7))
+chan_handles = [
+    Line2D([0], [0], color=C_SURV, lw=2.4, label=r"$P$  survival fraction"),
+    Line2D([0], [0], color=C_CH_BETA, lw=1.6, label=r"$\beta$  line escape"),
+    Line2D([0], [0], color=C_CH_ELEC, lw=1.6, label=r"$P_{\rm el}$  $e^-$-scattering escape"),
+    Line2D([0], [0], color=C_CH_DEST, lw=1.6, label=r"$P_{\rm dest}$  continuum destruction"),
+    Line2D([0], [0], color=C_CH_Y, lw=1.6, label=r"$y$  collisional quench"),
+]
+fig.legend(handles=chan_handles, ncol=5, frameon=False, fontsize=9,
+           loc="lower center", bbox_to_anchor=(0.5, 0.012),
+           handlelength=1.8, columnspacing=1.5)
 
-# ===============================================================
-# Right: beta_l vs tau_l
-# ===============================================================
-tau = np.logspace(-3, 5, 500)
-bK2 = beta_K2(tau)
+fig.savefig(OUT)
+fig.savefig(OUT.replace(".pdf", ".png"), dpi=200)
 
-# Doppler core — solid black
-axR.loglog(tau, bK2, color=C_INK, lw=2.0, ls="-",
-           label=r"$\beta_{K_2}$")
-
-# CRD + wing-leakage: one curve per p_w, each color explicitly labeled
-pw_vals   = [1e-4, 1e-3, 1e-2]
-pw_colors = [C_AZURE, C_VERM, C_GOLD]
-for pw, c in zip(pw_vals, pw_colors):
-    bl = (1.0 - pw) * bK2 + pw
-    axR.loglog(tau, bl, color=c, lw=1.8, ls="--",
-               label=rf"$\beta_\ell$, $p_w=10^{{{int(np.log10(pw))}}}$")
-    axR.axhline(pw, color=c, lw=0.8, ls=":", alpha=0.45)
-
-# Cloudy esc_PRD_1side — single representative curve (a = 1e-3) to
-# avoid duplicating colors. Dotted, distinct dark color.
-a_prd = 1e-3
-bp = beta_PRD(tau, a_prd)
-axR.loglog(tau, bp, color="#2A6F4F", lw=1.8, ls=":",
-           label=rf"$\beta_{{\rm PRD}}$, $a={a_prd:g}$ ")
-
-axR.set_xlabel(r"Line-center optical depth  $\tau_\ell$", fontsize=11)
-axR.set_ylabel(r"Escape probability  $\beta_\ell$", fontsize=11)
-axR.set_xlim(1e-3, 1e5)
-axR.set_ylim(5e-5, 2.0)
-axR.grid(True, which="both", ls=":", alpha=0.4)
-axR.tick_params(which="both", direction="in", top=True, right=True)
-axR.legend(frameon=False, loc="lower left", fontsize=9.5)
-
-# axR.text(
-#     0.7, 0.95,
-#     r"$\beta_\ell = (1-p_w)\,\beta_{K_2}(\tau_\ell) + p_w$",
-#     transform=axR.transAxes, fontsize=12.5, color=C_INK,
-#     ha="center", va="top",
-#     bbox=dict(boxstyle="round,pad=0.35", facecolor="white",
-#               edgecolor=C_SLATE, lw=0.8),
-# )
-# axR.text(
-#     0.70, 0.83,
-#     r"Hummer & Rybicki 1982;",
-#     transform=axR.transAxes, fontsize=8.5, color=C_SLATE,
-#     ha="center", va="top", style="italic",
-# )
-
-plt.show()
-fig.savefig(OUT, bbox_inches="tight")
 print(f"wrote {OUT}")
+print(f"lines {lines_file}")
+print(f"selected {selected_file}")
+if not is_representative_selected:
+    print("WARNING: selected file was generated by the old strongest-line rule; "
+          "rerun maindaocl to get representative profiles.")
+for line in selected_lines:
+    print("rank=%d ip=%d %s thin_sum=%.6e escaped_sum=%.6e escaped/thin=%.3f "
+          "zeros(thin,escaped)=(%d,%d)" %
+          (line["rank"], line["ip"], line["label"], line["thin_sum"],
+           line["escaped_sum"], line["slab_ratio"], line["zeros_thin"],
+           line["zeros_escaped"]))

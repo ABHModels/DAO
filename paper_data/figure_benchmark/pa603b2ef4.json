@@ -1,6 +1,6 @@
 {
-  "hash": "2c981550",
-  "time": "2026-06-25 22:10:12",
+  "hash": "603b2ef4",
+  "time": "2026-07-05 03:35:16",
   "corona": "nthcomp",
   "nh": 15,
   "zeta": 2,
@@ -15,8 +15,7 @@
   "taup": -1,
   "kT_disk": 0.35,
   "test_rt": false,
-  "test_mode": "scatter",
-  "T_test": 1e+08,
+  "test_mode": "none",
   "tau_slab": 0.5,
   "maxiter": 500,
   "E_rt_lo": 10,

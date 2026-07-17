@@ -111,7 +111,7 @@ def interp_log(E_target, E_src, F_src):
 
 
 # ── Runs to plot, ordered by increasing log ξ ────────────────────────────────
-HASHES = ['d9f8efcb', '2c981550', 'ee16b95d']
+HASHES = ['1e4178a5', '603b2ef4', 'feb16067']
 PANEL_LABELS = ['a', 'b', 'c']
 runs = [load_run(h) for h in HASHES]
 

@@ -85,6 +85,7 @@ void RadField::allocate()
 	log_inte = new double[g.ND_MID]();
 	n_e      = new double[g.ND_MID]();
 	heating  = new double[g.ND_MID]();
+	line_heat = new double[g.ND_MID]();
 	cooling  = new double[g.ND_MID]();
 
 	illum.allocate();
@@ -107,6 +108,7 @@ void RadField::deallocate()
 	delete[] log_inte; log_inte = nullptr;
 	delete[] n_e;      n_e      = nullptr;
 	delete[] heating;  heating  = nullptr;
+	delete[] line_heat; line_heat = nullptr;
 	delete[] cooling;  cooling  = nullptr;
 
 	illum.deallocate();
@@ -139,6 +141,7 @@ void IllumSpec::compute(const ModelParams& par)
 	double xi = pow(10.0, par.zeta);
 	double nH = pow(10.0, par.nh);
 	double Fx = xi * nH / pow(phys::four_pi,2);
+	// double Fx = xi * nH / phys::four_pi;
 
 	// Rescale so that corona + disk = Fx, split by frac = F_corona / F_disk
 	if (par.frac > 0) {

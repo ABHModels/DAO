@@ -46,6 +46,7 @@ struct RadField
 	double* log_inte;
 	double* n_e;
 	double* heating;
+	double* line_heat; // Pdest line photons deposited locally as heat [erg cm^-3 s^-1]
 	double* cooling;
 
 	IllumSpec illum;
@@ -56,7 +57,8 @@ struct RadField
 		  Inu(nullptr), J0(nullptr), J2(nullptr), J3(nullptr),
 		  jnu_line(nullptr), kabs_line(nullptr),
 		  T_K(nullptr), log_xi(nullptr), log_inte(nullptr),
-		  n_e(nullptr), heating(nullptr), cooling(nullptr),
+		  n_e(nullptr), heating(nullptr), line_heat(nullptr),
+		  cooling(nullptr),
 		  illum(gr) {}
 
 	void allocate();

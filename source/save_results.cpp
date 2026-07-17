@@ -86,16 +86,20 @@ void save_results(const RadField& rad, const RTGrids& g,
 		fprintf(fp, "# Col 2: tau_mid [Thomson]\n");
 		fprintf(fp, "# Col 3: T_K [K]\n");
 		fprintf(fp, "# Col 4: n_e [cm^-3]\n");
-		fprintf(fp, "# Col 5: heating [erg cm^-3 s^-1]\n");
+		fprintf(fp, "# Col 5: heating [erg cm^-3 s^-1] (includes previous-iteration line_heat_Pdest feedback when present)\n");
 		fprintf(fp, "# Col 6: cooling [erg cm^-3 s^-1]\n");
 		fprintf(fp, "# Col 7: log_xi = log10(4piJ) [erg cm^-2 s^-1] / nh\n");
+		fprintf(fp, "# Col 8: line_heat_Pdest [erg cm^-3 s^-1]\n");
+		fprintf(fp, "# Col 9: heating_plus_new_line_heat = heating + newly computed line_heat_Pdest [erg cm^-3 s^-1]\n");
 		for (int id = 0; id < g.ND_MID; ++id)
 		{
-			fprintf(fp, "%d  %.6e  %.6e  %.6e  %.6e  %.6e  %.6e\n",
+			fprintf(fp, "%d  %.6e  %.6e  %.6e  %.6e  %.6e  %.6e  %.6e  %.6e\n",
 			        id, g.tau_mid[id], rad.T_K[id], rad.n_e[id],
-			        rad.heating[id], rad.cooling[id], rad.log_xi[id]);
+			        rad.heating[id], rad.cooling[id], rad.log_xi[id],
+			        rad.line_heat[id], rad.heating[id] + rad.line_heat[id]);
 		}
 		fclose(fp);
 		fprintf(stdout, "  Saved: %s\n", fname);
 	}
+
 }

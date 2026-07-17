@@ -1,19 +1,35 @@
-# Figure 1 — Escape probability for subordinate lines
+# Figure — Line escape in DAO: escape-probability branching
 
 **Author:** Yimin Huang · Fudan University; University of Bristol · huangym23@m.fudan.edu.cn
 
-Left panel: schematic of the cell-by-cell solver. Right panel: escape
-probability β_ℓ vs line-center optical depth τ_ℓ. `beta_K2` and `beta_PRD`
-are exact ports of Cloudy's `esca0k2` and `esc_PRD_1side` (`rt_escprob.cpp`);
-the constant-`p_w` dashed curves are a schematic CRD+wing simplification
-(Hummer 1982; Ferland et al. 2017), not a port of `esc_CRDwing_1side`.
+Two-row small-multiple figure. Four columns = four representative lines chosen
+by DAO's `write_line_escape_diagnostics()`, one per escape-physics regime:
+(a) O VIII Lyα 18.97 Å (strong escape), (b) O VIII 16.01 Å (continuum
+destruction), (c) Ne VIII 770.4 Å (strong trapping), (d) O VII 21.81 Å (weak
+attenuation).
+
+- **Top row** — WHAT it does: local line power vs Thomson depth τ_T, comparing
+  the optically-thin emissivity with the power that actually escapes; the shaded
+  band is the power removed by trapping/destruction.
+- **Bottom row** — HOW it is done: the survival factor
+  `P = (β + P_el)(1 + y) / (β + P_el + y + P_dest)` decomposed into its four
+  competing channels — line (Sobolev) escape β, electron-scattering escape
+  P_el, continuum destruction P_dest, and collisional quenching y = C_ul/A_ul.
+
+Data are from DAO model `603b2ef4`, latest iteration (025).
 
 ## Files
-- `plot_escape_probability.py` — self-contained; computes everything analytically.
-- `escape_probability.pdf` — the figure.
+- `line_escape_lines_603b2ef4.dat` — per-line slab summary (rank, ip, energy,
+  slab-integrated thin/escaped power, mean channel ratios, label).
+- `line_escape_selected_603b2ef4.dat` — per-depth channel profiles for the four
+  selected representative lines.
+- `plot_escape_probability.py` — reads the two `.dat` files above; all paths are
+  local to this folder.
+- `escape_probability.{pdf,png}` — the figure.
+- `escape_probability_caption.tex` — LaTeX caption.
 
 ## Run
 ```bash
 python plot_escape_probability.py
 ```
-No data files or arguments needed.
+No arguments needed; all paths are local to this folder.

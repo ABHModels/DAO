@@ -8,6 +8,7 @@
 #include "constants.h"
 #include <cmath>
 #include <cstdio>
+#include <vector>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -49,7 +50,7 @@ void run_production(RadField& rad, const RTGrids& g,
 	const double cir = 3e-3;
 	double max_dT = 1.0, max_dXi = 1.0;
 	int outer_iter = 0;
-	const int max_outer = 50;
+	const int max_outer = 100;
 	while (((max_dT > cir || max_dXi > cir) && outer_iter<max_outer))
 	{
 		++outer_iter;
@@ -57,6 +58,9 @@ void run_production(RadField& rad, const RTGrids& g,
 		        outer_iter, max_outer);
 
 		// --- Cloudy depth loop ---
+		// Per-cell line records, consumed by apply_line_escape() after the column
+		// is complete (the cumulative two-sided line optical depth needs all cells).
+		std::vector<std::vector<LineRec>> line_store(g.ND_MID);
 		fprintf(stdout, "  [Cloudy] Running %d depth points...\n", g.ND_MID);
 		for (int id = 0; id < g.ND_MID; ++id)
 		{
@@ -65,28 +69,41 @@ void run_production(RadField& rad, const RTGrids& g,
 
 			cl_in.issue_constant();
 			cl_in.issue_depth(id, rad ,g, par);
-			
+
 			int rc = cdDrive();
 			if (rc)
 			{
 				fprintf(stderr, "  depth %d/%d: cdDrive failed, skipping.\n",
 					id + 1, g.ND_MID);
+				// Zero this cell so apply_line_escape's fold does not re-add stale
+				// (already-folded) values from the previous iteration.
+				line_store[id].clear();
+				for (int ie = 0; ie < g.NE; ++ie)
+				{
+					rad.jnu[id][ie]      = 0.0;
+					rad.jnu_line[id][ie] = 0.0;
+				}
+				rad.line_heat[id] = 0.0;
 				continue;
 			}
 
-			extract_cloudy_output(id, rad, g, outer_iter);
+			line_store[id].clear();
+				extract_cloudy_output(id, rad, g, outer_iter, line_store[id]);
 
-			compute_compton_opacity(rad.ksct[id], g.NE, g.ene,
-			                       rad.T_K[id], pow(10,par.nh));	
+				compute_compton_opacity(rad.ksct[id], g.NE, g.ene,
+				                       rad.T_K[id], pow(10,par.nh));
 			fprintf(stdout,
 				"  depth %3d/%d  tau=%.3e  logT=%.3f  log(I)=%.3f  "
-				"ne/nh=%.3f  H/C=%.3f\n",
+				"ne/nh=%.3f  H/C=%.3f H/LH=%.3f\n",
 				id + 1, g.ND_MID, g.tau_mid[id],
 				log10(rad.T_K[id]),
 				rad.log_xi[id]+par.nh,
 				rad.n_e[id] / pow(10.0, par.nh),
-				rad.heating[id] / rad.cooling[id]);
+				rad.heating[id] / rad.cooling[id],rad.line_heat[id]-log10(rad.heating[id]));
 		}
+
+		// --- Two-sided cumulative line escape: inject emiss*P into jnu ---
+		apply_line_escape(rad, g, line_store, par, outer_iter);
 
 		// --- RT solver ---
 		fprintf(stdout, "  [RT] Solving radiative transfer...\n");
@@ -109,6 +126,8 @@ void run_production(RadField& rad, const RTGrids& g,
 		// --- save results of current iteration ---
 		save_results(rad, g, par, outer_iter);
 	}
+
+	// This loop is used for write the ions' fraction.
 
 	// {
 	// 	for (int id = 0; id < g.ND_MID; ++id)

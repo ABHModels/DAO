@@ -13,7 +13,7 @@ companion folder `figure_benchmark/` is the same comparison with DAO's
 native flux normalisation; the plotting script is identical and only the DAO
 input spectra differ.
 
-## Files (one set per run hash: `d9f8efcb`=ξ1, `2c981550`=ξ2, `ee16b95d`=ξ3)
+## Files (one set per run hash: `1e4178a5`=ξ1, `603b2ef4`=ξ2, `feb16067`=ξ3)
 - `dao_<hash>.dat` — DAO emergent intensity (E, incident, I at 8 μ nodes).
 - `spectra_<hash>.dat` — `reflionx` spectrum (E [keV], E·F_E).
 - `xillver_<hash>.dat` — `xillvercp` spectrum.
