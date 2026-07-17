@@ -268,7 +268,7 @@ Dispatch:
 ### Code structure
 
 ```
-DAOv2/
+DAO/
 ├── maindaocl.cpp          Main entry point
 ├── Makefile               Build configuration
 ├── ui.py                  Web UI (Flask)
