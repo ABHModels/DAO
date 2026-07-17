@@ -2,7 +2,7 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) - [SemVer](https://semver.org/).
 
-## [1.1.0] - 2026-07-05
+## [1.1.1] - 2026-07-18
 - **Line-escape and thermal-feedback update for the DAO v1.0 model series.**
 
 ### Added
@@ -19,7 +19,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) - [SemVer](http
 - `source/production.cpp` - Store line records for every depth cell during the Cloudy loop, call `apply_line_escape()` after the full column is available, and increase the outer-iteration cap from 50 to 100.
 
 ### Fixed
-- Improve the physical treatment of bound-bound line escape. Previous versions attenuated line photons only with the redistribution-dependent escape probability `beta`. In v1.1.0, DAO uses the full escape-probability branching on the slab optical-depth grid: photons may escape through the line channel, be shifted out of the resonance core by electron scattering, be collisionally quenched, or be destroyed by continuum absorption. Only the continuum-destroyed line power is returned to Cloudy as an extra local heating term. Collisional quenching is not added as a separate DAO heating source because it is already part of Cloudy's local atomic and thermal balance; adding it again would double count that energy exchange.
+- Improve the physical treatment of bound-bound line escape. Previous versions attenuated line photons only with the redistribution-dependent escape probability `beta`. In v1.1.1, DAO uses the full escape-probability branching on the slab optical-depth grid: photons may escape through the line channel, be shifted out of the resonance core by electron scattering, be collisionally quenched, or be destroyed by continuum absorption. Only the continuum-destroyed line power is returned to Cloudy as an extra local heating term. Collisional quenching is not added as a separate DAO heating source because it is already part of Cloudy's local atomic and thermal balance; adding it again would double count that energy exchange.
+
+## [1.1.0] - 2026-06-30
+
+### Changed
+- Update citation metadata for the first formal DAO release.
+- Ignore the local paper-draft directory in Git.
 
 ## [1.0.0] - 2026-06-26
 - **The first formal version of DAO**

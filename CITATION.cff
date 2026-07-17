@@ -23,7 +23,7 @@ authors:
     affiliation: "Fudan University; University of Bristol"
     email: huangym23@m.fudan.edu.cn
     orcid: "https://orcid.org/0009-0008-3299-9185"
-version: "1.0.0"
-date-released: "2026-06-26"
+version: "1.1.1"
+date-released: "2026-07-18"
 license: MIT
 repository-code: "https://github.com/ABHModels/DAO"
