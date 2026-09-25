@@ -7,6 +7,52 @@
 #include <ctime>
 #include <sys/stat.h>
 
+// Build a one-line human-readable description of the run from its physics
+// params (mirrors the per-model console formatting in read_params).
+static void build_run_summary(const ModelParams& p, char* out, size_t n)
+{
+	char model[160];
+	if (p.test_rt)
+		snprintf(model, sizeof(model), "%s test | tau=%.4g | %s",
+		         p.test_mode, p.tau_slab, p.corona);
+	else if (strcmp(p.corona, "powerlaw") == 0)
+		snprintf(model, sizeof(model), "powerlaw | Gamma=%.4g", p.Gamma);
+	else if (strcmp(p.corona, "cutoffpl") == 0)
+		snprintf(model, sizeof(model), "cutoffpl | Gamma=%.4g Ecut=%.4g keV",
+		         p.Gamma, p.E_cut);
+	else if (strcmp(p.corona, "nthcomp") == 0)
+		snprintf(model, sizeof(model),
+		         "nthcomp | Gamma=%.4g kTe=%.4g kTbb=%.4g keV",
+		         p.Gamma, p.kT_e, p.kT_bb);
+	else if (strcmp(p.corona, "comptt") == 0)
+		snprintf(model, sizeof(model),
+		         "comptt | kTe=%.4g kTbb=%.4g keV taup=%.4g",
+		         p.kT_e, p.kT_bb, p.taup);
+	else if (strcmp(p.corona, "blackbody") == 0)
+		snprintf(model, sizeof(model), "blackbody | kTbb=%.4g keV", p.kT_bb);
+	else
+		snprintf(model, sizeof(model), "%s", p.corona);
+
+	snprintf(out, n, "%s | nh=%.4g zeta=%.4g frac=%.4g | %s",
+	         model, p.nh, p.zeta, p.frac,
+	         p.angsca ? "angle-dependent" : "angle-mean");
+}
+
+// Escape all JSON control characters as well as quotes and backslashes.
+static std::string json_escape(const std::string& text)
+{
+    std::string out;
+    for (unsigned char c : text) {
+        if (c == '"' || c == '\\') { out += '\\'; out += char(c); }
+        else if (c < 0x20) {
+            char escaped[7];
+            snprintf(escaped, sizeof(escaped), "\\u%04x", unsigned(c));
+            out += escaped;
+        } else out += char(c);
+    }
+    return out;
+}
+
 ModelParams read_params(int argc, char *argv[])
 {
 	// ---- default values (fill in yours) ----
@@ -75,6 +121,11 @@ ModelParams read_params(int argc, char *argv[])
 			p.taup = atof(argv[++i]);
 		else if (strcmp(argv[i], "-Afe") == 0 && i+1 < argc)
 			p.Afe = atof(argv[++i]);
+		else if (strcmp(argv[i], "-label") == 0)
+		{
+			if (i + 1 >= argc) { fprintf(stderr, "Error: -label requires text.\n"); exit(1); }
+			p.label = argv[++i];
+		}
 		else if (strcmp(argv[i], "-angsca") == 0 && i+1 < argc)
 		{
 			// Angular-scattering kernel selector:
@@ -175,6 +226,14 @@ ModelParams read_params(int argc, char *argv[])
 		printf("Run hash:   %s  →  %s/\n", p.run_hash, p.run_dir);
 	}
 
+	char summary[256];
+	build_run_summary(p, summary, sizeof(summary));
+	printf("Run:        %s\n", summary);
+	if (!p.label.empty()) printf("Label:      %s\n", p.label.c_str());
+	char timestamp[32];
+	time_t now = time(nullptr);
+	strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", localtime(&now));
+
 	// --- Create run directory and write params.json ---
 	{
 		mkdir("results", 0755);
@@ -185,14 +244,11 @@ ModelParams read_params(int argc, char *argv[])
 		FILE* fp = fopen(pjson, "w");
 		if (fp)
 		{
-			char timestamp[32];
-			time_t now = time(nullptr);
-			strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S",
-			         localtime(&now));
 
 			fprintf(fp, "{\n");
 			fprintf(fp, "  \"hash\": \"%s\",\n", p.run_hash);
 			fprintf(fp, "  \"time\": \"%s\",\n", timestamp);
+			fprintf(fp, "  \"label\": \"%s\",\n", json_escape(p.label).c_str());
 			fprintf(fp, "  \"corona\": \"%s\",\n", p.corona);
 			fprintf(fp, "  \"nh\": %.6g,\n", p.nh);
 			fprintf(fp, "  \"zeta\": %.6g,\n", p.zeta);
@@ -216,6 +272,44 @@ ModelParams read_params(int argc, char *argv[])
 			fprintf(fp, "  \"ktype\": %d\n", p.ktype);
 			fprintf(fp, "}\n");
 			fclose(fp);
+		}
+		// --- Human-readable run summary: RUN.txt ---
+		char rtxt[512];
+		snprintf(rtxt, sizeof(rtxt), "%s/RUN.txt", p.run_dir);
+		FILE* rf = fopen(rtxt, "w");
+		if (!rf) { perror(rtxt); exit(1); }
+		{
+			fprintf(rf, "Run:     %s\n", summary);
+			fprintf(rf, "Label:   %s\n", !p.label.empty() ? p.label.c_str() : "(none)");
+			fprintf(rf, "Time:    %s\n", timestamp);
+			fprintf(rf, "Hash:    %s\n", p.run_hash);
+
+			if (p.test_rt)
+				fprintf(rf, "Mode:    %s test  tau_slab=%.4g\n",
+				        p.test_mode, p.tau_slab);
+			else if (strcmp(p.corona, "cutoffpl") == 0)
+				fprintf(rf, "Corona:  cutoffpl  Gamma=%.4f  E_cut=%.2f keV\n",
+				        p.Gamma, p.E_cut);
+			else if (strcmp(p.corona, "nthcomp") == 0)
+				fprintf(rf, "Corona:  nthcomp  Gamma=%.4f  kT_e=%.2f keV  kT_bb=%.4f keV\n",
+				        p.Gamma, p.kT_e, p.kT_bb);
+			else if (strcmp(p.corona, "comptt") == 0)
+				fprintf(rf, "Corona:  comptt  kT_e=%.2f keV  kT_bb=%.4f keV  taup=%.2f\n",
+				        p.kT_e, p.kT_bb, p.taup);
+			else if (strcmp(p.corona, "blackbody") == 0)
+				fprintf(rf, "Corona:  blackbody  kT_bb=%.4f keV\n", p.kT_bb);
+			else
+				fprintf(rf, "Corona:  %s  Gamma=%.4f\n", p.corona, p.Gamma);
+
+			fprintf(rf, "Slab:    nh=%.4f  zeta=%.4f (xi=%.4e)  frac=%.4f  Afe=%.2f\n",
+			        p.nh, p.zeta, xi, p.frac, p.Afe);
+			fprintf(rf, "Derived: nH=%.4e  Jx=%.4e  4piJ=%.4e erg/cm^2/s\n",
+			        nH, xi * nH / pow(4.0 * M_PI, 2), Fx);
+			fprintf(rf, "Kernel:  %s\n",
+			        p.angsca ? "angle-dependent (KernelCache)"
+			                 : "angle-mean (avgKernelCache)");
+			const bool failed = ferror(rf);
+			if (fclose(rf) != 0 || failed) { fprintf(stderr, "Error writing RUN.txt\n"); exit(1); }
 		}
 	}
 
