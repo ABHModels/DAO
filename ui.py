@@ -80,32 +80,25 @@ DISK_PARAMS = [
 # ═══════════════════════════════════════════════════════════════
 #  DESIGN SYSTEM — single source of truth (injected into all pages)
 # ═══════════════════════════════════════════════════════════════
-# "Observatory Instrument": near-black scientific console, one warm-amber
-# accretion accent, the black hole as a real masthead image, restrained motion.
+# Shared instrument theme: warm light surfaces and readable data.
 
 BASE_CSS = r"""
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    /* Surfaces — near-black with a faint blue cast */
-    --bg:#0b0d12; --bg2:#12151c; --card:#161a24; --card-hi:#1b2030;
-    --border:#232838; --border-hi:#2f3648;
-    /* Brand accent — accretion-disk amber. ONE orange everywhere. */
-    --accent:#f0a030; --accent2:#e05828; --accent-sft:rgba(240,160,48,.10);
-    /* Secondary — data / links */
-    --cyan:#38bdf8;
-    /* Status */
-    --green:#22c55e; --red:#ef5350;
-    /* Text — verified >= 4.5:1 */
-    --white:#eef0f4; --text:#c8cdd8; --dim:#8a93a3; --faint:#5a6273;
+    color-scheme:light;
+    --bg:#f5f2ed; --bg2:#f8f5f0; --card:#fffdfa; --card-hi:#fffdfa;
+    --border:#ebe5dc; --border-hi:#d4c9bc;
+    --accent:#915237; --accent2:#753b28; --accent-sft:#f5e9df;
+    --cyan:#855335; --green:#57715a; --red:#ad4d42;
+    --white:#26221f; --text:#4a443e; --dim:#6f675e; --faint:#7c746b;
+    --r-sm:8px; --r-md:16px; --r-lg:18px;
     /* Typography */
     --mono:'SF Mono','JetBrains Mono','Fira Code','Cascadia Code',ui-monospace,monospace;
-    --fs-xs:.72rem; --fs-sm:.82rem; --fs-base:.92rem; --fs-md:1.05rem;
+    --fs-xs:.8125rem; --fs-sm:.875rem; --fs-base:.92rem; --fs-md:1.05rem;
     --fs-h2:.80rem; --fs-h1:1.5rem; --fs-hero:2.6rem;
     /* Spacing (4px base) */
     --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:48px;
-    /* Radius / shadow */
-    --r-sm:8px; --r-md:12px; --r-lg:16px;
-    --shadow:0 2px 12px rgba(0,0,0,.35); --shadow-hi:0 8px 28px rgba(0,0,0,.5);
+    --shadow:0 8px 28px rgba(56,39,26,.045); --shadow-hi:0 12px 32px rgba(56,39,26,.065);
   }
   html { scroll-behavior:smooth; }
   body {
@@ -113,12 +106,6 @@ BASE_CSS = r"""
     background:var(--bg); color:var(--text); min-height:100vh;
     overflow-x:hidden; font-size:15px; line-height:1.6; letter-spacing:.02em;
     -webkit-font-smoothing:antialiased;
-  }
-  /* Single shared background layer at opacity .16 (no fixed-attachment jank) */
-  body::before {
-    content:''; position:fixed; inset:0; z-index:0;
-    background:url('/image/bg_blackhole.png') center top / cover no-repeat;
-    opacity:.16; pointer-events:none;
   }
 
   a { color:var(--cyan); text-decoration:none; }
@@ -133,14 +120,15 @@ BASE_CSS = r"""
   @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important; scroll-behavior:auto!important;} }
 
   /* ── Sticky top nav (shared) ────────────────────────── */
-  header.nav { position:sticky; top:0; z-index:50; backdrop-filter:blur(10px);
-    background:rgba(11,13,18,.78); border-bottom:1px solid var(--border); }
+  header.nav { position:sticky; top:0; z-index:50;
+    background:var(--card); border-bottom:1px solid var(--border); }
   header.nav nav { max-width:1200px; margin:0 auto; padding:0 var(--sp-5);
     display:flex; align-items:center; gap:var(--sp-6); height:54px; }
   header.nav .brand { font-weight:600; font-size:1.05rem; color:var(--accent);
-    letter-spacing:.14em; }
+    letter-spacing:.14em; display:flex; align-items:center; gap:10px; flex:none; }
   header.nav .brand:hover { color:var(--accent); }
-  header.nav .tabs { display:flex; gap:var(--sp-5); align-items:center; }
+  header.nav .tabs { display:flex; gap:var(--sp-5); align-items:center;
+    overflow-x:auto; white-space:nowrap; min-width:0; }
   header.nav .tabs a { font-size:var(--fs-sm); font-weight:500; color:var(--dim);
     padding:16px 2px; border-bottom:2px solid transparent; transition:color .2s,border-color .2s; }
   header.nav .tabs a:hover { color:var(--white); }
@@ -155,7 +143,7 @@ BASE_CSS = r"""
 
   /* ── Cards (shared physics) ─────────────────────────── */
   .card, .plot-card, .formula-box, .note-box, .params-box {
-    background:var(--card); border:1px solid var(--border); border-radius:var(--r-md);
+    background:var(--card); border:1px solid transparent; border-radius:var(--r-md);
     box-shadow:var(--shadow);
   }
   .card { padding:var(--sp-5); transition:border-color .2s,box-shadow .2s,background .2s; margin-bottom:var(--sp-5); }
@@ -185,20 +173,20 @@ BASE_CSS = r"""
   .toast.show { opacity:1; }
   .toast.success { color:var(--green); border-color:rgba(34,197,94,.3); }
   .toast.error   { color:var(--red);   border-color:rgba(239,83,80,.3); }
-  .toast.info    { color:var(--cyan);  border-color:rgba(56,189,248,.3); }
+  .toast.info    { color:var(--cyan);  border-color:rgba(145,82,55,.3); }
 
   /* ── Pills (shared, used on /plots) ─────────────────── */
   .pill { font-size:var(--fs-xs); padding:5px 14px; border-radius:999px; cursor:pointer;
     font-family:inherit; font-weight:500; letter-spacing:.03em; border:1px solid; transition:all .2s; background:transparent; }
   .pill-fe   { border-color:rgba(239,83,80,.35);  background:rgba(239,83,80,.10);  color:var(--red); }
-  .pill-line { border-color:rgba(56,189,248,.35); background:rgba(56,189,248,.10); color:var(--cyan); }
+  .pill-line { border-color:rgba(145,82,55,.35); background:rgba(145,82,55,.10); color:var(--cyan); }
   .pill.off  { border-color:var(--border); background:transparent; color:var(--faint); }
 
   /* ── Buttons (shared) ───────────────────────────────── */
   .btn { padding:10px 24px; border-radius:var(--r-sm); font-size:var(--fs-sm); font-weight:600;
     cursor:pointer; border:none; font-family:inherit; transition:all .2s; letter-spacing:.03em; }
-  .btn-primary { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#1a1206; box-shadow:0 2px 10px rgba(240,160,48,.2); }
-  .btn-primary:hover { box-shadow:0 4px 22px rgba(240,160,48,.35); transform:translateY(-1px); }
+  .btn-primary { background:var(--accent); color:white; }
+  .btn-primary:hover { background:var(--accent2); }
   .btn-secondary { background:var(--bg2); color:var(--text); border:1px solid var(--border); }
   .btn-secondary:hover { border-color:var(--border-hi); background:var(--card-hi); color:var(--white); }
 
@@ -207,6 +195,41 @@ BASE_CSS = r"""
   .empty-state .ico { font-size:2.4rem; color:var(--faint); margin-bottom:var(--sp-4); }
   .empty-state h3 { color:var(--white); font-size:1.1rem; margin-bottom:var(--sp-2); }
   .empty-state p { color:var(--dim); font-size:var(--fs-sm); max-width:420px; margin:0 auto var(--sp-5); }
+  /* Shared light instrument theme: all routes use the same navigation and controls. */
+  body { background:var(--bg); letter-spacing:0; font-size:14px; }
+  body::before { display:none; }
+  header.nav { background:#fffdfa; backdrop-filter:none; border-bottom-color:#eee9e2; }
+  header.nav nav { max-width:1240px; height:60px; gap:40px; }
+  header.nav .brand { font-size:1.05rem; letter-spacing:.1em; color:var(--white); }
+  .brand-orbit { display:none; }
+  header.nav .tabs { gap:28px; }
+  header.nav .tabs a { font-size:14px; padding:19px 0; }
+  header.nav .tabs a.active { color:var(--accent); }
+  .wrapper { max-width:1200px; padding-top:20px; }
+  .card { background:var(--card); padding:24px; margin-bottom:16px; transition:box-shadow .2s; }
+  .card:hover { background:var(--card); border-color:transparent; box-shadow:var(--shadow-hi); }
+  .card h2 { color:var(--white); text-transform:none; letter-spacing:0; font-size:1rem; margin-bottom:16px; }
+  .btn { font-size:13px; padding:9px 14px; letter-spacing:0; border-radius:9px; }
+  .btn-primary { background:var(--accent); color:white; box-shadow:none; }
+  .btn-primary:hover { background:var(--accent2); box-shadow:none; transform:none; }
+  .btn-secondary { background:white; }
+  footer.site { margin-top:0; padding:18px 24px; font-size:12px; }
+  .page-head { padding:8px 0 20px; margin-bottom:20px; border-bottom:1px solid var(--border); }
+  .page-head h1 { font-size:1.7rem; font-weight:600; letter-spacing:-.035em; }
+  .page-head .sub { font-size:var(--fs-sm); margin-top:4px; }
+  .plot-card h2 { color:var(--white); text-transform:none; letter-spacing:0; font-size:1rem;
+    margin-bottom:16px; flex-wrap:wrap; }
+  .card h2 .tick, .plot-card h2 .tick { display:none; }
+  .pill { border-radius:9px; font-size:12px; }
+  .pill-fe { background:#fbf0ef; border-color:#e5c3c1; }
+  .pill-line { background:var(--accent-sft); border-color:#dfc7b6; }
+  .pill.off { background:transparent; color:var(--dim); border-color:var(--border); }
+  @media(max-width:520px) {
+    .wrapper { padding:16px 12px; }
+    header.nav nav { padding:0 12px; gap:20px; }
+    .page-head h1 { font-size:1.4rem; }
+  }
+
 """
 
 
@@ -252,69 +275,122 @@ HTML = r"""
 <title>DAO — X-ray Reflection Model</title>
 <style>
 {{ base_css | safe }}
-
-  /* home page background fade under the tall hero */
-  body::after { content:''; position:fixed; inset:0; z-index:0;
-    background:linear-gradient(180deg,transparent 0%,var(--bg) 60%); pointer-events:none; }
-  .wrapper { z-index:1; }
-
-  /* ── Hero masthead ──────────────────────────── */
-  .hero { position:relative; height:340px; border-radius:var(--r-lg); overflow:hidden;
-    display:flex; flex-direction:column; justify-content:center; align-items:center;
-    margin:var(--sp-5) 0 var(--sp-6); border:1px solid var(--border); }
-  .hero::before { content:''; position:absolute; inset:0;
-    background:url('/image/bg_blackhole.png') center 35%/cover no-repeat; }
-  .hero::after { content:''; position:absolute; inset:0;
-    background:radial-gradient(120% 90% at 50% 30%, rgba(240,160,48,.10), transparent 45%),
-               linear-gradient(180deg, rgba(11,13,18,.35) 0%, rgba(11,13,18,.55) 55%, var(--bg) 100%); }
-  .hero > * { position:relative; z-index:1; text-align:center; }
-  .hero .eyebrow { font-family:var(--mono); font-size:var(--fs-xs); letter-spacing:.22em;
-    color:var(--accent); margin-bottom:var(--sp-3); }
-  .hero .wordmark { font-size:var(--fs-hero); font-weight:700; letter-spacing:.14em;
-    background:linear-gradient(90deg,var(--accent),var(--accent2));
-    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
-    animation:heroIn .6s ease both; }
-  @keyframes heroIn { from{opacity:0; letter-spacing:.30em;} to{opacity:1; letter-spacing:.14em;} }
-  .hero .descriptor { color:var(--dim); font-size:var(--fs-sm); margin-top:var(--sp-3); letter-spacing:.06em; }
-  .hero .author { color:var(--dim); font-size:var(--fs-xs); margin-top:var(--sp-2); }
-  .hero .author a { color:var(--dim); }
-  .hero .author a:hover { color:var(--white); }
-
-  /* ── How-it-works strip ─────────────────────── */
-  .howto { display:flex; flex-wrap:wrap; gap:var(--sp-2); margin:0 0 var(--sp-6); }
-  .howto .chip { font-size:var(--fs-sm); color:var(--dim); background:var(--bg2);
-    border:1px solid var(--border); border-radius:999px; padding:6px 14px; }
-  .howto .chip b { color:var(--accent); font-weight:700; margin-right:6px; }
+  /* Editorial opening: the artwork, title and scientific context form one composition. */
+  .hero-scene { position:relative; isolation:isolate; overflow:hidden; min-height:334px;
+    display:flex; align-items:center; margin:4px 0 24px; padding:38px 48px;
+    border-radius:18px; background:#100d0b; box-shadow:0 18px 36px rgba(33,25,18,.12);
+    color:#f4f1e9; }
+  .hero-scene::before { content:''; position:absolute; inset:0; z-index:-1;
+    background:linear-gradient(90deg,#100d0bf7 0,#100d0bea 30%,#100d0b8c 49%,#100d0b00 74%); }
+  .hero-scene img { position:absolute; z-index:-2; width:110%; height:100%; right:-8%; top:0;
+    object-fit:cover; object-position:center 50%; }
+  .hero-copy { position:relative; z-index:1; max-width:475px; }
+  .hero-index { display:block; margin-bottom:21px; color:#dbb08b; font:11px var(--mono);
+    text-transform:uppercase; letter-spacing:.16em; }
+  .hero-scene h1 { font-family:Georgia,'Times New Roman',serif; color:#fcfaf5;
+    font-size:clamp(2.25rem,4vw,3.55rem); line-height:1.08; font-weight:400; letter-spacing:-.035em; }
+  .hero-scene h1 em { font-style:italic; color:#e7b68c; }
+  .hero-scene p { margin-top:18px; max-width:390px; color:#d5c9bc; font-size:.94rem; line-height:1.65; }
+  .hero-meta { display:flex; align-items:center; gap:12px; margin-top:28px; color:#d0c1b0;
+    font:10px var(--mono); text-transform:uppercase; letter-spacing:.1em; }
+  .hero-meta i { width:18px; height:1px; background:#b98662; flex:none; }
+  .hero-art-note { position:absolute; right:24px; bottom:18px; font:10px var(--mono);
+    color:#e8d7c5; letter-spacing:.02em; text-shadow:0 1px 3px #000; }
+  .hero-art-note a { color:inherit; text-decoration:underline; text-underline-offset:3px; }
+  .hero-art-note a:hover { color:white; }
+  .workspace-intro { display:flex; align-items:baseline; justify-content:space-between; gap:16px;
+    margin:0 0 14px; }
+  .workspace-intro h2 { color:var(--white); font-family:Georgia,'Times New Roman',serif;
+    font-size:1.55rem; font-weight:400; letter-spacing:-.025em; }
+  .workspace-intro span { color:var(--dim); font:11px var(--mono); letter-spacing:.04em; }
+  .workspace { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(320px,1fr); gap:20px; align-items:start; }
+  .parameter-column, .context-column { min-width:0; }
+  .context-column { position:sticky; top:78px; }
+  .parameter-column .card h2 { margin-bottom:20px; }
+  .section-number { font:11px var(--mono); color:#a46642; margin-right:4px; }
+  .context-column > .card:first-child { background:#f7f3ed; border-color:transparent; }
+  .context-column > .card:last-child { background:#f1ebe3; border-color:transparent; color:var(--text); }
+  .context-column > .card:last-child h2 { color:var(--white); }
+  .context-column > .card:last-child .cmd-cap,
+  .context-column > .card:last-child .cmd-hint { color:var(--dim); }
+  .context-column > .card:last-child .cmd-box { background:#fffdfa; border-color:transparent; color:var(--white); }
+  .context-column > .card:last-child .cmd-box .prompt { color:var(--accent); }
+  .context-column > .card:last-child .btn-primary { background:var(--accent); color:white; }
+  .context-column > .card:last-child .btn-primary:hover { background:var(--accent2); }
+  .context-column > .card:last-child .btn-secondary { background:#fffdfa; border-color:transparent; color:var(--text); }
+  .context-column > .card:last-child .btn-secondary:hover { background:white; }
+  .section-sub { font-size:.8125rem; color:var(--dim); margin:-4px 0 12px; }
+  .model-description { font-size:.8125rem; color:var(--dim); margin:10px 0 16px; line-height:1.6; }
+  .geometry { margin:0; }
+  .geometry svg { display:block; width:100%; height:auto; margin:12px 0; }
+  .geometry svg text { fill:var(--dim); font:11px var(--mono); }
+  .geometry figcaption { color:var(--dim); font-size:.75rem; line-height:1.6; margin-top:10px; }
+  .geometry-readout { display:flex; justify-content:space-between; gap:10px; padding:10px 0;
+    border-top:1px solid var(--border); border-bottom:1px solid var(--border); font:12px var(--mono); color:var(--text); flex-wrap:wrap; }
+  .derived-caption { color:var(--dim); font-size:.8125rem; margin:16px 0 4px; }
+  @media(max-width:900px) {
+    .workspace { grid-template-columns:1fr; }
+    .context-column { position:static; }
+    .geometry svg { max-width:440px; margin:12px auto; }
+  }
+  @media(max-width:760px) {
+    .hero-scene { min-height:420px; padding:28px; align-items:flex-start; }
+    .hero-copy { max-width:430px; }
+    .hero-scene h1 { font-size:clamp(2.1rem,7vw,3rem); }
+    .hero-scene img { width:100%; height:78%; top:auto; right:0; bottom:0; object-fit:cover; object-position:50% 54%; }
+    .hero-scene::before { background:linear-gradient(180deg,#100d0bf7 0,#100d0be3 38%,#100d0b20 82%); }
+    .hero-meta { margin-top:16px; }
+    .hero-art-note { right:24px; bottom:18px; }
+  }
+  @media(max-width:520px) {
+    .hero-scene { min-height:390px; padding:24px; }
+    .hero-index { margin-bottom:14px; }
+    .hero-scene h1 { font-size:2.2rem; }
+    .hero-scene p { margin-top:10px; font-size:.875rem; }
+    .hero-scene img { height:65%; bottom:0; }
+    .hero-meta { display:none; }
+    .workspace-intro h2 { font-size:1.35rem; }
+    .workspace-intro span { font-size:10px; }
+  }
 
   /* ── Model selector (radiogroup) ────────────── */
-  .model-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:10px; margin-bottom:var(--sp-5); }
-  .model-btn { background:var(--bg2); border:1.5px solid var(--border); border-radius:var(--r-sm);
-    padding:14px 12px; cursor:pointer; text-align:left; transition:all .2s; font-family:inherit;
-    position:relative; color:var(--text); }
-  .model-btn:hover { border-color:var(--border-hi); background:var(--card-hi); }
-  .model-btn.active { border-color:var(--accent); background:var(--accent-sft); }
-  .model-btn.active .check { opacity:1; }
-  .model-btn .check { position:absolute; top:10px; right:10px; color:var(--accent); opacity:0; font-size:.8rem; }
+  .model-grid { display:flex; flex-wrap:wrap; gap:6px; }
+  .model-btn { background:white; border:1px solid var(--border); border-radius:9px;
+    padding:9px 12px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:500;
+    color:var(--dim); transition:border-color .15s,background .15s; }
+  .model-btn:hover { border-color:var(--border-hi); color:var(--white); }
+  .model-btn.active { border-color:var(--accent); background:var(--accent-sft); color:var(--accent); }
   .model-btn[disabled] { opacity:.4; cursor:not-allowed; }
-  .model-btn .name { font-size:.9rem; font-weight:600; color:var(--white); }
-  .model-btn .mdesc { font-size:var(--fs-xs); color:var(--text); margin-top:4px; line-height:1.45; }
 
   /* ── Parameter fields ───────────────────────── */
-  .field { display:grid; grid-template-columns:120px 1fr 92px; align-items:center; gap:var(--sp-3); margin-bottom:var(--sp-1); }
-  .field label { font-size:var(--fs-sm); font-weight:500; color:var(--text); text-align:right; white-space:nowrap; }
-  .field input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:5px;
-    background:linear-gradient(90deg,#1a2030,#2a3248); border-radius:3px; outline:none; }
-  .field input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:16px; height:16px;
-    background:var(--accent); border-radius:50%; cursor:pointer; box-shadow:0 0 8px rgba(240,160,48,.35); }
-  .field input[type=range]::-moz-range-thumb { width:16px; height:16px; border:none;
-    background:var(--accent); border-radius:50%; cursor:pointer; box-shadow:0 0 8px rgba(240,160,48,.35); }
-  .field input[type=range]::-moz-range-track { height:5px; background:linear-gradient(90deg,#1a2030,#2a3248); border-radius:3px; }
-  .field .val { font-size:var(--fs-sm); color:var(--white); text-align:right; font-weight:500;
-    background:var(--bg2); border:1px solid var(--border); border-radius:var(--r-sm); padding:6px 8px;
-    width:92px; font-family:inherit; transition:border-color .2s,box-shadow .2s; }
-  .field .val:focus { border-color:var(--accent); outline:none; box-shadow:0 0 0 2px var(--accent-sft); }
+  .field { display:grid; grid-template-columns:84px minmax(0,1fr) 92px; align-items:center; column-gap:var(--sp-3); row-gap:4px; margin-bottom:var(--sp-1); }
+  .field label { font-size:var(--fs-sm); font-weight:500; color:var(--text); text-align:left; white-space:nowrap; }
+  .field input[type=range] { -webkit-appearance:none; appearance:none; width:100%; min-width:0; height:28px;
+    background:transparent; cursor:pointer; border-radius:6px; outline:none; }
+  .field input[type=range]::-webkit-slider-runnable-track { height:3px; background:#d9d0c5; border-radius:99px; }
+  .field input[type=range]::-moz-range-track { height:3px; background:#d9d0c5; border-radius:99px; }
+  .field input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none;
+    width:13px; height:13px; margin-top:-5px; border:2px solid #a8785b; background:white; border-radius:50%;
+    box-shadow:0 1px 3px #3d2d2118; transition:box-shadow .15s,border-color .15s; }
+  .field input[type=range]::-moz-range-thumb { box-sizing:border-box; width:13px; height:13px;
+    border:2px solid #a8785b; background:white; border-radius:50%;
+    box-shadow:0 1px 3px #3d2d2118; transition:box-shadow .15s,border-color .15s; }
+  .field input[type=range]:hover::-webkit-slider-thumb,
+  .field input[type=range]:active::-webkit-slider-thumb { border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-sft); }
+  .field input[type=range]:hover::-moz-range-thumb,
+  .field input[type=range]:active::-moz-range-thumb { border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-sft); }
+  .field input[type=range]:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .field .val { appearance:textfield; -moz-appearance:textfield; font-size:14px; color:var(--white); text-align:center; font-weight:500;
+    background:#f4eee7; border:1px solid transparent; border-radius:10px; padding:8px;
+    width:92px; height:36px; font-family:var(--mono); font-variant-numeric:tabular-nums;
+    transition:background .15s,border-color .15s,box-shadow .15s; }
+  .field .val::-webkit-inner-spin-button, .field .val::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+  .field .val:hover { background:#eee4d9; border-color:#d9d0c5; }
+  .field .val:focus { background:white; border-color:#a8785b; outline:none; box-shadow:0 0 0 3px var(--accent-sft); }
   .field .val.flash { border-color:var(--red); box-shadow:0 0 0 2px rgba(239,83,80,.2); }
-  .field-desc { font-size:var(--fs-xs); color:var(--dim); grid-column:2/-1; margin:-2px 0 var(--sp-3); }
+  .field-desc { font-size:var(--fs-xs); color:var(--dim); grid-column:2/-1; margin:2px 0 14px; line-height:1.5; }
+  #coronaParams > div:last-child .field-desc, #slabParams > div:last-child .field-desc,
+  #diskParams > div:last-child .field-desc, #testParams > div:last-child .field-desc { margin-bottom:4px; }
   .field-ends { grid-column:2/3; display:flex; justify-content:space-between; font-size:var(--fs-xs);
     color:var(--faint); margin-top:-2px; }
   @media (max-width:520px){
@@ -329,18 +405,19 @@ HTML = r"""
   .toggle-row > label:first-child { font-size:var(--fs-sm); font-weight:500; color:var(--text); min-width:120px; text-align:right; }
   .toggle { position:relative; width:44px; height:24px; cursor:pointer; flex:none; }
   .toggle input { opacity:0; width:0; height:0; }
-  .toggle .slider { position:absolute; inset:0; background:#1a2030; border-radius:12px; border:1px solid var(--border); transition:all .2s; }
-  .toggle .slider::before { content:''; position:absolute; width:18px; height:18px; left:2px; top:2px; background:#4a5060; border-radius:50%; transition:all .2s; }
-  .toggle input:checked+.slider { background:var(--accent-sft); border-color:rgba(240,160,48,.4); }
+  .toggle .slider { position:absolute; inset:0; background:var(--border); border-radius:12px; border:1px solid var(--border); transition:all .2s; }
+  .toggle .slider::before { content:''; position:absolute; width:18px; height:18px; left:2px; top:2px; background:white; border-radius:50%; transition:all .2s; }
+  .toggle input:checked+.slider { background:var(--accent-sft); border-color:var(--accent); }
   .toggle input:checked+.slider::before { transform:translateX(20px); background:var(--accent); }
   .toggle input:focus-visible+.slider { box-shadow:0 0 0 3px var(--accent-sft); }
 
   /* ── Derived panel ──────────────────────────── */
   .divider { height:1px; margin:var(--sp-4) 0; background:linear-gradient(90deg,transparent,var(--border),transparent); border:none; }
-  .derived { display:flex; gap:var(--sp-6); flex-wrap:wrap; }
-  .derived .item { text-align:center; }
-  .derived .item .dlabel { font-size:var(--fs-xs); color:var(--dim); font-weight:500; }
-  .derived .item .dval { font-size:var(--fs-md); font-weight:700; color:var(--white); margin-top:2px; font-family:var(--mono); }
+  .derived { display:grid; gap:0; }
+  .derived .item { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:9px 0; border-bottom:1px solid var(--border); }
+  .derived .item:last-child { border-bottom:0; }
+  .derived .item .dlabel { font-size:12px; color:var(--dim); }
+  .derived .item .dval { font:13px var(--mono); color:var(--white); font-variant-numeric:tabular-nums; }
 
   /* ── select ─────────────────────────────────── */
   .field select { grid-column:2/-1; font-size:var(--fs-sm); color:var(--white); background:var(--bg2);
@@ -349,18 +426,11 @@ HTML = r"""
   /* ── Command box + sticky bar ───────────────── */
   .cmd-cap { font-size:var(--fs-xs); color:var(--dim); margin-bottom:var(--sp-2); }
   .cmd-box { background:var(--bg); border:1px solid var(--border); border-radius:var(--r-md);
-    padding:16px 18px; font-size:.85rem; color:var(--green); word-break:break-all; line-height:1.7; font-family:var(--mono); }
+    padding:12px 14px; font-size:.8125rem; color:var(--text); overflow-wrap:anywhere; line-height:1.7; font-family:var(--mono); }
   .cmd-box .prompt { color:var(--dim); user-select:none; }
   .cmd-hint { font-size:var(--fs-xs); color:var(--dim); margin-top:var(--sp-3); line-height:1.5; }
   .cmd-hint code { color:var(--cyan); font-size:.78rem; }
   .actions { display:flex; gap:10px; margin-top:var(--sp-4); flex-wrap:wrap; }
-
-  .cmd-bar { position:sticky; bottom:0; z-index:40; margin:var(--sp-4) calc(-1 * var(--sp-5)) calc(-1 * var(--sp-5));
-    padding:12px var(--sp-5); background:rgba(11,13,18,.92); backdrop-filter:blur(8px);
-    border-top:1px solid var(--border); display:flex; align-items:center; gap:var(--sp-4); border-radius:0 0 var(--r-md) var(--r-md); }
-  .cmd-bar .barcmd { flex:1; font-family:var(--mono); color:var(--green); font-size:.78rem;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .cmd-bar .btn { padding:8px 18px; flex:none; }
 
   /* ── details / accordion ────────────────────── */
   details.adv summary { cursor:pointer; font-size:var(--fs-sm); color:var(--dim); list-style:none;
@@ -374,12 +444,12 @@ HTML = r"""
   .queue-table { width:100%; border-collapse:collapse; font-size:var(--fs-sm); margin-top:var(--sp-3); }
   .queue-table th { text-align:left; color:var(--accent); font-weight:600; font-size:var(--fs-xs);
     text-transform:uppercase; letter-spacing:.08em; padding:10px 12px; border-bottom:1px solid var(--border); }
-  .queue-table td { padding:10px 12px; border-bottom:1px solid #151a24; color:var(--text); vertical-align:top; }
+  .queue-table td { padding:10px 12px; border-bottom:1px solid var(--border); color:var(--text); vertical-align:top; }
   .queue-table tr:hover td { background:var(--accent-sft); }
   .queue-table .q-idx { color:var(--dim); font-weight:600; width:40px; text-align:center; }
   .queue-table .q-model { color:var(--cyan); font-weight:600; width:100px; }
   .queue-table .q-params { color:var(--text); font-size:.78rem; word-break:break-all; font-family:var(--mono); }
-  .queue-table .q-actions { width:150px; text-align:right; white-space:nowrap; }
+  .queue-table .q-actions { width:150px; text-align:left; white-space:nowrap; }
   .q-btn { background:var(--bg2); border:1px solid var(--border); cursor:pointer; font-size:var(--fs-xs);
     padding:4px 10px; border-radius:var(--r-sm); transition:all .15s; color:var(--text); margin-left:4px; }
   .q-btn:hover { border-color:var(--border-hi); color:var(--white); }
@@ -387,52 +457,56 @@ HTML = r"""
   .queue-empty { text-align:center; color:var(--dim); font-size:var(--fs-sm); padding:28px 0; }
   .batch-actions { display:flex; gap:10px; margin-top:var(--sp-4); flex-wrap:wrap; align-items:center; }
   .batch-count { font-size:var(--fs-sm); color:var(--dim); margin-left:auto; font-weight:500; }
+  .grid > .card { min-width:0; }
+  .toggle-row { flex-wrap:wrap; }
+  .toggle-row > label:first-child { min-width:0; text-align:left; }
+  #queueBody { overflow-x:auto; }
 </style>
 </head>
 <body>
 {{ nav | safe }}
 <main id="main" class="wrapper">
 
-  <div class="hero">
-    <div class="eyebrow">X-RAY REFLECTION SPECTROSCOPY · v1.0</div>
-    <div class="wordmark">DAO</div>
-    <div class="descriptor">Compton RT &nbsp;·&nbsp; Cloudy &nbsp;·&nbsp; HEASoft</div>
-    <div class="author">Yimin Huang &nbsp;·&nbsp; <a href="mailto:huangym23@m.fudan.edu.cn">huangym23@m.fudan.edu.cn</a></div>
-  </div>
+  <section class="hero-scene" aria-labelledby="heroTitle">
+    <img src="/image/nasa-black-hole-accretion-disk.png" width="1920" height="1080"
+         alt="NASA visualization of a black hole distorting light from its thin, orange accretion disk">
+    <div class="hero-copy">
+      <span class="hero-index">DAO / reflection spectroscopy</span>
+      <h1 id="heroTitle">Spectrum from an<br><em>irradiated disk.</em></h1>
+      <p>Explore how coronal radiation interacts with a photoionised slab and emerges as an X-ray reflection spectrum.</p>
+      <div class="hero-meta"><span>Compton transfer</span><i aria-hidden="true"></i><span>Photoionisation</span></div>
+    </div>
+    <span class="hero-art-note">Visualization: <a href="https://svs.gsfc.nasa.gov/14146" target="_blank" rel="noopener noreferrer">NASA's Goddard Space Flight Center / Jeremy Schnittman</a></span>
+  </section>
 
-  <div class="howto">
-    <div class="chip"><b>1</b>Pick a model &amp; set parameters</div>
-    <div class="chip"><b>2</b>Copy the command or build a batch</div>
-    <div class="chip"><b>3</b>Run ./maindaocl in your terminal</div>
-    <div class="chip"><b>4</b>View spectra &amp; convergence here</div>
-  </div>
-
+  <div class="workspace-intro"><h2>Model configuration</h2><span>SET PARAMETERS / GENERATE COMMAND</span></div>
+  <div class="workspace">
+  <div class="parameter-column">
   <div class="card full">
-    <h2><span class="tick" aria-hidden="true"></span>Corona Spectrum</h2>
+    <h2><span class="section-number">01</span> Incident spectrum</h2>
     <div class="model-grid" id="modelGrid" role="radiogroup" aria-label="Corona spectrum model"></div>
+    <div class="model-description" id="modelDescription"></div>
     <div id="coronaParams"></div>
   </div>
 
-  <div class="grid">
-    <div class="card">
-      <h2><span class="tick" aria-hidden="true"></span>Slab Physics</h2>
+  <div class="card">
+      <h2><span class="section-number">02</span> Slab parameters</h2>
       <div id="slabParams"></div>
       <div class="toggle-row" style="margin-top:6px">
         <label for="angsca">Angle-dependent scattering (<code>-angsca</code>)</label>
         <label class="toggle"><input type="checkbox" id="angsca" checked aria-label="Angle-dependent scattering" onchange="updateCmd();persist()"><span class="slider"></span></label>
       </div>
       <div class="field-desc">On = angle-dependent kernel; off = angle-averaged kernel.</div>
-      <hr class="divider">
-      <div class="derived" id="derivedBlock"></div>
+
     </div>
     <div class="card">
-      <h2><span class="tick" aria-hidden="true"></span>Accretion Disk</h2>
+      <h2><span class="section-number">03</span> Disk emission</h2>
       <div id="diskParams"></div>
+
     </div>
-  </div>
 
   <div class="card full">
-    <h2><span class="tick" aria-hidden="true"></span>Advanced</h2>
+    <h2><span class="section-number">04</span> Solver options</h2>
     <details class="adv">
       <summary>Advanced · compPS benchmark</summary>
       <div class="body">
@@ -448,8 +522,44 @@ HTML = r"""
     </details>
   </div>
 
+  </div>
+  <aside class="context-column" aria-label="Geometry and model configuration">
+  <div class="card">
+    <h2>Illumination geometry</h2>
+    <p class="section-sub">Incident direction relative to the slab normal</p>
+      <figure class="geometry">
+        <svg viewBox="0 0 420 250" role="img" aria-labelledby="geometryTitle geometryDesc">
+          <title id="geometryTitle">Incident radiation on a plane-parallel slab</title>
+          <desc id="geometryDesc">The incident ray follows the selected angle relative to the surface normal. Brown rays represent illustrative outgoing radiation, not computed trajectories.</desc>
+          <defs>
+                    <marker id="incidentArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 Z" fill="#a57644"/></marker>
+            <marker id="outgoingArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 Z" fill="#9a6b4c"/></marker>
+            <pattern id="slabGrid" width="20" height="16" patternUnits="userSpaceOnUse"><path d="M20 0H0V16" fill="none" stroke="#a59685" stroke-opacity=".12"/></pattern>
+          </defs>
+          <path d="M30 172H390V230H30Z" fill="#eee6db"/>
+          <path d="M30 172H390V230H30Z" fill="url(#slabGrid)"/>
+          <path d="M30 172H390" stroke="#a59685"/>
+          <path d="M210 172V22" stroke="#978979" stroke-dasharray="4 5"/>
+          <text x="220" y="30">normal</text>
+          <path id="incidentRay" d="M104 66L210 172" fill="none" stroke="#a57644" stroke-width="2" marker-end="url(#incidentArrow)"/>
+          <circle id="coronaSource" cx="104" cy="66" r="3" fill="#a57644"/>
+          <text x="32" y="22" fill="#a57644">incident photons</text>
+          <path id="angleArc" d="M210 130A42 42 0 0 0 180 142" fill="none" stroke="#a57644"/>
+          <text id="angleLabel" x="177" y="118">θ</text>
+          <path d="M210 172L326 64 M210 172L370 123" stroke="#9a6b4c" stroke-opacity=".7" fill="none" marker-end="url(#outgoingArrow)"/>
+          <text x="288" y="48">outgoing</text>
+          <circle cx="210" cy="172" r="5" fill="#9a6b4c"/>
+          <text x="46" y="207">illuminated slab</text>
+          <text x="298" y="207">n<tspan baseline-shift="sub" font-size="8">H</tspan> · ξ · A<tspan baseline-shift="sub" font-size="8">Fe</tspan></text>
+        </svg>
+        <div class="geometry-readout"><span id="geometryAngle">θ = 45.0°</span><span id="geometryDisk"></span></div>
+        <figcaption>Plane-parallel geometry · θ = arccos μ.<br>Outgoing directions are schematic. The solver snaps μ to its angular quadrature.</figcaption>
+      </figure>
+    <div class="derived-caption">Derived quantities</div>
+    <div class="derived" id="derivedBlock"></div>
+  </div>
   <div class="card full">
-    <h2><span class="tick" aria-hidden="true"></span>Current Configuration</h2>
+    <h2>Run configuration</h2>
     <div class="cmd-cap">Run this in your terminal:</div>
     <div class="cmd-box" id="cmdBox"><span class="prompt">$ </span><span id="cmdText"></span></div>
     <div class="actions">
@@ -461,18 +571,18 @@ HTML = r"""
       Make sure your runtime environment is set before running
       (e.g. <code>source $HEADAS/headas-init.sh</code>).
     </div>
-    <div class="cmd-bar">
-      <span class="barcmd mono" id="barCmd"></span>
-      <button class="btn btn-primary" onclick="copyCmd()">Copy Command</button>
-    </div>
+    <span id="barCmd" hidden></span>
+  </div>
+
+  </aside>
   </div>
 
   <div class="card full">
-    <h2><span class="tick" aria-hidden="true"></span>Run Queue</h2>
+    <h2>Run queue</h2>
     <div id="queueBody"></div>
     <div class="batch-actions">
       <button class="btn btn-primary" onclick="copyAllCmds()">Copy All</button>
-      <button class="btn btn-primary" onclick="exportScript()">Export .sh</button>
+      <button class="btn btn-secondary" onclick="exportScript()">Export .sh</button>
       <button class="btn btn-secondary" onclick="clearQueue()">Clear Queue</button>
       <span class="batch-count" id="queueCount"></span>
     </div>
@@ -593,6 +703,7 @@ function syncSlider(name, id) {
 function buildModels() {
   const grid = document.getElementById('modelGrid');
   grid.innerHTML = '';
+  document.getElementById('modelDescription').innerHTML = MODELS[corona].desc;
   const testOn = document.getElementById('testRt') && document.getElementById('testRt').checked;
   Object.entries(MODELS).forEach(([key, m]) => {
     const btn = document.createElement('button');
@@ -604,8 +715,8 @@ function buildModels() {
     btn.className = 'model-btn' + (isActive ? ' active' : '');
     btn.dataset.key = key;
     if (testOn && key !== 'blackbody') btn.disabled = true;
-    btn.innerHTML = `<span class="check" aria-hidden="true">▸</span>
-      <div class="name">${m.label}</div><div class="mdesc">${m.desc}</div>`;
+    btn.textContent = m.label;
+    btn.title = stripHtml(m.desc);
     btn.onclick = () => selectModel(key);
     btn.onkeydown = (e) => onModelKey(e, key);
     grid.appendChild(btn);
@@ -643,6 +754,7 @@ function buildCoronaParams() {
 
 // ── Derived quantities ────────────────────
 function updateDerived() {
+  updateGeometry();
   const nh = vals.nh ?? 15, zeta = vals.zeta ?? 3;
   const xi = Math.pow(10, zeta);
   const nH = Math.pow(10, nh);
@@ -652,6 +764,26 @@ function updateDerived() {
     <div class="item"><div class="dlabel">n<sub>H</sub> [cm⁻³]</div><div class="dval">${nH.toExponential(2)}</div></div>
     <div class="item" title="J = ξ·n_H/(4π)² — mean intensity that normalises the corona+disk illumination"><div class="dlabel">J [erg cm⁻² s⁻¹]</div><div class="dval">${J.toExponential(2)}</div></div>
   `;
+}
+
+// Diagram uses the requested incidence cosine; outgoing rays are illustrative.
+function updateGeometry() {
+  const mu = Math.min(1, Math.max(0.01, vals.incidence ?? DEFAULTS.incidence));
+  const theta = Math.acos(mu), sinTheta = Math.sin(theta);
+  const x = 210 - 150 * sinTheta, y = 172 - 150 * mu;
+  const ray = `M${x} ${y}L210 172`;
+  document.getElementById('incidentRay').setAttribute('d', ray);
+  document.getElementById('coronaSource').setAttribute('cx', x);
+  document.getElementById('coronaSource').setAttribute('cy', y);
+  document.getElementById('angleArc').setAttribute('d',
+    theta < 1e-8 ? '' : `M210 130A42 42 0 0 0 ${210 - 42 * sinTheta} ${172 - 42 * mu}`);
+  document.getElementById('angleLabel').setAttribute('x', 204 - 57 * Math.sin(theta / 2));
+  document.getElementById('angleLabel').setAttribute('y', 172 - 57 * Math.cos(theta / 2));
+  document.getElementById('geometryAngle').textContent = `θ = ${(theta * 180 / Math.PI).toFixed(1)}° · μ = ${mu.toFixed(3)}`;
+  const diskOn = (vals.frac ?? DEFAULTS.frac) > 0;
+  document.getElementById('geometryDisk').textContent = diskOn
+    ? `kTdisk = ${fmtNum(vals.kT_disk ?? DEFAULTS.kT_disk)} keV`
+    : 'Disk illumination off';
 }
 
 // ── Test mode toggle ──────────────────────
@@ -893,15 +1025,15 @@ DOCS_HTML = r"""
   main.wrapper { max-width:820px; }
   .section { margin-bottom:var(--sp-6); }
   .section h2 {
-    font-size:var(--fs-h2); text-transform:uppercase; letter-spacing:.14em;
-    color:var(--accent); margin-bottom:var(--sp-4); padding-bottom:6px;
+    font-size:1rem; text-transform:none; letter-spacing:0;
+    color:var(--white); margin-bottom:var(--sp-4); padding-bottom:10px;
     border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px;
   }
-  .section h2 .tick { width:2px; height:14px; background:var(--accent); border-radius:1px; }
+  .section h2 .tick { display:none; }
   table { width:100%; border-collapse:collapse; margin-bottom:8px; }
   th { text-align:left; font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.08em;
     color:var(--dim); padding:8px 12px; border-bottom:1px solid var(--border); }
-  td { padding:10px 12px; border-bottom:1px solid #1a1e28; font-size:var(--fs-base); vertical-align:top; }
+  td { padding:10px 12px; border-bottom:1px solid var(--border); font-size:var(--fs-base); vertical-align:top; }
   tr:hover td { background:var(--accent-sft); }
   .p-flag { color:var(--cyan); font-weight:600; white-space:nowrap; font-family:var(--mono); }
   .p-type { color:var(--dim); font-size:var(--fs-xs); }
@@ -914,10 +1046,10 @@ DOCS_HTML = r"""
     padding:12px 16px; border-radius:0 var(--r-md) var(--r-md) 0; margin:14px 0;
     font-size:var(--fs-sm); color:var(--text); line-height:1.6; box-shadow:none; border-top:0; border-right:0; border-bottom:0; }
   .note-box strong { color:var(--accent); }
-  .tag { display:inline-block; font-size:.6rem; padding:2px 6px; border-radius:4px;
+  .tag { display:inline-block; font-size:.75rem; padding:2px 6px; border-radius:4px;
     font-weight:600; letter-spacing:.04em; vertical-align:middle; margin-left:4px; }
   .tag-required { background:rgba(239,83,80,.15); color:var(--red); }
-  .tag-optional { background:rgba(56,189,248,.1); color:var(--cyan); }
+  .tag-optional { background:rgba(145,82,55,.1); color:var(--cyan); }
   .tag-model { background:var(--accent-sft); color:var(--accent); }
   p.lead { font-size:var(--fs-base); color:var(--text); margin-bottom:14px; line-height:1.6; }
 </style>
@@ -1105,7 +1237,7 @@ DOCS_HTML = r"""
   <!-- ── Execution flow ───────────────────── -->
   <div class="section">
     <h2><span class="tick" aria-hidden="true"></span>Execution Flow</h2>
-    <div class="note-box" style="background:rgba(56,189,248,.06);border-left-color:var(--cyan);">
+    <div class="note-box" style="background:rgba(145,82,55,.06);border-left-color:var(--cyan);">
       <strong style="color:var(--cyan);">Production mode:</strong><br>
       1. Parse CLI → <code>ModelParams</code><br>
       2. Initialise grids (angle, depth, energy)<br>
@@ -1114,7 +1246,7 @@ DOCS_HTML = r"""
       5. Outer loop: Cloudy depth sweep → extract j<sub>ν</sub>, κ<sub>abs</sub>, κ<sub>sct</sub> → RT solve → update J, ξ, T → check convergence<br>
       6. Save results to <code>results/&lt;hash&gt;/</code> each iteration
     </div>
-    <div class="note-box" style="background:rgba(56,189,248,.06);border-left-color:var(--cyan);">
+    <div class="note-box" style="background:rgba(145,82,55,.06);border-left-color:var(--cyan);">
       <strong style="color:var(--cyan);">Test mode (compps):</strong><br>
       1. Parse CLI → <code>ModelParams</code><br>
       2. Initialise grids with synthetic 1000-bin log-spaced energy grid<br>
@@ -1505,12 +1637,13 @@ PLOTS_HTML = r"""
   .controls { display:flex; gap:var(--sp-4); align-items:center; flex-wrap:wrap; margin-bottom:var(--sp-5); }
   .controls label { font-size:var(--fs-sm); color:var(--dim); }
   .controls select { background:var(--bg2); color:var(--white); border:1px solid var(--border);
-    border-radius:var(--r-sm); padding:7px 12px; font-family:inherit; font-size:var(--fs-sm); outline:none; min-width:220px; }
-  .controls select:focus { border-color:var(--accent); }
+    border-radius:7px; padding:9px 12px; font-family:inherit; font-size:var(--fs-sm); min-width:0; max-width:100%; width:260px; }
+  .controls select:hover { border-color:var(--border-hi); }
+  .controls select:focus-visible { border-color:var(--accent); outline:2px solid var(--accent-sft); outline-offset:2px; }
   .params-box { padding:12px 16px; margin-bottom:var(--sp-5); font-size:var(--fs-xs); color:var(--text); line-height:1.8; }
   .params-box .pk { color:var(--cyan); }
   .params-box .pv { color:var(--white); font-weight:600; }
-  .plot-card { padding:16px; margin-bottom:var(--sp-5); }
+  .plot-card { padding:20px; margin-bottom:16px; }
   .plot-caption { font-size:var(--fs-xs); color:var(--dim); margin-top:8px; line-height:1.5; }
   .plot-area { width:100%; height:480px; }
   @media (max-width:520px){ .plot-area { height:min(60vh,480px); } }
@@ -1563,15 +1696,17 @@ PLOTS_HTML = r"""
 {{ footer | safe }}
 
 <script>
-const PLOT_BG = '#161a24';
-const GRID_COLOR = '#232838';
-const FONT_COLOR = '#c8cdd8';
-const PAPER_BG = '#0b0d12';
-const DIM_HEX = '#8a93a3';
-const FAINT_HEX = '#5a6273';
-const FE_HEX = '#ef5350';
-const LINE_HEX = '#38bdf8';
-const COLORS = ['#f0a030','#e05828','#38bdf8','#22c55e','#a78bfa','#f472b6','#facc15','#67e8f9'];
+const THEME = getComputedStyle(document.documentElement);
+const themeColor = name => THEME.getPropertyValue(name).trim();
+const PLOT_BG = themeColor('--card');
+const GRID_COLOR = themeColor('--border');
+const FONT_COLOR = themeColor('--text');
+const PAPER_BG = themeColor('--card');
+const DIM_HEX = themeColor('--dim');
+const FAINT_HEX = themeColor('--faint');
+const FE_HEX = themeColor('--red');
+const LINE_HEX = themeColor('--accent');
+const COLORS = ['#965638','#606c4e','#b4783e','#775e67','#8d713f','#aa654c','#595f51','#9d7d64'];
 
 let allRuns = [];
 
@@ -1738,7 +1873,7 @@ function plotEmergent(em, mu_inc, fe_lines) {
       shapes.push({
         type: 'line', xref: 'x', yref: 'paper',
         x0: fl.E_keV, x1: fl.E_keV, y0: 0, y1: 1,
-        line: { color: 'rgba(239,83,80,0.5)', width: 1, dash: 'dot' }
+        line: { color: 'rgba(181,72,72,0.45)', width: 1, dash: 'dot' }
       });
       annotations.push({
         x: Math.log10(fl.E_keV), xref: 'x', yref: 'paper',
@@ -1753,7 +1888,7 @@ function plotEmergent(em, mu_inc, fe_lines) {
     paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
     font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
     margin: { l:70, r:30, t:40, b:60 },
-    legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:10} },
+    legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:12} },
     xaxis: { type:'log', title:'E [keV]', range:[Math.log10(1e-3), Math.log10(1000)], gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
     yaxis: { type:'log', title:'E I_E  [erg cm⁻² s⁻¹ sr⁻¹]', range:yr, gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
     shapes: shapes, annotations: annotations,
@@ -1776,7 +1911,7 @@ function plotMeanOutgoing(em) {
   const traces = [{
     x: E_keV, y: E_eV.map((e, i) => e * mean_I[i]),
     name: 'E × Mean outgoing I', mode: 'lines',
-    line: { color: '#f0a030', width: 2 }
+    line: { color: COLORS[0], width: 2 }
   }];
 
   const yr = autoLogRange(traces);
@@ -1784,7 +1919,7 @@ function plotMeanOutgoing(em) {
     paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
     font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
     margin: { l:70, r:30, t:30, b:60 },
-    legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:10} },
+    legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:12} },
     xaxis: { type:'log', title:'E [keV]', range:[Math.log10(1e-3), Math.log10(1000)], gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
     yaxis: { type:'log', title:'E I_E  [erg cm⁻² s⁻¹ sr⁻¹]', range:yr, gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
   }, {responsive:true});
@@ -1796,14 +1931,14 @@ function plotProfile(prof) {
   const traces = [{
     x: prof.tau_mid, y: prof.T_K,
     name: 'T', mode: 'lines+markers',
-    line: { color: '#e05828', width: 2 },
-    marker: { size: 4, color: '#f0a030' }
+    line: { color: COLORS[1], width: 2 },
+    marker: { size: 4, color: COLORS[1] }
   }];
   Plotly.react(div, traces, {
     paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
     font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
     margin: { l:70, r:30, t:30, b:60 },
-    legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:10} },
+    legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:12} },
     xaxis: { type:'log', title:'τ (Thomson)', gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
     yaxis: { type:'log', title:'T [K]', gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
   }, {responsive:true});
@@ -1855,8 +1990,8 @@ async function toggleLineLabels() {
     placedLogE.push(logE);
     const isFluor = ln.type === 'F';
     const name = fmtSpecies(ln.label) + (isFluor ? ' (fl)' : '');
-    const col = isFluor ? 'rgba(239,83,80,0.85)' : 'rgba(56,189,248,0.85)';
-    const lcol = isFluor ? 'rgba(239,83,80,0.2)' : 'rgba(56,189,248,0.15)';
+    const col = isFluor ? 'rgba(181,72,72,0.9)' : 'rgba(145,82,55,0.9)';
+    const lcol = isFluor ? 'rgba(181,72,72,0.2)' : 'rgba(145,82,55,0.15)';
     shapes.push({ type:'line', xref:'x', yref:'paper', x0:keV, x1:keV, y0:0, y1:1, line:{color:lcol, width:0.8} });
     annotations.push({ x:Math.log10(keV), y:1, xref:'x', yref:'paper', text:name, showarrow:false,
       font:{size:9, color:col, family:'Inter, sans-serif'}, textangle:-90, xanchor:'left', yanchor:'top', yshift:-4 });
@@ -1896,12 +2031,13 @@ CONVERGENCE_HTML = r"""
   .controls { display:flex; gap:var(--sp-4); align-items:center; flex-wrap:wrap; margin-bottom:var(--sp-5); }
   .controls label { font-size:var(--fs-sm); color:var(--dim); }
   .controls select { background:var(--bg2); color:var(--white); border:1px solid var(--border);
-    border-radius:var(--r-sm); padding:7px 12px; font-family:inherit; font-size:var(--fs-sm); outline:none; min-width:220px; }
-  .controls select:focus { border-color:var(--accent); }
+    border-radius:7px; padding:9px 12px; font-family:inherit; font-size:var(--fs-sm); min-width:0; max-width:100%; width:260px; }
+  .controls select:hover { border-color:var(--border-hi); }
+  .controls select:focus-visible { border-color:var(--accent); outline:2px solid var(--accent-sft); outline-offset:2px; }
   .params-box { padding:12px 16px; margin-bottom:var(--sp-5); font-size:var(--fs-xs); color:var(--text); line-height:1.8; }
   .params-box .pk { color:var(--cyan); }
   .params-box .pv { color:var(--white); font-weight:600; }
-  .plot-card { padding:16px; margin-bottom:var(--sp-5); }
+  .plot-card { padding:20px; margin-bottom:16px; }
   .plot-area { width:100%; height:540px; }
   @media (max-width:520px){ .plot-area { height:min(60vh,480px); } }
   .status { text-align:center; padding:40px; color:var(--dim); font-size:var(--fs-sm); }
@@ -1938,11 +2074,13 @@ CONVERGENCE_HTML = r"""
 {{ footer | safe }}
 
 <script>
-const PLOT_BG = '#161a24';
-const GRID_COLOR = '#232838';
-const FONT_COLOR = '#c8cdd8';
-const PAPER_BG = '#0b0d12';
-const COLORS_POOL = ['#f0a030','#e05828','#38bdf8','#22c55e','#a78bfa','#f472b6','#facc15','#67e8f9'];
+const THEME = getComputedStyle(document.documentElement);
+const themeColor = name => THEME.getPropertyValue(name).trim();
+const PLOT_BG = themeColor('--card');
+const GRID_COLOR = themeColor('--border');
+const FONT_COLOR = themeColor('--text');
+const PAPER_BG = themeColor('--card');
+const COLORS_POOL = ['#965638','#606c4e','#b4783e','#775e67','#8d713f','#aa654c','#595f51','#9d7d64'];
 
 let allRuns = [];
 
@@ -2055,7 +2193,7 @@ function plotTempIter(profiles) {
     paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
     font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
     margin: { l:70, r:30, t:30, b:60 },
-    legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:9}, orientation:'h', y:-0.15 },
+    legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:12}, orientation:'h', y:-0.15 },
     xaxis: { type:'log', title:'τ (Thomson)', gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
     yaxis: { type:'log', title:'T [K]', gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
   }, {responsive:true});
@@ -2096,7 +2234,7 @@ function plotJ0Iter(moments) {
     paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
     font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
     margin: { l:70, r:30, t:30, b:60 },
-    legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:9}, orientation:'h', y:-0.15 },
+    legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:12}, orientation:'h', y:-0.15 },
     xaxis: { type:'log', title:'E [keV]', range:[Math.log10(1e-3), Math.log10(1000)], gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
     yaxis: { type:'log', title:'E × J₀ [erg cm⁻² s⁻¹ sr⁻¹]', range:yr, gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
   }, {responsive:true});
