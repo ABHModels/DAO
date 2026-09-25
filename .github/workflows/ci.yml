@@ -100,3 +100,8 @@ jobs:
 
       - name: Test run labels and summaries
         run: python tests/test_run_metadata.py
+
+      - name: Test results and comparison UI
+        run: |
+          python -m pip install --disable-pip-version-check "Flask>=3,<4"
+          python tests/test_ui_results.py

@@ -9,7 +9,7 @@ import json
 import os
 import threading
 import webbrowser
-from flask import Flask, render_template_string, request, jsonify
+from flask import Flask, render_template_string, request, jsonify, abort
 
 app = Flask(__name__, static_folder='image', static_url_path='/image')
 
@@ -230,6 +230,29 @@ BASE_CSS = r"""
     .page-head h1 { font-size:1.4rem; }
   }
 
+  /* ── Run identity card (plots/convergence) ──────────── */
+  .run-card { padding:14px 18px; margin-bottom:var(--sp-5); }
+  .run-card .rc-top { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .run-card .rc-model { font-size:var(--fs-md); font-weight:700; color:var(--white); letter-spacing:.03em; }
+  .rc-badge { font-size:var(--fs-xs); padding:3px 10px; border-radius:999px; border:1px solid var(--border);
+    letter-spacing:.03em; white-space:nowrap; }
+  .rc-badge.b-test   { color:var(--red);    border-color:rgba(173,77,66,.35);  background:rgba(173,77,66,.08); }
+  .rc-badge.b-prod   { color:var(--cyan);   border-color:rgba(133,83,53,.3);  background:rgba(133,83,53,.06); }
+  .rc-badge.b-kernel { color:var(--accent); border-color:rgba(145,82,55,.35); background:var(--accent-sft); }
+  .rc-badge.b-illum  { color:var(--text);   border-color:var(--border-hi); }
+  .rc-badge.b-ok     { color:var(--green);  border-color:rgba(87,113,90,.35);  background:rgba(87,113,90,.08); }
+  .rc-badge.b-warn   { color:var(--accent); border-color:rgba(145,82,55,.45); background:var(--accent-sft); }
+  .rc-badge.b-dim    { color:var(--dim); }
+  .rc-badge.b-label  { color:var(--accent); border-color:var(--accent); background:var(--accent-sft); font-weight:600; }
+  .run-card .rc-meta { margin-left:auto; font-size:var(--fs-xs); color:var(--dim);
+    display:flex; gap:12px; align-items:center; }
+  .run-card .rc-hash { font-family:var(--mono); color:var(--faint); }
+  .run-card .rc-groups { display:flex; gap:var(--sp-6); flex-wrap:wrap; }
+  .run-card .rg-title { font-size:var(--fs-xs); color:var(--accent); text-transform:uppercase;
+    letter-spacing:.1em; font-weight:600; margin-bottom:2px; }
+  .run-card .rg-items { font-size:var(--fs-sm); color:var(--text); line-height:1.9; }
+  .run-card .rg-items .pk { color:var(--dim); }
+  .run-card .rg-items .pv { color:var(--white); font-weight:600; font-family:var(--mono); }
 """
 
 
@@ -239,6 +262,7 @@ def TOP_NAV(active=""):
         ("config", "/", "Configurator"),
         ("docs", "/docs", "Reference"),
         ("plots", "/plots", "Results"),
+        ("compare", "/compare", "Compare"),
         ("conv", "/convergence", "Convergence"),
     ]
     items = []
@@ -1367,52 +1391,252 @@ def docs():
 
 
 # ─── Plots page ─────────────────────────────────────────────────
+import datetime
+import math
 import glob as globmod
 import re
 
+# ─── Run identity (server-built labels for /plots & /convergence) ──
+# params.json keys per corona model. NOTE the keys differ from the CLI
+# flags (E_cut / E_lo_cut / tau_slab); -1 is the "unused" sentinel.
+CORONA_ID_PARAMS = {
+    "powerlaw":  [("Gamma", "Γ"), ("E_lo_cut", "E_lo")],
+    "cutoffpl":  [("Gamma", "Γ"), ("E_cut", "E_cut"), ("E_lo_cut", "E_lo")],
+    "nthcomp":   [("Gamma", "Γ"), ("kT_e", "kT_e"), ("kT_bb", "kT_bb")],
+    "comptt":    [("kT_e", "kT_e"), ("kT_bb", "kT_bb"), ("taup", "τ_p")],
+    "blackbody": [("kT_bb", "kT_bb")],
+}
+SLAB_ID_PARAMS = [("nh", "log n_H"), ("zeta", "log ξ"),
+                  ("incidence", "cos θ"), ("Afe", "A_Fe")]
+KEV_KEYS = {"E_cut", "E_lo_cut", "kT_e", "kT_bb", "kT_disk"}
+CONV_TOL = 1e-3  # max |ΔT|/T between the last two iterations → "converged"
+
+
+def _fmt_id(v):
+    if isinstance(v, bool):
+        return "on" if v else "off"
+    if isinstance(v, (int, float)):
+        return f"{float(v):.4g}"
+    return str(v)
+
+
+def _time_str(meta, mtime):
+    t = meta.get("time")
+    if t:
+        return str(t)[:16]
+    if mtime:
+        return datetime.datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
+    return ""
+
+
+def _run_identity(name, meta, mtime, run_id=None):
+    """Human-readable identity for one run: dropdown label, plot-title stamp,
+    status badges and grouped parameters. Built server-side so both pages
+    render the same thing. The plot-title stamp ends with run_id (the
+    campaign-qualified relative path) so same-hash runs in different
+    campaigns are distinguishable; the dropdown label keeps the basename
+    since the <optgroup> already carries the campaign."""
+    rid = run_id or name
+    tstr = _time_str(meta, mtime)
+    if not meta.get("corona"):
+        return {"label": f"{name} · {tstr} · (no params.json)".strip(" ·"),
+                "title": rid, "time_str": tstr, "groups": [],
+                "badges": [{"text": "unknown parameters", "kind": "dim"}]}
+
+    is_test = bool(meta.get("test_rt"))
+    frac = meta.get("frac", -1)
+    if is_test:
+        head = f"{meta.get('test_mode', 'test')} test"
+        toks = [f"{lab}={_fmt_id(meta[key])}"
+                for key, lab in [("kT_e", "kT_e"), ("tau_slab", "τ")]
+                if meta.get(key) not in (None, -1)]
+    else:
+        head = meta["corona"]
+        toks = [f"{lab}={_fmt_id(meta[key])}"
+                for key, lab in CORONA_ID_PARAMS.get(meta["corona"], [])
+                if meta.get(key) not in (None, -1)]
+        toks.append(f"logξ={_fmt_id(meta.get('zeta', '?'))}")
+        toks.append(f"logn={_fmt_id(meta.get('nh', '?'))}")
+    core = f"{head} · {' '.join(toks)}"
+
+    user_label = str(meta.get("label", "") or "").strip()
+
+    badges = []
+    if user_label:
+        badges.append({"text": user_label, "kind": "label"})
+    if is_test:
+        badges.append({"text": f"TEST · {meta.get('test_mode', '?')}", "kind": "test"})
+    else:
+        badges.append({"text": "production", "kind": "prod"})
+    badges.append({"text": "angle-dependent kernel" if meta.get("angsca")
+                   else "angle-averaged kernel", "kind": "kernel"})
+    if not is_test:
+        badges.append({"text": "corona only" if frac is None or frac <= 0
+                       else f"F_cor/F_disk = {_fmt_id(frac)}", "kind": "illum"})
+
+    # RT energy range — the quantity campaigns typically vary
+    e_lo, e_hi = meta.get("E_rt_lo"), meta.get("E_rt_hi")
+    ert_items = ([{"label": "E_RT", "value": f"{_fmt_id(e_lo)} eV – {_fmt_id(e_hi)} eV"}]
+                 if e_lo not in (None, -1) and e_hi not in (None, -1) else [])
+
+    groups = []
+    if is_test:
+        groups.append({"title": "compPS slab", "items": [
+            {"label": lab, "value": _fmt_id(meta[key])}
+            for key, lab in [("kT_e", "kT_e [keV]"), ("kT_bb", "kT_bb [keV]"),
+                             ("tau_slab", "τ_slab")]
+            if meta.get(key) not in (None, -1)] + ert_items})
+    else:
+        groups.append({"title": f"corona · {meta['corona']}", "items": [
+            {"label": lab + (" [keV]" if key in KEV_KEYS else ""),
+             "value": _fmt_id(meta[key])}
+            for key, lab in CORONA_ID_PARAMS.get(meta["corona"], [])
+            if meta.get(key) not in (None, -1)]})
+        groups.append({"title": "slab", "items": [
+            {"label": lab, "value": _fmt_id(meta[key])}
+            for key, lab in SLAB_ID_PARAMS if meta.get(key) is not None] + ert_items})
+        if frac is not None and frac > 0:
+            groups.append({"title": "disk", "items": [
+                {"label": "kT_disk [keV]", "value": _fmt_id(meta.get("kT_disk", "?"))}]})
+
+    lbl_prefix = f"“{user_label}” · " if user_label else ""
+    return {"label": f"{lbl_prefix}{core} · {tstr} · {name}",
+            "title": f"{lbl_prefix}{core} · {rid}",
+            "time_str": tstr, "badges": badges, "groups": groups}
+
+
+def _run_convergence(run_path):
+    """Max relative temperature change between the last two profile files."""
+    try:
+        files = sorted((f for f in os.listdir(run_path)
+                        if re.fullmatch(r"profile_iter\d+\.dat", f)),
+                       key=lambda f: int(re.search(r"iter(\d+)", f).group(1)))
+    except OSError:
+        files = []
+    if not files:
+        return {"status": "none", "dT": None, "n_iter": 0}
+    if len(files) == 1:
+        return {"status": "single", "dT": None, "n_iter": 1}
+
+    def read_T(fn):
+        T = []
+        try:
+            with open(os.path.join(run_path, fn)) as f:
+                for line in f:
+                    if line.startswith("#"):
+                        continue
+                    parts = line.split()
+                    if len(parts) >= 3:
+                        try:
+                            T.append((int(parts[0]), float(parts[1]), float(parts[2])))
+                        except ValueError:
+                            pass
+        except OSError:
+            pass
+        return T
+
+    T_prev, T_last = read_T(files[-2]), read_T(files[-1])
+    # A partially written profile must not be reported as converged.
+    valid = (T_prev and len(T_prev) == len(T_last)
+             and all(a[:2] == b[:2] and math.isfinite(a[2]) and math.isfinite(b[2])
+                     and a[2] > 0 and b[2] > 0 for a, b in zip(T_prev, T_last)))
+    if not valid:
+        return {"status": "none", "dT": None, "n_iter": len(files)}
+    dT = max(abs(b[2] - a[2]) / a[2] for a, b in zip(T_prev, T_last))
+    return {"status": "converged" if dT <= CONV_TOL else "evolving",
+            "dT": dT, "n_iter": len(files)}
+
+
+def _scan_run_dirs(results_dir):
+    """Yield (run_id, group, name, run_path, mtime) for every run directory.
+
+    A run is a directory holding params.json, either directly under results/
+    (group = "") or exactly one level down inside a user-named campaign folder
+    (group = campaign dir name, run_id = "campaign/name"). Top-level runs come
+    first; runs are newest-first within each group; campaign groups are ordered
+    by their newest run.
+    """
+    def mt_of(p):
+        try:
+            return os.path.getmtime(p)
+        except OSError:
+            return 0
+
+    root = os.path.realpath(results_dir) + os.sep
+
+    def is_run_dir(path):
+        return os.path.isdir(path) and os.path.realpath(path).startswith(root)
+
+    top, campaigns = [], []
+    if os.path.isdir(results_dir):
+        for name in os.listdir(results_dir):
+            path = os.path.join(results_dir, name)
+            if not is_run_dir(path):
+                continue
+            if os.path.exists(os.path.join(path, "params.json")):
+                top.append((mt_of(path), name, "", name, path))
+            else:
+                subs = []
+                for sub in os.listdir(path):
+                    sp = os.path.join(path, sub)
+                    if is_run_dir(sp) and os.path.exists(os.path.join(sp, "params.json")):
+                        subs.append((mt_of(sp), f"{name}/{sub}", name, sub, sp))
+                if subs:
+                    subs.sort(key=lambda e: e[0], reverse=True)
+                    campaigns.append(subs)
+    top.sort(key=lambda e: e[0], reverse=True)
+    campaigns.sort(key=lambda g: g[0][0], reverse=True)
+    for group in [top] + campaigns:
+        for mt, run_id, grp, name, path in group:
+            yield run_id, grp, name, path, mt
+
+
+def _run_dir(run_id):
+    """Resolve a run id ("hash" or "campaign/hash") to its directory under
+    results/. 404s on any escape: '..' traversal, absolute paths, symlinks
+    pointing outside the tree."""
+    results_dir = os.path.realpath(os.path.join(WORK_DIR, "results"))
+    p = os.path.realpath(os.path.join(results_dir, run_id))
+    if not p.startswith(results_dir + os.sep):
+        abort(404)
+    return p
+
+
 @app.route("/api/runs")
 def api_runs():
-    """Scan results/<hash>/ directories, read params.json from each.
+    """Scan results/ (plus one campaign level) and read params.json from each.
 
-    Directories are returned newest-first (by mtime); each run carries an
-    `mtime` field so the client can show a timestamp.
+    Each run carries "id" (relative path used in data-API URLs), "group"
+    (campaign folder, "" for top-level), "hash" (basename, for display) and a
+    server-built identity (label, title, badges, param groups) plus a
+    convergence status so the client only renders.
     """
     results_dir = os.path.join(WORK_DIR, "results")
     runs = []
-    if os.path.isdir(results_dir):
-        entries = []
-        for name in os.listdir(results_dir):
-            run_path = os.path.join(results_dir, name)
-            pj = os.path.join(run_path, "params.json")
-            if os.path.isdir(run_path) and os.path.exists(pj):
-                try:
-                    mt = os.path.getmtime(run_path)
-                except OSError:
-                    mt = 0
-                entries.append((mt, name, run_path, pj))
-        # newest first
-        entries.sort(key=lambda e: e[0], reverse=True)
-        for mt, name, run_path, pj in entries:
-            try:
-                with open(pj) as f:
-                    meta = json.load(f)
-            except Exception:
-                meta = {}
-            # find available iterations
-            iters = sorted(set(
-                int(mm.group(1))
-                for fn in os.listdir(run_path)
-                for mm in [re.search(r"iter(\d+)", fn)]
-                if mm
-            ))
-            runs.append({"hash": name, "iters": iters, "meta": meta, "mtime": mt})
+    for run_id, group, name, run_path, mt in _scan_run_dirs(results_dir):
+        try:
+            with open(os.path.join(run_path, "params.json")) as f:
+                meta = json.load(f)
+        except Exception:
+            meta = {}
+        # find available iterations
+        iters = sorted(set(
+            int(mm.group(1))
+            for fn in os.listdir(run_path)
+            for mm in [re.search(r"iter(\d+)", fn)]
+            if mm
+        ))
+        runs.append({"id": run_id, "group": group, "hash": name, "iters": iters,
+                     "meta": meta, "mtime": mt,
+                     "convergence": _run_convergence(run_path),
+                     **_run_identity(name, meta, mt, run_id=run_id)})
     return jsonify(runs=runs)
 
 
-@app.route("/api/data/<run_hash>/<int:iteration>")
-def api_data(run_hash, iteration):
+@app.route("/api/data/<path:run_id>/<int:iteration>")
+def api_data(run_id, iteration):
     """Parse emergent, moments, profile data for a run/iteration."""
-    rd = os.path.join(WORK_DIR, "results", run_hash)
+    rd = _run_dir(run_id)
     result = {}
 
     # 1. Emergent intensity
@@ -1482,7 +1706,7 @@ def api_data(run_hash, iteration):
         in_block = False
         with open(fe_file) as f:
             for line in f:
-                if line.startswith("# Fe lines") and f"iter={iteration}" in line:
+                if line.startswith("# Fe lines") and re.search(rf"\biter={iteration}\b", line):
                     in_block = True
                     continue
                 elif line.startswith("# Fe lines") and in_block:
@@ -1503,11 +1727,11 @@ def api_data(run_hash, iteration):
     return jsonify(result)
 
 
-@app.route("/api/profiles/<run_hash>")
-def api_all_profiles(run_hash):
+@app.route("/api/profiles/<path:run_id>")
+def api_all_profiles(run_id):
     """Return temperature profiles for iterations of a run (every `step`-th)."""
     step = int(request.args.get("step", 2))
-    rd = os.path.join(WORK_DIR, "results", run_hash)
+    rd = _run_dir(run_id)
     all_iters = []
     raw = {}
     if os.path.isdir(rd):
@@ -1540,11 +1764,11 @@ def api_all_profiles(run_hash):
     return jsonify(profiles=profiles)
 
 
-@app.route("/api/mean_intensity/<run_hash>")
-def api_all_mean_intensity(run_hash):
+@app.route("/api/mean_intensity/<path:run_id>")
+def api_all_mean_intensity(run_id):
     """Return surface (depth=0) mean intensity J0(E) for iterations (every `step`-th)."""
     step = int(request.args.get("step", 2))
-    rd = os.path.join(WORK_DIR, "results", run_hash)
+    rd = _run_dir(run_id)
     # First pass: collect available iteration numbers
     all_iters = []
     if os.path.isdir(rd):
@@ -1578,11 +1802,11 @@ def api_all_mean_intensity(run_hash):
     return jsonify(moments=moments)
 
 
-@app.route("/api/line_labels/<run_hash>")
-def api_line_labels(run_hash):
+@app.route("/api/line_labels/<path:run_id>")
+def api_line_labels(run_id):
     """Return line labels from the first available line_labels file."""
     import re as _re
-    rd = os.path.join(WORK_DIR, "results", run_hash)
+    rd = _run_dir(run_id)
     if not os.path.isdir(rd):
         return jsonify(lines=[])
     # Find first line_labels file
@@ -1737,42 +1961,72 @@ const DIM_HEX = themeColor('--dim');
 const FAINT_HEX = themeColor('--faint');
 const FE_HEX = themeColor('--red');
 const LINE_HEX = themeColor('--accent');
-const COLORS = ['#965638','#606c4e','#b4783e','#775e67','#8d713f','#aa654c','#595f51','#9d7d64'];
+const COLORS = ['#005A9C','#B34700','#20704A','#693C91','#A3264D','#755400','#006B73','#3F569B','#8D4038','#386447'];
 
 let allRuns = [];
+let runStamp = '';   // run identity stamped into every plot title
 
-function tsLabel(mtime) {
-  if (!mtime) return '';
-  const d = new Date(mtime * 1000);
-  return d.toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+const BADGE_CLS = { label:'b-label', test:'b-test', prod:'b-prod', kernel:'b-kernel', illum:'b-illum', dim:'b-dim' };
+
+function convBadge(run) {
+  const c = run.convergence || {};
+  const n = c.n_iter || (run.iters ? run.iters.length : 0);
+  if (c.status === 'converged')
+    return `<span class="rc-badge b-ok">temperature converged · max ΔT/T = ${esc(c.dT.toExponential(1))} · ${n} iter</span>`;
+  if (c.status === 'evolving')
+    return `<span class="rc-badge b-warn">temperature evolving · max ΔT/T = ${esc(c.dT.toExponential(1))} · ${n} iter</span>`;
+  if (c.status === 'single') return '<span class="rc-badge b-dim">single iteration</span>';
+  return '<span class="rc-badge b-dim">no profile data</span>';
+}
+
+function runSetKey(runs) {
+  return JSON.stringify(runs);
+}
+
+function buildRunSelect(runs, keepId) {
+  // top-level runs first (plain options), then one <optgroup> per campaign;
+  // server order already groups them contiguously
+  const sel = document.getElementById('runSelect');
+  sel.innerHTML = '';
+  let parent = sel;
+  let curGroup = '';
+  runs.forEach(run => {
+    if ((run.group || '') !== curGroup) {
+      curGroup = run.group || '';
+      if (curGroup) {
+        parent = document.createElement('optgroup');
+        parent.label = curGroup;
+        sel.appendChild(parent);
+      } else parent = sel;
+    }
+    const o = document.createElement('option');
+    o.value = run.id;
+    o.textContent = run.label || run.id;
+    o.title = run.label || run.id;
+    parent.appendChild(o);
+  });
+  if (keepId && runs.some(r => r.id === keepId)) sel.value = keepId;
+  else if (runs.length) sel.value = runs[0].id;
 }
 
 async function init() {
   const r = await fetch('/api/runs');
   const d = await r.json();
-  allRuns = d.runs;  // already newest-first from server
-  const sel = document.getElementById('runSelect');
-  sel.innerHTML = '';
+  allRuns = d.runs;  // server order: top-level newest-first, then campaigns
   if (!allRuns.length) { showEmpty(); return; }
-  allRuns.forEach(run => {
-    const o = document.createElement('option');
-    o.value = run.hash;
-    const m = run.meta;
-    let label = '';
-    if (m.corona) label += `${m.corona}`;
-    if (m.nh !== undefined) label += `  nh=${m.nh}`;
-    if (m.zeta !== undefined) label += `  z=${m.zeta}`;
-    const ts = tsLabel(run.mtime);
-    label += ts ? `  · ${ts}` : `  · ${run.hash}`;
-    o.textContent = m.label ? `${m.label} · ${label}` : label;
-    sel.appendChild(o);
-  });
-  // auto-select newest
-  sel.value = allRuns[0].hash;
+  buildRunSelect(allRuns, null);
   onRunChange();
 }
 
 function showEmpty() {
+  document.getElementById('runSelect').innerHTML = '';
+  document.getElementById('plotsContainer').style.display = 'none';
+  document.getElementById('paramsBox').style.display = 'none';
   document.getElementById('controls').style.display = 'none';
   document.getElementById('statusMsg').style.display = 'none';
   const e = document.getElementById('emptyState');
@@ -1787,7 +2041,7 @@ function showEmpty() {
 
 function onRunChange() {
   const rid = document.getElementById('runSelect').value;
-  const run = allRuns.find(r => r.hash === rid);
+  const run = allRuns.find(r => r.id === rid);
   const iterSel = document.getElementById('iterSelect');
   iterSel.innerHTML = '';
   if (!run) return;
@@ -1797,29 +2051,38 @@ function onRunChange() {
     iterSel.appendChild(o);
   });
   if (run.iters.length > 0) iterSel.value = run.iters[run.iters.length - 1];
-  showParams(run.meta);
+  showRunCard(run);
   loadData();
 }
 
-function escapeHtml(value) {
-  return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
-}
-function showParams(meta) {
+function showRunCard(run) {
   const box = document.getElementById('paramsBox');
-  if (!meta || !meta.corona) { box.style.display = 'none'; return; }
-  const skip = new Set(['hash']);
-  let html = '';
-  for (const [k,v] of Object.entries(meta)) {
-    if (skip.has(k)) continue;
-    const fv = typeof v === 'number' ? (Math.abs(v)>=1e4||(Math.abs(v)<0.01&&v!==0) ? v.toExponential(2) : v) : v;
-    html += `<span class="pk">${escapeHtml(k)}</span>=<span class="pv">${escapeHtml(fv)}</span> &nbsp; `;
-  }
-  box.innerHTML = html;
+  if (!run) { box.style.display = 'none'; return; }
+  const badges = (run.badges || []).map(b =>
+    `<span class="rc-badge ${BADGE_CLS[b.kind] || 'b-dim'}">${esc(b.text)}</span>`).join('');
+  const groups = (run.groups || []).map(g =>
+    `<div class="rc-group"><div class="rg-title">${esc(g.title)}</div><div class="rg-items">` +
+    g.items.map(it => `<span class="pk">${esc(it.label)}</span> = <span class="pv">${esc(it.value)}</span>`).join(' &nbsp;·&nbsp; ') +
+    '</div></div>').join('');
+  const model = run.title ? run.title.split(' · ')[0] : run.hash;
+  const metaHash = run.meta && run.meta.hash;
+  const mono = metaHash && metaHash !== run.hash ? `${run.id} (${metaHash})` : run.id;
+  box.innerHTML = `
+    <div class="rc-top">
+      <span class="rc-model">${esc(model)}</span>
+      ${badges}${convBadge(run)}
+      <span class="rc-meta">${esc(run.time_str || '')} <span class="rc-hash">${esc(mono)}</span></span>
+    </div>
+    <div class="rc-groups">${groups}</div>`;
+  box.classList.add('run-card');
   box.style.display = 'block';
 }
 
 async function loadData() {
+  lineLabelsOn = false;
+  document.getElementById('btnLineLabels').textContent = 'Line IDs: OFF';
+  document.getElementById('btnLineLabels').className = 'pill pill-line off';
+  document.getElementById('lineLabelStatus').textContent = '';
   const rid = document.getElementById('runSelect').value;
   const iter = document.getElementById('iterSelect').value;
   if (!rid || !iter) return;
@@ -1827,7 +2090,7 @@ async function loadData() {
   document.getElementById('statusMsg').textContent = 'Loading data...';
   document.getElementById('plotsContainer').style.display = 'none';
 
-  const r = await fetch(`/api/data/${rid}/${iter}`);
+  const r = await fetch(`/api/data/${encodeURIComponent(rid)}/${iter}`);
   const d = await r.json();
 
   if (!d.emergent && !d.profile) {
@@ -1838,7 +2101,8 @@ async function loadData() {
   document.getElementById('statusMsg').style.display = 'none';
   document.getElementById('plotsContainer').style.display = 'block';
 
-  const run = allRuns.find(r => r.hash === rid);
+  const run = allRuns.find(r => r.id === rid);
+  runStamp = ((run && run.title) || rid) + ' · iter ' + iter;
   const mu_inc = Math.abs((run && run.meta && run.meta.incidence) || 0.7071);
 
   plotEmergent(d.emergent, mu_inc, d.fe_lines || []);
@@ -1877,7 +2141,7 @@ function plotEmergent(em, mu_inc, fe_lines) {
 
   traces.push({
     x: E_keV, y: E_eV.map((e, i) => e * 2.0 * em.I_corona[i] / mu_inc),
-    name: 'E × 2I_cor/μ_inc', mode: 'lines',
+    name: 'E × 2J_cor/μ_inc', mode: 'lines',
     line: { color: DIM_HEX, width: 1.5, dash: 'dash' }
   });
   traces.push({
@@ -1893,7 +2157,7 @@ function plotEmergent(em, mu_inc, fe_lines) {
       traces.push({
         x: E_keV, y: E_eV.map((e, i) => e * vals[i]),
         name: `μ = ${mu.toFixed(4)}`, mode: 'lines',
-        line: { color: COLORS[ci % COLORS.length], width: 1.8 }
+        line: { color: COLORS[ci % COLORS.length], width: 1.8, dash: ['solid','dash','dot','dashdot'][Math.floor(ci / COLORS.length) % 4] }
       });
       ci++;
     }
@@ -1908,7 +2172,7 @@ function plotEmergent(em, mu_inc, fe_lines) {
       shapes.push({
         type: 'line', xref: 'x', yref: 'paper',
         x0: fl.E_keV, x1: fl.E_keV, y0: 0, y1: 1,
-        line: { color: 'rgba(181,72,72,0.45)', width: 1, dash: 'dot' }
+        line: { color: 'rgba(173,77,66,0.5)', width: 1, dash: 'dot' }
       });
       annotations.push({
         x: Math.log10(fl.E_keV), xref: 'x', yref: 'paper',
@@ -1922,7 +2186,8 @@ function plotEmergent(em, mu_inc, fe_lines) {
   Plotly.react(div, traces, {
     paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
     font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
-    margin: { l:70, r:30, t:40, b:60 },
+    title: { text: esc(runStamp), font: { size: 11, color: '#6f675e' }, x: 0.01, xanchor: 'left' },
+    margin: { l:70, r:30, t:52, b:60 },
     legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:12} },
     xaxis: { type:'log', title:'E [keV]', range:[Math.log10(1e-3), Math.log10(1000)], gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
     yaxis: { type:'log', title:'E I_E  [erg cm⁻² s⁻¹ sr⁻¹]', range:yr, gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
@@ -1946,14 +2211,15 @@ function plotMeanOutgoing(em) {
   const traces = [{
     x: E_keV, y: E_eV.map((e, i) => e * mean_I[i]),
     name: 'E × Mean outgoing I', mode: 'lines',
-    line: { color: COLORS[0], width: 2 }
+    line: { color: '#915237', width: 2 }
   }];
 
   const yr = autoLogRange(traces);
   Plotly.react(div, traces, {
     paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
     font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
-    margin: { l:70, r:30, t:30, b:60 },
+    title: { text: esc(runStamp), font: { size: 11, color: '#6f675e' }, x: 0.01, xanchor: 'left' },
+    margin: { l:70, r:30, t:48, b:60 },
     legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:12} },
     xaxis: { type:'log', title:'E [keV]', range:[Math.log10(1e-3), Math.log10(1000)], gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
     yaxis: { type:'log', title:'E I_E  [erg cm⁻² s⁻¹ sr⁻¹]', range:yr, gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
@@ -1966,13 +2232,14 @@ function plotProfile(prof) {
   const traces = [{
     x: prof.tau_mid, y: prof.T_K,
     name: 'T', mode: 'lines+markers',
-    line: { color: COLORS[1], width: 2 },
-    marker: { size: 4, color: COLORS[1] }
+    line: { color: '#753b28', width: 2 },
+    marker: { size: 4, color: '#915237' }
   }];
   Plotly.react(div, traces, {
     paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
     font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
-    margin: { l:70, r:30, t:30, b:60 },
+    title: { text: esc(runStamp), font: { size: 11, color: '#6f675e' }, x: 0.01, xanchor: 'left' },
+    margin: { l:70, r:30, t:48, b:60 },
     legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:12} },
     xaxis: { type:'log', title:'τ (Thomson)', gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
     yaxis: { type:'log', title:'T [K]', gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
@@ -2006,7 +2273,7 @@ async function toggleLineLabels() {
   }
   if (!lineLabelsData || lineLabelsData.hash !== rid) {
     status.textContent = 'Loading...';
-    const r = await fetch(`/api/line_labels/${rid}`);
+    const r = await fetch(`/api/line_labels/${encodeURIComponent(rid)}`);
     const d = await r.json();
     lineLabelsData = { hash: rid, lines: d.lines || [] };
   }
@@ -2025,8 +2292,8 @@ async function toggleLineLabels() {
     placedLogE.push(logE);
     const isFluor = ln.type === 'F';
     const name = fmtSpecies(ln.label) + (isFluor ? ' (fl)' : '');
-    const col = isFluor ? 'rgba(181,72,72,0.9)' : 'rgba(145,82,55,0.9)';
-    const lcol = isFluor ? 'rgba(181,72,72,0.2)' : 'rgba(145,82,55,0.15)';
+    const col = isFluor ? 'rgba(173,77,66,0.85)' : 'rgba(133,83,53,0.85)';
+    const lcol = isFluor ? 'rgba(173,77,66,0.2)' : 'rgba(133,83,53,0.15)';
     shapes.push({ type:'line', xref:'x', yref:'paper', x0:keV, x1:keV, y0:0, y1:1, line:{color:lcol, width:0.8} });
     annotations.push({ x:Math.log10(keV), y:1, xref:'x', yref:'paper', text:name, showarrow:false,
       font:{size:9, color:col, family:'Inter, sans-serif'}, textangle:-90, xanchor:'left', yanchor:'top', yshift:-4 });
@@ -2038,6 +2305,56 @@ async function toggleLineLabels() {
   Plotly.relayout(div, { annotations, shapes });
 }
 
+// ── Live refresh — runs keep growing while the page is open ────
+let refreshBusy = false;
+
+async function refreshRuns() {
+  if (refreshBusy || document.hidden) return;
+  refreshBusy = true;
+  try {
+    const r = await fetch('/api/runs');
+    const d = await r.json();
+    const runs = d.runs;
+    if (!runs.length) { allRuns = []; showEmpty(); return; }
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('controls').style.display = '';
+    const sel = document.getElementById('runSelect');
+    const prevId = sel.value;
+    const setChanged = runSetKey(runs) !== runSetKey(allRuns);
+    allRuns = runs;
+    if (setChanged) {
+      buildRunSelect(runs, prevId);  // preserves selection when possible
+      if (sel.value !== prevId) { onRunChange(); return; }
+    }
+    const run = allRuns.find(x => x.id === sel.value);
+    if (!run) return;
+    showRunCard(run);  // convergence badge / iter count may have advanced
+    // append new iterations; follow the newest if the user was on the last one
+    const iterSel = document.getElementById('iterSelect');
+    const have = new Set(Array.from(iterSel.options).map(o => Number(o.value)));
+    const wasLast = iterSel.selectedIndex < 0 ||
+                    iterSel.selectedIndex === iterSel.options.length - 1;
+    let added = false;
+    run.iters.forEach(it => {
+      if (!have.has(it)) {
+        const o = document.createElement('option');
+        o.value = it; o.textContent = `Iteration ${it}`;
+        iterSel.appendChild(o);
+        added = true;
+      }
+    });
+    if (added && wasLast && run.iters.length) {
+      iterSel.value = run.iters[run.iters.length - 1];
+      loadData();
+    }
+  } catch (e) { /* transient poll failure — retry next tick */ }
+  finally { refreshBusy = false; }
+}
+
+setInterval(refreshRuns, 5000);
+document.addEventListener('visibilitychange',
+  () => { if (!document.hidden) refreshRuns(); });
+
 init();
 </script>
 </body>
@@ -2047,6 +2364,551 @@ init();
 @app.route("/plots")
 def plots():
     return render_template_string(PLOTS_HTML, base_css=BASE_CSS, nav=TOP_NAV("plots"), footer=FOOTER)
+
+
+# ─── Compare page ────────────────────────────────────────────────
+# Overlay emergent spectra (or temperature profiles) from any number of
+# (run, iteration) selections. Reuses /api/runs + /api/data; all overlay
+# maths run client-side.
+COMPARE_HTML = r"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>DAO — Compare Spectra</title>
+<script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
+<style>
+{{ base_css | safe }}
+  main.wrapper { max-width:1200px; }
+  .controls { display:flex; gap:var(--sp-3); align-items:center; flex-wrap:wrap; margin-bottom:var(--sp-4); }
+  .controls label { font-size:var(--fs-sm); color:var(--dim); }
+  .controls select { background:var(--bg2); color:var(--white); border:1px solid var(--border);
+    border-radius:var(--r-sm); padding:7px 12px; font-family:inherit; font-size:var(--fs-sm); outline:none; min-width:200px; }
+  .controls select:focus { border-color:var(--accent); }
+  .controls select#iterSelect { min-width:120px; }
+  .mode-row { display:flex; gap:var(--sp-2); align-items:center; flex-wrap:wrap; margin-bottom:var(--sp-5); }
+  .seg { display:inline-flex; border:1px solid var(--border); border-radius:var(--r-sm); overflow:hidden; }
+  .seg button { background:var(--bg2); color:var(--dim); border:none; font-family:inherit;
+    font-size:var(--fs-sm); padding:7px 14px; cursor:pointer; transition:all .15s; }
+  .seg button.active { background:var(--accent-sft); color:var(--accent); font-weight:600; }
+  .seg button + button { border-left:1px solid var(--border); }
+
+  /* ── Compare list ─────────────────────────────────── */
+  .cmp-list { display:flex; flex-direction:column; gap:6px; margin-bottom:var(--sp-5); }
+  .cmp-row { display:flex; align-items:center; gap:var(--sp-3); background:var(--card);
+    border:1px solid var(--border); border-radius:var(--r-sm); padding:8px 12px; }
+  .cmp-row .swatch { width:14px; height:14px; border-radius:3px; flex:none; box-shadow:0 0 6px rgba(0,0,0,.4); }
+  .cmp-row .cmp-id { font-family:var(--mono); font-size:var(--fs-sm); color:var(--white); font-weight:600; }
+  .cmp-row .cmp-sub { font-size:var(--fs-xs); color:var(--dim); }
+  .cmp-row .ref-tag { font-size:var(--fs-xs); color:var(--cyan); border:1px solid rgba(133,83,53,.35);
+    border-radius:999px; padding:1px 8px; }
+  .cmp-row .cmp-spacer { margin-left:auto; }
+  .cmp-row .cmp-mkref { background:var(--bg2); border:1px solid var(--border); color:var(--dim);
+    font-size:var(--fs-xs); padding:4px 10px; border-radius:var(--r-sm); cursor:pointer; font-family:inherit; }
+  .cmp-row .cmp-mkref:hover { color:var(--cyan); border-color:rgba(133,83,53,.4); }
+  .cmp-row .cmp-del { background:var(--bg2); border:1px solid var(--border); color:var(--text);
+    font-size:var(--fs-xs); padding:4px 10px; border-radius:var(--r-sm); cursor:pointer; font-family:inherit; }
+  .cmp-row .cmp-del:hover { color:var(--red); border-color:rgba(173,77,66,.4); }
+  @media (max-width:600px) {
+    .cmp-row { flex-wrap:wrap; }
+    .cmp-row > div { flex:1; min-width:190px; overflow-wrap:anywhere; }
+    .cmp-row .cmp-spacer { display:none; }
+    .controls select { max-width:100%; min-width:0; }
+  }
+  .cmp-empty { color:var(--dim); font-size:var(--fs-sm); padding:14px 4px; }
+  .plot-card { padding:16px; margin-bottom:var(--sp-5); }
+  .plot-area { width:100%; height:520px; }
+  .plot-area.ratio { height:360px; }
+  @media (max-width:520px){ .plot-area { height:min(60vh,480px); } }
+  .plot-caption { font-size:var(--fs-xs); color:var(--dim); margin-top:8px; line-height:1.5; }
+  .status { text-align:center; padding:40px; color:var(--dim); font-size:var(--fs-sm); }
+</style>
+</head>
+<body>
+{{ nav | safe }}
+<main id="main" class="wrapper">
+
+  <div class="page-head"><h1>Compare Spectra</h1>
+    <div class="sub">Overlay emergent spectra or temperature profiles from any set of runs &amp; iterations</div></div>
+
+  <div class="card full" id="picker">
+    <h2><span class="tick" aria-hidden="true"></span>Add a spectrum</h2>
+    <div class="controls">
+      <label for="runSelect">Run:</label>
+      <select id="runSelect" onchange="onRunChange()"></select>
+      <label for="iterSelect">Iteration:</label>
+      <select id="iterSelect"></select>
+      <button class="btn btn-primary" onclick="addSpectrum()">+ Add to comparison</button>
+    </div>
+    <div class="cmp-list" id="cmpList"></div>
+    <div class="controls" style="margin-bottom:0">
+      <button class="btn btn-secondary" onclick="clearAll()">Clear all</button>
+    </div>
+  </div>
+
+  <div class="mode-row">
+    <span style="font-size:var(--fs-sm);color:var(--dim);">Quantity:</span>
+    <div class="seg" id="quantSeg">
+      <button data-q="emergent" class="active" onclick="setQuantity('emergent')">Emergent spectrum</button>
+      <button data-q="temperature" onclick="setQuantity('temperature')">Temperature profile</button>
+    </div>
+    <span class="pill pill-line off" id="normBtn" onclick="toggleNorm()"
+      style="margin-left:8px;cursor:pointer;">Normalize by integrated intensity: OFF</span>
+    <span class="pill pill-line off" id="ratioBtn" onclick="toggleRatio()"
+      style="cursor:pointer;">Ratio to reference: OFF</span>
+  </div>
+
+  <div id="plotsContainer">
+    <div class="plot-card">
+      <h2 style="justify-content:flex-start;gap:12px;">
+        <span class="tick" aria-hidden="true"></span><span id="mainTitle">Emergent spectra — angle-averaged outgoing</span>
+      </h2>
+      <div class="plot-area" id="plotMain"></div>
+      <div class="plot-caption" id="mainCaption">Mean over outgoing angles (μ &gt; 0) of each selected run/iteration, plotted as E·I<sub>E</sub>.</div>
+    </div>
+    <div class="plot-card" id="ratioCard" style="display:none">
+      <h2 style="justify-content:flex-start;gap:12px;">
+        <span class="tick" aria-hidden="true"></span>Ratio to reference
+      </h2>
+      <div class="plot-area ratio" id="plotRatio"></div>
+      <div class="plot-caption" id="ratioCaption"></div>
+    </div>
+  </div>
+
+  <div class="status" id="statusMsg">Loading…</div>
+  <div id="emptyState" style="display:none"></div>
+
+</main>
+{{ footer | safe }}
+
+<script>
+const THEME = getComputedStyle(document.documentElement);
+const themeColor = name => THEME.getPropertyValue(name).trim();
+const PLOT_BG = themeColor('--card');
+const GRID_COLOR = themeColor('--border');
+const FONT_COLOR = themeColor('--text');
+const PAPER_BG = themeColor('--card');
+const COLORS = ['#005A9C','#B34700','#20704A','#693C91','#A3264D','#755400','#006B73','#3F569B','#8D4038','#386447'];
+const CKEY = 'dao.compare.v1';
+
+let allRuns = [];
+let runById = {};
+let cmp = [];                 // [{id, iter, color}]
+const dataCache = {};         // `${id}/${iter}` -> /api/data json (or {__empty:true})
+let quantity = 'emergent';
+let ratioOn = false;
+let normOn = false;
+let lastRunSetKey = '';
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function keyOf(e) { return e.id + '/' + e.iter; }
+function pickColor() {
+  const used = new Set(cmp.map(e => e.color));
+  for (const c of COLORS) if (!used.has(c)) return c;
+  return COLORS[cmp.length % COLORS.length];
+}
+function paramPart(run) {
+  // run.title = "<core> · <id>"; drop the trailing id token for a compact sublabel
+  if (!run || !run.title) return '';
+  const parts = run.title.split(' · ');
+  return parts.length > 1 ? parts.slice(0, -1).join(' · ') : run.title;
+}
+function legendLabel(e) { return e.id + ' · it' + e.iter; }
+
+// ── run set key (for live refresh of the add-picker) ─────────────
+function runSetKey(runs) { return JSON.stringify(runs); }
+
+function buildRunSelect(runs, keepId) {
+  const sel = document.getElementById('runSelect');
+  sel.innerHTML = '';
+  let parent = sel, curGroup = '';
+  runs.forEach(run => {
+    if ((run.group || '') !== curGroup) {
+      curGroup = run.group || '';
+      if (curGroup) { parent = document.createElement('optgroup'); parent.label = curGroup; sel.appendChild(parent); }
+      else parent = sel;
+    }
+    const o = document.createElement('option');
+    o.value = run.id; o.textContent = run.label || run.id; o.title = run.label || run.id;
+    parent.appendChild(o);
+  });
+  if (keepId && runs.some(r => r.id === keepId)) sel.value = keepId;
+  else if (runs.length) sel.value = runs[0].id;
+}
+
+function onRunChange() {
+  const rid = document.getElementById('runSelect').value;
+  const run = runById[rid];
+  const iterSel = document.getElementById('iterSelect');
+  iterSel.innerHTML = '';
+  if (!run) return;
+  run.iters.forEach(it => {
+    const o = document.createElement('option');
+    o.value = it; o.textContent = 'Iteration ' + it;
+    iterSel.appendChild(o);
+  });
+  if (run.iters.length) iterSel.value = run.iters[run.iters.length - 1];
+}
+
+async function init() {
+  const r = await fetch('/api/runs');
+  const d = await r.json();
+  allRuns = d.runs || [];
+  runById = {}; allRuns.forEach(run => runById[run.id] = run);
+  lastRunSetKey = runSetKey(allRuns);
+  document.getElementById('statusMsg').style.display = 'none';
+  if (!allRuns.length) { showEmpty(); return; }
+  buildRunSelect(allRuns, null);
+  onRunChange();
+  rehydrate();
+  renderList();
+  redraw();
+}
+
+function showEmpty() {
+  document.getElementById('picker').style.display = 'none';
+  document.querySelector('.mode-row').style.display = 'none';
+  document.getElementById('plotsContainer').style.display = 'none';
+  const e = document.getElementById('emptyState');
+  e.style.display = 'block';
+  e.innerHTML = `<div class="empty-state plot-card">
+    <div class="ico" aria-hidden="true">◎</div>
+    <h3>No results yet</h3>
+    <p>Configure a model and run ./maindaocl — finished runs appear here, ready to compare.</p>
+    <a class="btn btn-primary" href="/">Open Configurator</a>
+  </div>`;
+}
+
+let refreshBusy = false;
+async function refreshRuns() {
+  if (refreshBusy || document.hidden) return;
+  refreshBusy = true;
+  try {
+    const r = await fetch('/api/runs');
+    const d = await r.json();
+    const runs = d.runs || [];
+    const key = runSetKey(runs);
+    if (key !== lastRunSetKey) {
+      lastRunSetKey = key;
+      allRuns = runs;
+      runById = {}; allRuns.forEach(run => runById[run.id] = run);
+      const keep = document.getElementById('runSelect').value;
+      const keepIter = document.getElementById('iterSelect').value;
+      const wasEmpty = document.getElementById('picker').style.display === 'none';
+      buildRunSelect(allRuns, keep);
+      onRunChange();
+      if (runById[keep]?.iters.includes(Number(keepIter))) {
+        document.getElementById('iterSelect').value = keepIter;
+      }
+      if (!runs.length) { showEmpty(); return; }
+      document.getElementById('picker').style.display = '';
+      document.querySelector('.mode-row').style.display = '';
+      document.getElementById('plotsContainer').style.display = '';
+      document.getElementById('emptyState').style.display = 'none';
+      if (wasEmpty) rehydrate();
+      renderList();
+    }
+    // A selected iteration may still be writing; retry it on the next refresh.
+    Object.keys(dataCache).forEach(k => delete dataCache[k]);
+    if (cmp.length) await redraw();
+  } catch (e) { /* transient; retry next tick */ }
+  finally { refreshBusy = false; }
+}
+
+// ── compare set ──────────────────────────────────────────────────
+function addSpectrum() {
+  const id = document.getElementById('runSelect').value;
+  const iterStr = document.getElementById('iterSelect').value;
+  if (!id || iterStr === '') return;
+  const iter = parseInt(iterStr, 10);
+  const e = { id, iter, color: null };
+  if (cmp.some(x => keyOf(x) === keyOf(e))) return;   // no duplicates
+  e.color = pickColor();
+  cmp.push(e);
+  persist(); renderList(); redraw();
+}
+function removeSpectrum(idx) { cmp.splice(idx, 1); persist(); renderList(); redraw(); }
+function makeRef(idx) {
+  if (idx <= 0 || idx >= cmp.length) return;
+  const [e] = cmp.splice(idx, 1);
+  cmp.unshift(e);
+  persist(); renderList(); redraw();
+}
+function clearAll() { cmp = []; persist(); renderList(); redraw(); }
+
+function renderList() {
+  const box = document.getElementById('cmpList');
+  if (!cmp.length) {
+    box.innerHTML = '<div class="cmp-empty">No spectra selected — pick a run and iteration above, then “Add to comparison”. Add two or more to overlay.</div>';
+    return;
+  }
+  box.innerHTML = cmp.map((e, i) => {
+    const run = runById[e.id];
+    const sub = paramPart(run);
+    const ref = i === 0 ? '<span class="ref-tag">reference</span>' : '';
+    const mkref = i === 0 ? '' : `<button class="cmp-mkref" onclick="makeRef(${i})">Set as reference</button>`;
+    return `<div class="cmp-row">
+      <span class="swatch" style="background:${e.color}"></span>
+      <div>
+        <div><span class="cmp-id">${esc(e.id)} · iter ${esc(e.iter)}</span> ${ref}</div>
+        <div class="cmp-sub">${esc(sub)}</div>
+      </div>
+      <span class="cmp-spacer"></span>
+      ${mkref}
+      <button class="cmp-del" onclick="removeSpectrum(${i})">✕ Remove</button>
+    </div>`;
+  }).join('');
+}
+
+// ── persistence ──────────────────────────────────────────────────
+function persist() {
+  try { localStorage.setItem(CKEY, JSON.stringify(cmp.map(e => ({id:e.id, iter:e.iter, color:e.color})))); } catch (x) {}
+}
+function rehydrate() {
+  try {
+    const raw = localStorage.getItem(CKEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (!Array.isArray(saved)) return;
+    cmp = [];
+    saved.forEach(s => {
+      const run = runById[s.id];
+      if (run && run.iters.includes(s.iter) && !cmp.some(x => keyOf(x) === s.id + '/' + s.iter)) {
+        cmp.push({ id: s.id, iter: s.iter, color: COLORS.includes(s.color) ? s.color : pickColor() });
+      }
+    });
+  } catch (x) { cmp = []; }
+}
+
+// ── quantity / ratio controls ────────────────────────────────────
+function setQuantity(q) {
+  quantity = q;
+  document.querySelectorAll('#quantSeg button').forEach(b =>
+    b.classList.toggle('active', b.dataset.q === q));
+  const isEm = q === 'emergent';
+  document.getElementById('mainTitle').textContent = isEm
+    ? 'Emergent spectra — angle-averaged outgoing' : 'Temperature profiles';
+  document.getElementById('mainCaption').innerHTML = isEm
+    ? 'Mean over outgoing angles (μ &gt; 0) of each selected run/iteration, plotted as E·I<sub>E</sub>.'
+    : 'Gas temperature vs Thomson depth τ for each selected run/iteration.';
+  document.getElementById('ratioBtn').style.display = isEm ? '' : 'none';
+  document.getElementById('normBtn').style.display = isEm ? '' : 'none';
+  redraw();
+}
+function toggleRatio() {
+  ratioOn = !ratioOn;
+  const b = document.getElementById('ratioBtn');
+  b.textContent = 'Ratio to reference: ' + (ratioOn ? 'ON' : 'OFF');
+  b.className = 'pill ' + (ratioOn ? 'pill-line' : 'pill-line off');
+  redraw();
+}
+function toggleNorm() {
+  normOn = !normOn;
+  const b = document.getElementById('normBtn');
+  b.textContent = 'Normalize by integrated intensity: ' + (normOn ? 'ON' : 'OFF');
+  b.className = 'pill ' + (normOn ? 'pill-line' : 'pill-line off');
+  redraw();
+}
+
+// ── data fetch (cached) ──────────────────────────────────────────
+async function fetchEntry(e) {
+  const k = keyOf(e);
+  if (dataCache[k]) return dataCache[k];
+  try {
+    const r = await fetch(`/api/data/${encodeURIComponent(e.id)}/${e.iter}`);
+    if (!r.ok) throw new Error('Data not ready');
+    const d = await r.json();
+    dataCache[k] = d;
+    return d;
+  } catch (x) { return { __empty: true }; }
+}
+
+function meanOutgoing(em) {
+  const keys = em.mu_vals.filter(mu => mu > 0).map(mu => mu.toFixed(4));
+  const n = keys.length;
+  return em.E.map((_, ie) => { let s = 0; keys.forEach(k => s += em.angles[k][ie]); return n ? s / n : 0; });
+}
+// total flux F = ∫ I_E dE (trapezoid, E ascending in eV)
+function totalFlux(E, I) {
+  let s = 0;
+  for (let k = 1; k < E.length; k++) s += 0.5 * (I[k] + I[k - 1]) * (E[k] - E[k - 1]);
+  return s;
+}
+// mean outgoing intensity, divided by its total flux when normalization is on
+function seriesI(em) {
+  const meanI = meanOutgoing(em);
+  if (!normOn) return meanI;
+  const F = totalFlux(em.E, meanI);
+  return F > 0 ? meanI.map(v => v / F) : meanI;
+}
+function autoLogRange(traces) {
+  let peak = -Infinity;
+  traces.forEach(t => t.y.forEach(v => { if (v > 0 && v > peak) peak = v; }));
+  if (!isFinite(peak) || peak <= 0) return undefined;
+  return [Math.log10(peak * 1e-6), Math.log10(peak * 5)];
+}
+// linear interpolation in log-log space (falls back to linear near non-positive values)
+function interpAt(xs, ys, x) {
+  const N = xs.length;
+  if (N === 0) return NaN;
+  if (x < xs[0] || x > xs[N - 1]) return NaN;
+  if (x === xs[0]) return ys[0];
+  if (x === xs[N - 1]) return ys[N - 1];
+  let lo = 0, hi = N - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (xs[m] <= x) lo = m; else hi = m; }
+  const x0 = xs[lo], x1 = xs[hi], y0 = ys[lo], y1 = ys[hi];
+  if (x0 > 0 && x1 > 0 && y0 > 0 && y1 > 0 && x > 0) {
+    const t = (Math.log10(x) - Math.log10(x0)) / (Math.log10(x1) - Math.log10(x0));
+    return Math.pow(10, Math.log10(y0) + t * (Math.log10(y1) - Math.log10(y0)));
+  }
+  const t = (x - x0) / (x1 - x0);
+  return y0 + t * (y1 - y0);
+}
+
+let drawVersion = 0;
+async function redraw() {
+  const version = ++drawVersion;
+  const status = document.getElementById('statusMsg');
+  if (!cmp.length) {
+    status.style.display = 'none';
+    document.getElementById('plotMain').innerHTML =
+      '<div class="status">Add two or more spectra above to overlay them here.</div>';
+    document.getElementById('ratioCard').style.display = 'none';
+    return;
+  }
+  status.style.display = 'block'; status.textContent = 'Loading data…';
+  const datas = await Promise.all(cmp.map(fetchEntry));
+  if (version !== drawVersion) return;
+  status.style.display = 'none';
+  if (quantity === 'emergent') plotEmergentOverlay(datas);
+  else plotTempOverlay(datas);
+}
+
+function plotEmergentOverlay(datas) {
+  const traces = [];
+  const missing = [];
+  cmp.forEach((e, i) => {
+    const d = datas[i];
+    if (!d || !d.emergent) { missing.push(legendLabel(e)); return; }
+    const em = d.emergent;
+    const meanI = seriesI(em);
+    traces.push({
+      x: em.E.map(v => v / 1e3), y: em.E.map((v, k) => v * meanI[k]),
+      name: legendLabel(e), mode: 'lines', line: { color: e.color, width: 2 },
+    });
+  });
+  const yr = autoLogRange(traces);
+  Plotly.react('plotMain', traces, {
+    paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
+    font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
+    margin: { l:70, r:30, t:20, b:60 },
+    legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:12} },
+    xaxis: { type:'log', title:'E [keV]', range:[Math.log10(1e-3), Math.log10(1000)], gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
+    yaxis: { type:'log',
+      title: normOn ? 'E·I_E / F_tot  (normalized)' : 'E·I_E  [erg cm⁻² s⁻¹ sr⁻¹]',
+      range:yr, gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
+  }, {responsive:true});
+  document.getElementById('mainCaption').innerHTML =
+    'Mean over outgoing angles (μ &gt; 0) of each selected run/iteration, plotted as E·I<sub>E</sub>.' +
+    (normOn ? ' Each spectrum is divided by its own integrated intensity F<sub>tot</sub> = ∫I<sub>E</sub>dE '
+            + '(over that run\'s energy grid), so curves compare shape independent of luminosity.' : '');
+  noteMissing(missing);
+
+  // ── ratio panel ──
+  const card = document.getElementById('ratioCard');
+  if (!ratioOn || cmp.length < 2) { card.style.display = 'none'; return; }
+  const refD = datas[0];
+  if (!refD || !refD.emergent) { card.style.display = 'none'; return; }
+  const refEm = refD.emergent;
+  const refMean = seriesI(refEm);
+  const refE = refEm.E;                // eV, ascending
+  const rtraces = [];
+  cmp.forEach((e, i) => {
+    if (i === 0) return;
+    const d = datas[i];
+    if (!d || !d.emergent) return;
+    const em = d.emergent;
+    const meanI = seriesI(em);
+    const ratio = refE.map((Eev, k) => {
+      const num = interpAt(em.E, meanI, Eev);
+      const den = refMean[k];
+      return (den > 0 && num > 0) ? num / den : null;
+    });
+    rtraces.push({
+      x: refE.map(v => v / 1e3), y: ratio, name: legendLabel(e) + ' / ref',
+      mode: 'lines', line: { color: e.color, width: 2 }, connectgaps: false,
+    });
+  });
+  card.style.display = 'block';
+  document.getElementById('ratioCaption').innerHTML =
+    (normOn ? 'Intensity-normalized ' : 'Angle-averaged ') +
+    'emergent intensity of each spectrum divided by the reference (<b>' +
+    esc(legendLabel(cmp[0])) + '</b>), interpolated onto the reference energy grid within the overlapping energy range.';
+  Plotly.react('plotRatio', rtraces, {
+    paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
+    font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
+    margin: { l:70, r:30, t:20, b:60 },
+    legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:12} },
+    shapes: [{ type:'line', xref:'paper', x0:0, x1:1, yref:'y', y0:1, y1:1,
+               line:{ color:'#7c746b', width:1, dash:'dot' } }],
+    xaxis: { type:'log', title:'E [keV]', range:[Math.log10(1e-3), Math.log10(1000)], gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
+    yaxis: { type:'log', title:'I / I_ref', gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
+  }, {responsive:true});
+}
+
+function plotTempOverlay(datas) {
+  document.getElementById('ratioCard').style.display = 'none';
+  const traces = [];
+  const missing = [];
+  cmp.forEach((e, i) => {
+    const d = datas[i];
+    if (!d || !d.profile) { missing.push(legendLabel(e)); return; }
+    traces.push({
+      x: d.profile.tau_mid, y: d.profile.T_K, name: legendLabel(e),
+      mode: 'lines+markers', line: { color: e.color, width: 2 }, marker: { size: 3, color: e.color },
+    });
+  });
+  Plotly.react('plotMain', traces, {
+    paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
+    font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
+    margin: { l:70, r:30, t:20, b:60 },
+    legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:12} },
+    xaxis: { type:'log', title:'τ (Thomson)', gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
+    yaxis: { type:'log', title:'T [K]', gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
+  }, {responsive:true});
+  noteMissing(missing);
+}
+
+function noteMissing(missing) {
+  const cap = document.getElementById('mainCaption');
+  cap.querySelectorAll('.miss-note').forEach(n => n.remove());
+  if (missing.length) {
+    const s = document.createElement('div');
+    s.className = 'miss-note';
+    s.style.cssText = 'color:#ad4d42;margin-top:4px;';
+    s.textContent = 'No ' + (quantity === 'emergent' ? 'emergent' : 'profile') +
+      ' data for: ' + missing.join(', ');
+    cap.appendChild(s);
+  }
+}
+
+setInterval(refreshRuns, 5000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshRuns(); });
+init();
+</script>
+</body>
+</html>
+"""
+
+@app.route("/compare")
+def compare():
+    return render_template_string(COMPARE_HTML, base_css=BASE_CSS, nav=TOP_NAV("compare"), footer=FOOTER)
 
 
 # ─── Convergence page ────────────────────────────────────────────
@@ -2115,41 +2977,72 @@ const PLOT_BG = themeColor('--card');
 const GRID_COLOR = themeColor('--border');
 const FONT_COLOR = themeColor('--text');
 const PAPER_BG = themeColor('--card');
-const COLORS_POOL = ['#965638','#606c4e','#b4783e','#775e67','#8d713f','#aa654c','#595f51','#9d7d64'];
+const COLORS_POOL = ['#005A9C','#B34700','#20704A','#693C91','#A3264D','#755400','#006B73','#3F569B','#8D4038','#386447'];
 
 let allRuns = [];
+let runStamp = '';   // run identity stamped into every plot title
 
-function tsLabel(mtime) {
-  if (!mtime) return '';
-  const d = new Date(mtime * 1000);
-  return d.toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+const BADGE_CLS = { label:'b-label', test:'b-test', prod:'b-prod', kernel:'b-kernel', illum:'b-illum', dim:'b-dim' };
+
+function convBadge(run) {
+  const c = run.convergence || {};
+  const n = c.n_iter || (run.iters ? run.iters.length : 0);
+  if (c.status === 'converged')
+    return `<span class="rc-badge b-ok">temperature converged · max ΔT/T = ${esc(c.dT.toExponential(1))} · ${n} iter</span>`;
+  if (c.status === 'evolving')
+    return `<span class="rc-badge b-warn">temperature evolving · max ΔT/T = ${esc(c.dT.toExponential(1))} · ${n} iter</span>`;
+  if (c.status === 'single') return '<span class="rc-badge b-dim">single iteration</span>';
+  return '<span class="rc-badge b-dim">no profile data</span>';
+}
+
+function runSetKey(runs) {
+  return JSON.stringify(runs);
+}
+
+function buildRunSelect(runs, keepId) {
+  // top-level runs first (plain options), then one <optgroup> per campaign;
+  // server order already groups them contiguously
+  const sel = document.getElementById('runSelect');
+  sel.innerHTML = '';
+  let parent = sel;
+  let curGroup = '';
+  runs.forEach(run => {
+    if ((run.group || '') !== curGroup) {
+      curGroup = run.group || '';
+      if (curGroup) {
+        parent = document.createElement('optgroup');
+        parent.label = curGroup;
+        sel.appendChild(parent);
+      } else parent = sel;
+    }
+    const o = document.createElement('option');
+    o.value = run.id;
+    o.textContent = run.label || run.id;
+    o.title = run.label || run.id;
+    parent.appendChild(o);
+  });
+  if (keepId && runs.some(r => r.id === keepId)) sel.value = keepId;
+  else if (runs.length) sel.value = runs[0].id;
 }
 
 async function init() {
   const r = await fetch('/api/runs');
   const d = await r.json();
-  allRuns = d.runs;  // newest-first
-  const sel = document.getElementById('runSelect');
-  sel.innerHTML = '';
+  allRuns = d.runs;  // server order: top-level newest-first, then campaigns
   if (!allRuns.length) { showEmpty(); return; }
-  allRuns.forEach(run => {
-    const o = document.createElement('option');
-    o.value = run.hash;
-    const m = run.meta;
-    let label = '';
-    if (m.corona) label += `${m.corona}`;
-    if (m.nh !== undefined) label += `  nh=${m.nh}`;
-    if (m.zeta !== undefined) label += `  z=${m.zeta}`;
-    const ts = tsLabel(run.mtime);
-    label += ts ? `  · ${ts}` : `  · ${run.hash}`;
-    o.textContent = m.label ? `${m.label} · ${label}` : label;
-    sel.appendChild(o);
-  });
-  sel.value = allRuns[0].hash;
+  buildRunSelect(allRuns, null);
   onRunChange();
 }
 
 function showEmpty() {
+  document.getElementById('runSelect').innerHTML = '';
+  document.getElementById('plotsContainer').style.display = 'none';
+  document.getElementById('paramsBox').style.display = 'none';
   document.getElementById('controls').style.display = 'none';
   document.getElementById('statusMsg').style.display = 'none';
   const e = document.getElementById('emptyState');
@@ -2164,27 +3057,34 @@ function showEmpty() {
 
 function onRunChange() {
   const rid = document.getElementById('runSelect').value;
-  const run = allRuns.find(r => r.hash === rid);
+  const run = allRuns.find(r => r.id === rid);
   if (!run) return;
-  showParams(run.meta);
+  runStamp = run.title || rid;
+  shownIterCount = run.iters.length;
+  showRunCard(run);
   loadProfiles(rid);
 }
 
-function escapeHtml(value) {
-  return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
-}
-function showParams(meta) {
+function showRunCard(run) {
   const box = document.getElementById('paramsBox');
-  if (!meta || !meta.corona) { box.style.display = 'none'; return; }
-  const skip = new Set(['hash']);
-  let html = '';
-  for (const [k,v] of Object.entries(meta)) {
-    if (skip.has(k)) continue;
-    const fv = typeof v === 'number' ? (Math.abs(v)>=1e4||(Math.abs(v)<0.01&&v!==0) ? v.toExponential(2) : v) : v;
-    html += `<span class="pk">${escapeHtml(k)}</span>=<span class="pv">${escapeHtml(fv)}</span> &nbsp; `;
-  }
-  box.innerHTML = html;
+  if (!run) { box.style.display = 'none'; return; }
+  const badges = (run.badges || []).map(b =>
+    `<span class="rc-badge ${BADGE_CLS[b.kind] || 'b-dim'}">${esc(b.text)}</span>`).join('');
+  const groups = (run.groups || []).map(g =>
+    `<div class="rc-group"><div class="rg-title">${esc(g.title)}</div><div class="rg-items">` +
+    g.items.map(it => `<span class="pk">${esc(it.label)}</span> = <span class="pv">${esc(it.value)}</span>`).join(' &nbsp;·&nbsp; ') +
+    '</div></div>').join('');
+  const model = run.title ? run.title.split(' · ')[0] : run.hash;
+  const metaHash = run.meta && run.meta.hash;
+  const mono = metaHash && metaHash !== run.hash ? `${run.id} (${metaHash})` : run.id;
+  box.innerHTML = `
+    <div class="rc-top">
+      <span class="rc-model">${esc(model)}</span>
+      ${badges}${convBadge(run)}
+      <span class="rc-meta">${esc(run.time_str || '')} <span class="rc-hash">${esc(mono)}</span></span>
+    </div>
+    <div class="rc-groups">${groups}</div>`;
+  box.classList.add('run-card');
   box.style.display = 'block';
 }
 
@@ -2194,8 +3094,8 @@ async function loadProfiles(rid) {
   document.getElementById('plotsContainer').style.display = 'none';
 
   const [rProf, rJ0] = await Promise.all([
-    fetch(`/api/profiles/${rid}?step=2`),
-    fetch(`/api/mean_intensity/${rid}?step=2`),
+    fetch(`/api/profiles/${encodeURIComponent(rid)}?step=2`),
+    fetch(`/api/mean_intensity/${encodeURIComponent(rid)}?step=2`),
   ]);
   const dProf = await rProf.json();
   const dJ0 = await rJ0.json();
@@ -2211,7 +3111,8 @@ async function loadProfiles(rid) {
   document.getElementById('statusMsg').style.display = 'none';
   document.getElementById('plotsContainer').style.display = 'block';
   if (hasProf) plotTempIter(dProf.profiles);
-  if (hasJ0) plotJ0Iter(dJ0.moments);
+  else document.getElementById('plotTempIter').innerHTML = '<div class="status">No profile data.</div>';
+  plotJ0Iter(dJ0.moments);
 }
 
 function plotTempIter(profiles) {
@@ -2231,19 +3132,16 @@ function plotTempIter(profiles) {
   Plotly.react(div, traces, {
     paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
     font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
-    margin: { l:70, r:30, t:30, b:60 },
+    title: { text: esc(runStamp), font: { size: 11, color: '#6f675e' }, x: 0.01, xanchor: 'left' },
+    margin: { l:70, r:30, t:48, b:60 },
     legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:12}, orientation:'h', y:-0.15 },
     xaxis: { type:'log', title:'τ (Thomson)', gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
     yaxis: { type:'log', title:'T [K]', gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
   }, {responsive:true});
 }
 
-function iterColor(idx, n) {
-  const frac = n > 1 ? idx / (n - 1) : 1;
-  const r = Math.round(0x38 + frac * (0xf0 - 0x38));
-  const g = Math.round(0xbd + frac * (0xa0 - 0xbd));
-  const b = Math.round(0xf8 + frac * (0x30 - 0xf8));
-  return `rgb(${r},${g},${b})`;
+function iterColor(idx) {
+  return COLORS_POOL[idx % COLORS_POOL.length];
 }
 
 function plotJ0Iter(moments) {
@@ -2272,12 +3170,50 @@ function plotJ0Iter(moments) {
   Plotly.react(div, traces, {
     paper_bgcolor: PAPER_BG, plot_bgcolor: PLOT_BG,
     font: { family: 'Inter, Helvetica Neue, sans-serif', color: FONT_COLOR, size: 13 },
-    margin: { l:70, r:30, t:30, b:60 },
+    title: { text: esc(runStamp), font: { size: 11, color: '#6f675e' }, x: 0.01, xanchor: 'left' },
+    margin: { l:70, r:30, t:48, b:60 },
     legend: { bgcolor: 'rgba(0,0,0,0)', font: {size:12}, orientation:'h', y:-0.15 },
     xaxis: { type:'log', title:'E [keV]', range:[Math.log10(1e-3), Math.log10(1000)], gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR },
     yaxis: { type:'log', title:'E × J₀ [erg cm⁻² s⁻¹ sr⁻¹]', range:yr, gridcolor:GRID_COLOR, zerolinecolor:GRID_COLOR, exponentformat:'e' },
   }, {responsive:true});
 }
+
+// ── Live refresh — runs keep growing while the page is open ────
+let refreshBusy = false;
+let shownIterCount = 0;   // iterations currently plotted for the selected run
+
+async function refreshRuns() {
+  if (refreshBusy || document.hidden) return;
+  refreshBusy = true;
+  try {
+    const r = await fetch('/api/runs');
+    const d = await r.json();
+    const runs = d.runs;
+    if (!runs.length) { allRuns = []; showEmpty(); return; }
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('controls').style.display = '';
+    const sel = document.getElementById('runSelect');
+    const prevId = sel.value;
+    const setChanged = runSetKey(runs) !== runSetKey(allRuns);
+    allRuns = runs;
+    if (setChanged) {
+      buildRunSelect(runs, prevId);  // preserves selection when possible
+      if (sel.value !== prevId) { onRunChange(); return; }
+    }
+    const run = allRuns.find(x => x.id === sel.value);
+    if (!run) return;
+    showRunCard(run);  // convergence badge / iter count may have advanced
+    if (run.iters.length !== shownIterCount) {
+      shownIterCount = run.iters.length;
+      loadProfiles(run.id);  // new iterations → re-fetch and re-plot
+    }
+  } catch (e) { /* transient poll failure — retry next tick */ }
+  finally { refreshBusy = false; }
+}
+
+setInterval(refreshRuns, 5000);
+document.addEventListener('visibilitychange',
+  () => { if (!document.hidden) refreshRuns(); });
 
 init();
 </script>
