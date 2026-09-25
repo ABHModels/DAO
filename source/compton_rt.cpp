@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <algorithm>
+#include <chrono>
 
 // ============================================================
 // Flat-array indexing helpers
@@ -404,14 +405,15 @@ void compton_rt_solve(RadField& rad, const RTGrids& g,
 
 	// --- Step 4: Lambda iteration ---
 	fprintf(stdout, "  Starting Lambda iteration (max %d)...\n", maxiter);
-	clock_t t_start = clock();
+	const auto t_start = std::chrono::steady_clock::now();
+	double formal_seconds=0.0, source_seconds=0.0;
 
 	int iter = 0;
 	int n_converged = 0;
 	double max_change = 1.0;
 	while ((n_converged < 3) && iter < maxiter)
 	{
-		clock_t t_iter = clock();
+		const auto t_iter = std::chrono::steady_clock::now();
 
 		// --- Formal solution ---
 		formal_solution_bezier3(ND, NM, NE, i_inc, g.mu,
@@ -420,11 +422,14 @@ void compton_rt_solve(RadField& rad, const RTGrids& g,
 		                        intensity);
 
 		mean_intensity(ND, NM, NE, g.wt, intensity, meani);
+		const auto t_source = std::chrono::steady_clock::now();
+		formal_seconds += std::chrono::duration<double>(t_source-t_iter).count();
 
 		source_dispatch(kcache, ND, NM, NE,
 		                intensity, meani, x_grid, g.wt, rad.T_K,
 		                rad.jnu, rad.kabs, rad.ksct, pow(10,par.nh),
 		                source);
+		source_seconds += std::chrono::duration<double>(std::chrono::steady_clock::now()-t_source).count();
 
 		check_rt_convergence(ND, NM, NE, g.ene, g.mu, g.wt,
 		                     meani, meani_old, intensity,
@@ -436,7 +441,7 @@ void compton_rt_solve(RadField& rad, const RTGrids& g,
 		else
 			n_converged = 0;
 
-		double dt_sec = double(clock() - t_iter) / CLOCKS_PER_SEC;
+		double dt_sec = std::chrono::duration<double>(std::chrono::steady_clock::now()-t_iter).count();
 		fprintf(stdout, "    iter %3d  max|dJ/J|=%.6e  converged=%d/3  time=%.3fs\n",
 		        iter + 1, max_change, n_converged, dt_sec);
 
@@ -446,8 +451,10 @@ void compton_rt_solve(RadField& rad, const RTGrids& g,
 
 	fprintf(stdout, "  Converged at iteration %d.\n", iter);
 
-	double total_sec = double(clock() - t_start) / CLOCKS_PER_SEC;
+	double total_sec = std::chrono::duration<double>(std::chrono::steady_clock::now()-t_start).count();
 	fprintf(stdout, "  RT solver total time: %.2f s\n", total_sec);
+	fprintf(stdout, "  RT wall-time breakdown: formal+mean=%.3fs source=%.3fs\n",
+	        formal_seconds, source_seconds);
 
 	// --- Copy results to RadField ---
 	for (int nd = 0; nd < ND; ++nd)
@@ -477,4 +484,3 @@ template void compton_rt_solve<KernelCache>(
 	RadField&, const RTGrids&, const ModelParams&, const KernelCache&, int);
 template void compton_rt_solve<avgKernelCache>(
 	RadField&, const RTGrids&, const ModelParams&, const avgKernelCache&, int);
-

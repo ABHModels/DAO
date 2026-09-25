@@ -1,8 +1,10 @@
 #include "source.h"
 #include "rt_grids.h"
 #include "constants.h"
+#include "rt_parallel.h"
 #include <cstring>
 #include <cmath>
+#include <vector>
 
 // ============================================================
 // Flat-array indexing: [nd][nm][ne] -> (nd*NM + nm)*NE + ne
@@ -41,13 +43,18 @@ void compute_source_function(
 
 	memset(source, 0, long(ND) * NM * NE * sizeof(double));
 
-	for (int nd = 0; nd < ND; ++nd)
-	{	
+	rt_parallel_depths(ND, [&](int nd) {
 		int iT = 0;
 		iT = kcache.find_T(T_K[nd]);
 
-		for (int nm = 0; nm < NM; ++nm)
+		std::vector<double> balance(NE);
 		for (int ne = 0; ne < NE; ++ne)
+		{
+			// The same exponential is used for every angular pair. Evaluate it
+			// once without changing its operands or the subsequent products.
+			for (int ne1=kcache.lo(iT,ne); ne1<=kcache.hi(iT,ne) && ne1<ne; ++ne1)
+				balance[ne1]=exp(-(kcache.x_grid[ne]-kcache.x_grid[ne1])/kcache.theta[iT]);
+		for (int nm = 0; nm < NM; ++nm)
 		{	
 			double ktot = kabs[nd][ne] + ksct[nd][ne];
 
@@ -72,7 +79,9 @@ void compute_source_function(
 					double x1 = x_grid[ne1];
 					double inte_mu = 0.0;
 					for (int nm1 = 0; nm1 < NM; ++nm1)
-						inte_mu += kcache.K(iT, ne, nm, ne1, nm1)
+						inte_mu += (ne1<ne
+						          ? kcache.K_lower_with_balance(iT,ne,nm,ne1,nm1,balance[ne1])
+						          : kcache.K(iT, ne, nm, ne1, nm1))
 						         * intensity[sidx3(nd, nm1, ne1)]
 						         * wmu[nm1];
 
@@ -89,7 +98,8 @@ void compute_source_function(
 			}
 			source[sidx3(nd, nm, ne)] = S_th + 1.21 * n_h*phys::sigma_T / ktot * S_sct;
 		}
-	}
+		}
+	});
 }
 
 // ============================================================
@@ -118,8 +128,7 @@ void avgcompute_source_function(
 
 	memset(source, 0, long(ND) * NM * NE * sizeof(double));
 
-	for (int nd = 0; nd < ND; ++nd)
-	{
+	rt_parallel_depths(ND, [&](int nd) {
 		int iT = 0;
 		iT = kcache.find_T(T_K[nd]);
 
@@ -167,6 +176,5 @@ void avgcompute_source_function(
 			for (int nm = 0; nm < NM; ++nm)
 				source[sidx3(nd, nm, ne)] = S_val;
 		}
-	}
+	});
 }
-

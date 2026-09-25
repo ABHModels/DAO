@@ -1,5 +1,7 @@
 #include "compton_kernel.h"
 #include "compton_cross_section.h"
+#include "kernel_row_spool.h"
+#include "rt_parallel.h"
 #include "constants.h"
 #include <cmath>
 #include <cstdio>
@@ -300,11 +302,8 @@ void KernelCache::build_canon()
 	        " (expected %d)\n", NA, n_indep, max_indep);
 }
 
-void KernelCache::save(const char* filename) const
+void KernelCache::write_header(FILE* fp) const
 {
-	FILE* fp = fopen(filename, "wb");
-	if (!fp) { fprintf(stderr, "Warning: cannot write %s\n", filename); return; }
-
 	long n_rows  = long(NT) * NE * n_indep;
 	long n_ge    = long(NT) * NE;
 
@@ -322,8 +321,15 @@ void KernelCache::save(const char* filename) const
 	fwrite(band_off, sizeof(long),   n_rows,  fp);
 	fwrite(glo,      sizeof(int),    n_ge,    fp);
 	fwrite(ghi,      sizeof(int),    n_ge,    fp);
+}
+
+void KernelCache::save(const char* filename) const
+{
+	KernelCacheOutput output(filename);
+	FILE* fp = output.file();
+	write_header(fp);
 	fwrite(data,     sizeof(double), data_size, fp);
-	fclose(fp);
+	output.commit();
 
 	fprintf(stdout, "  KernelCache: saved to %s (%.1f MB)\n",
 	        filename, data_size * 8.0 / (1024.0 * 1024.0));
@@ -401,6 +407,13 @@ bool KernelCache::load(const char* filename)
 	fread(ghi, sizeof(int), n_ge, fp);
 
 	data_size = f_data_size;
+	data = payload.map(fp,size_t(data_size));
+	if(data) {
+		fclose(fp);
+		fprintf(stdout,"  KernelCache: mapped %s (%.1f MB virtual payload, demand-paged)\n",
+		        filename,data_size*8.0/(1024.0*1024.0));
+		return true;
+	}
 	data = new double[data_size];
 	size_t nread = fread(data, sizeof(double), data_size, fp);
 	fclose(fp);
@@ -451,10 +464,10 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 	const char* ksuffix = (ktype == 0) ? "_ap" : "";
 	char norm_file[512], raw_file[512];
 	snprintf(norm_file, sizeof(norm_file),
-	         "%s/kernel/kernel_norm_NE%d_NI%d_NT%d%s.bin",
+	         "%s/kernel_norm_NE%d_NI%d_NT%d%s.bin",
 	         cache_dir, NE, n_indep, NT, ksuffix);
 	snprintf(raw_file, sizeof(raw_file),
-	         "%s/kernel/kernel_NE%d_NI%d_NT%d%s.bin",
+	         "%s/kernel_NE%d_NI%d_NT%d%s.bin",
 	         cache_dir, NE, n_indep, NT, ksuffix);
 
 	if (load(norm_file))
@@ -493,7 +506,7 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 	band_hi  = new int[n_rows];
 	band_off = new long[n_rows];
 
-	double* row_buf = new double[NE];
+	KernelRowSpool computed_rows;
 
 	const double KMIN_ABS = 1e-30;
 	const double KMIN_REL = 1e-10;
@@ -501,20 +514,13 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 	// --- Pass 1: find band limits (upper triangle only: ne1 >= ne) ---
 	fprintf(stdout, "  KernelCache: pass 1 — finding band limits (upper triangle)...\n");
 
-	for (int iT = 0; iT < NT; ++iT)
-	{
-		fprintf(stdout, "  KernelCache: band scan T=%.2e K (%d/%d) ...",
-		        T_grid[iT], iT + 1, NT);
-		fflush(stdout);
-
-		for (int ne = 0; ne < NE; ++ne)
-		for (int ia = 0; ia < n_indep; ++ia)
-		{
-			int nm  = indep_nm[ia];
-			int nm1 = indep_nm1[ia];
-			long r  = row(iT, ne, ia);
-
-			int lo_ne1 = NE, hi_ne1 = -1;
+	computed_rows.evaluate(size_t(n_rows),size_t(NE),[&](size_t index,double* row_buf,int& lo_ne1,int& hi_ne1) {
+		const long r=long(index);
+		const int ia=int(index%size_t(n_indep));
+		const int ne=int((index/size_t(n_indep))%size_t(NE));
+		const int iT=int(index/(size_t(n_indep)*size_t(NE)));
+		const int nm=indep_nm[ia], nm1=indep_nm1[ia];
+		lo_ne1=NE; hi_ne1=-1;
 			double K_max = 0.0;
 
 			// Only scan ne1 >= ne (upper triangle)
@@ -553,10 +559,7 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 
 			band_lo[r] = lo_ne1;
 			band_hi[r] = hi_ne1;
-		}
-
-		fprintf(stdout, " done.\n");
-	}
+	});
 
 	// Compute per-(iT,ne) global band including both triangles.
 	// Upper triangle: directly from stored bands.
@@ -615,36 +618,12 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 	fprintf(stdout, "  KernelCache: data_size = %ld doubles (%.1f MB, %.1f%% indep-dense fill)\n",
 	        data_size, data_size * 8.0 / (1024.0 * 1024.0), fill);
 
-	// --- Pass 2: compute and store kernel values (upper triangle only) ---
-	fprintf(stdout, "  KernelCache: pass 2 — computing kernel values (upper triangle)...\n");
-	data = new double[data_size];
+	// Reuse the exact values evaluated during the band scan.
+	fprintf(stdout, "  KernelCache: normalizing retained rows one temperature at a time...\n");
+	KernelCacheOutput output(norm_file);
+	write_header(output.file());
+	const off_t payload_offset=::ftello(output.file());
 
-	for (int iT = 0; iT < NT; ++iT)
-	{
-		fprintf(stdout, "  KernelCache: filling T=%.2e K (%d/%d) ...",
-		        T_grid[iT], iT + 1, NT);
-		fflush(stdout);
-
-		for (int ne = 0; ne < NE; ++ne)
-		for (int ia = 0; ia < n_indep; ++ia)
-		{
-			int nm  = indep_nm[ia];
-			int nm1 = indep_nm1[ia];
-			long r  = row(iT, ne, ia);
-			int lo  = band_lo[r];
-			int hi  = band_hi[r];
-			if (hi < lo) continue;
-
-			double* dst = data + band_off[r];
-			for (int ne1 = lo; ne1 <= hi; ++ne1)
-				*dst++ = compton_kernel_element(
-					x_grid[ne], mu[nm], x_grid[ne1], mu[nm1], T_grid[iT], ktype);
-		}
-
-		fprintf(stdout, " done.\n");
-	}
-
-	delete[] row_buf;
 
 	// --- Normalize via A23 sum rule (Poutanen & Svensson 1996, Eq. A23) ---
 	// K() accessor handles both triangles (direct + detailed balance),
@@ -655,11 +634,11 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 	{
 		fprintf(stdout, "    T=%.2e K (%d/%d)...", T_grid[iT], iT + 1, NT);
 		fflush(stdout);
+		data=computed_rows.view(payload,size_t(data_size));
 
 		double* norm = new double[NE];
 
-		for (int ne = 0; ne < NE; ++ne)
-		{
+		rt_parallel_depths(NE, [&](int ne) {
 			double x = x_grid[ne];
 
 			double integral = 0.0;
@@ -667,6 +646,18 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 			{
 				double dx1 = x_grid[ne1] - x_grid[ne1 - 1];
 				double f_a = 0.0, f_b = 0.0;
+				// Reuse identical detailed-balance factors across angular pairs.
+				// All products and the angular/energy summation order stay exact.
+				const double balance_a=(ne<ne1-1)?exp(-(x_grid[ne1-1]-x_grid[ne])/theta[iT]):1.0;
+				const double balance_b=(ne<ne1)?exp(-(x_grid[ne1]-x_grid[ne])/theta[iT]):1.0;
+				auto lookup_a=[&](int nm,int nm1) {
+					return (ne<ne1-1)?K_lower_with_balance(iT,ne1-1,nm,ne,nm1,balance_a)
+					                 :K(iT,ne1-1,nm,ne,nm1);
+				};
+				auto lookup_b=[&](int nm,int nm1) {
+					return (ne<ne1)?K_lower_with_balance(iT,ne1,nm,ne,nm1,balance_b)
+					               :K(iT,ne1,nm,ne,nm1);
+				};
 				for (int inm = 0; inm < NA_full; ++inm)
 				{
 					if (mu[inm] <= 0.0) continue;
@@ -675,10 +666,8 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 					{
 						if (mu[inm1] <= 0.0) continue;
 						double ww = wt[inm] * wt[inm1];
-						double Ka = K(iT, ne1-1, inm1, ne, inm)
-						          + K(iT, ne1-1, inm1, ne, inm_neg);
-						double Kb = K(iT, ne1,   inm1, ne, inm)
-						          + K(iT, ne1,   inm1, ne, inm_neg);
+						double Ka = lookup_a(inm1,inm) + lookup_a(inm1,inm_neg);
+						double Kb = lookup_b(inm1,inm) + lookup_b(inm1,inm_neg);
 						f_a += ww * Ka;
 						f_b += ww * Kb;
 					}
@@ -693,7 +682,7 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 			                   / phys::sigma_T;
 
 			norm[ne] = (sigma_raw > 1e-30) ? sigma_exact / sigma_raw : 1.0;
-		}
+		}, "DAO_KERNEL_THREADS", 8);
 
 		// Apply: scale stored data by norm[ne_in]
 		for (int ne_out = 0; ne_out < NE; ++ne_out)
@@ -710,11 +699,16 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 		}
 
 		delete[] norm;
+		const long begin=band_off[long(iT)*NE*n_indep];
+		const long end=(iT+1<NT)?band_off[long(iT+1)*NE*n_indep]:data_size;
+		if(end>begin && fwrite(data+begin,sizeof(double),size_t(end-begin),output.file())!=size_t(end-begin))
+			throw std::runtime_error("kernel: normalized temperature write failed");
 		fprintf(stdout, " done.\n");
 	}
 
 	// Save normalized kernel
-	save(norm_file);
+	data=output.map_payload(payload,size_t(data_size),payload_offset);
+	output.commit();
 	fprintf(stdout, "  Saved normalized kernel to %s\n", norm_file);
 }
 
@@ -731,7 +725,7 @@ void KernelCache::free_memory()
 	delete[] band_off;  band_off  = nullptr;
 	delete[] glo;       glo       = nullptr;
 	delete[] ghi;       ghi       = nullptr;
-	delete[] data;      data      = nullptr;
+	payload.release(data);
 	NT = NE = NA_full = n_indep = 0;
 	data_size = 0;
 }

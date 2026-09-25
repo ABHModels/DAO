@@ -2,6 +2,7 @@
 #define COMPTON_KERNEL_H
 
 #include "constants.h"
+#include "kernel_payload.h"
 #include <cmath>
 
 // ============================================================
@@ -71,6 +72,7 @@ struct KernelCache
 	int* ghi;  // [NT * NE]
 
 	double* data;
+	KernelPayload payload;
 	long    data_size;
 
 	KernelCache() : NT(0), NE(0), NA_full(0), n_indep(0),
@@ -125,11 +127,23 @@ struct KernelCache
 		}
 	}
 
+	// Lower-triangle lookup with the unchanged detailed-balance exponential
+	// supplied by the caller. Valid only for ne1 < ne; reuse across angles.
+	inline double K_lower_with_balance(int iT, int ne, int nm, int ne1,
+	                                  int nm1, double balance) const
+	{
+		const int ia = canon[nm * NA_full + nm1];
+		const long r = row(iT, ne1, ia);
+		if (ne < band_lo[r] || ne > band_hi[r]) return 0.0;
+		return data[band_off[r] + (ne - band_lo[r])] * balance;
+	}
+
 	// Global ne1 band for (iT, ne) — covers both triangles.
 	inline int lo(int iT, int ne) const { return glo[long(iT) * NE + ne]; }
 	inline int hi(int iT, int ne) const { return ghi[long(iT) * NE + ne]; }
 
 private:
+	void write_header(FILE* fp) const;
 	void build_canon();
 };
 

@@ -100,13 +100,13 @@ Set `XSPEC_LIB = $(HEADAS)/lib` in the `Makefile` so the link-time and run-time 
 
 ### Compton kernel cache
 
-The Compton kernel is precomputed once and cached on disk. The cache directory is set by `COMPTON_CACHE_DIR` (default: current working directory → `./kernel/`):
+The Compton kernel is precomputed once and cached on disk. `COMPTON_CACHE_DIR` points directly to the existing directory containing the cache files (default: current working directory). No `kernel/` subdirectory is appended:
 
 ```bash
 export COMPTON_CACHE_DIR=/path/to/shared/cache   # optional; kernels are large & parameter-independent
 ```
 
-Files: `kernel/kernel_norm_NE{}_NI{}_NT{}.bin` (angle-dependent) and `kernel/avgkernel_norm_NE{}_NT{}.bin` (angle-mean, used by `-angsca false`). Grid dimensions are encoded in the filename so test and production grids coexist.
+Files: `kernel_norm_NE{}_NI{}_NT{}.bin` (angle-dependent) and `avgkernel_norm_NE{}_NT{}.bin` (angle-mean, used by `-angsca false`). Grid dimensions are encoded in the filename so test and production grids coexist.
 
 ### Build
 
@@ -264,6 +264,49 @@ Dispatch:
 | `nthcomp` | thermal Comptonisation | Xspec `donthcomp_()` |
 | `comptt` | Comptonisation | Xspec `C_compTT()` |
 | `blackbody` | Planck function | analytic |
+
+### Kernel construction and memory use
+
+Kernel construction uses independent CPU workers, without changing the
+double-precision integrals, summation order within each kernel value, band
+thresholds, or cache format. The default is up to 8 workers. Override it with
+`DAO_KERNEL_THREADS=4 ./maindaocl ...` (valid range: 1–256). This setting affects
+cache construction only, not the RT solver. More workers are not always faster.
+Independent normalization integrals use the same kernel worker setting, while
+each integral retains its original serial summation order.
+
+Already computed rows are retained in a temporary disk spool rather than
+computed a second time. Allow temporary disk space comparable to the retained
+kernel payload, in addition to the output cache. Existing caches are loaded
+using private memory mappings on POSIX systems, with a heap-read fallback.
+Mapping avoids an immediate full-size heap copy; resident memory still grows
+as the solver accesses pages. This does not reduce the cache's file size.
+Do not truncate a cache in use; DAO publishes new cache files by atomic rename.
+
+Cold construction normalizes one temperature at a time through a private
+mapping of the row spool. Each finished temperature is streamed to the output
+file, then its private pages are released. The completed cache is mapped before
+publication, so construction does not retain a full-size heap payload during
+RT. This bounds construction's touched payload to one temperature plus metadata
+and worker scratch; OS file caching and later RT access still affect total RAM.
+The binary cache format and double-precision values are unchanged. Construction
+requires working POSIX mappings; a mapping or output error aborts without
+publishing an incomplete cache.
+
+Run `make test_kernel_storage && ./test_kernel_storage` for the standalone
+storage/worker assertions (no Cloudy dependency). This is a storage test, not
+a physics-accuracy certification. No GPU or reduced-precision path is enabled.
+
+The RT source-function calculation distributes independent depths across up to
+16 CPU workers (also capped by detected hardware threads and depth count).
+Set `DAO_RT_THREADS=1` for serial execution or choose 1–256
+workers. Each cell retains its original angular/energy summation order, with
+a barrier before the next iteration stage. Formal transport, convergence
+criteria, and iteration ordering are unchanged. RT timing reports wall time,
+including a formal-solution/mean-intensity versus source-function breakdown.
+For directional scattering, identical detailed-balance exponentials are reused
+across angular pairs within each depth/energy cell (no approximation or
+additional full-size kernel table).
 
 ### Code structure
 

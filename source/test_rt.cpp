@@ -21,8 +21,9 @@ static void fill_test_data(RadField& rad, const RTGrids& g,
 	const double nH  = pow(10.0, nh);
 	const double n_e = 1.21 * nH;
 
-	// Compute scattering opacity once (same T at all depths)
-	compute_compton_opacity(rad.ksct[0], g.NE, g.ene, T_slab, n_e);
+	// The opacity helper takes nH and applies n_e/nH=1.21 internally.
+	// Passing n_e here would apply that factor twice.
+	compute_compton_opacity(rad.ksct[0], g.NE, g.ene, T_slab, nH);
 
 	for (int id = 0; id < g.ND_MID; ++id)
 	{
