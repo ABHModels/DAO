@@ -560,6 +560,12 @@ HTML = r"""
   </div>
   <div class="card full">
     <h2>Run configuration</h2>
+    <label for="runLabel" style="display:block;font-size:var(--fs-sm);margin-bottom:6px;">Run label (optional)</label>
+    <input type="text" id="runLabel" placeholder="e.g. Iron abundance comparison"
+           style="width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);border-radius:8px;background:white;color:var(--text);font:inherit;"
+           aria-describedby="runLabelHint" oninput="updateCmd();persist()">
+    <p class="cmd-hint" id="runLabelHint">Saved in RUN.txt and params.json. Labels do not change the result folder;
+      rerunning the same physics replaces that folder’s label and summary.</p>
     <div class="cmd-cap">Run this in your terminal:</div>
     <div class="cmd-box" id="cmdBox"><span class="prompt">$ </span><span id="cmdText"></span></div>
     <div class="actions">
@@ -799,6 +805,13 @@ function toggleTest() {
 }
 
 // ── Command builder ───────────────────────
+function shellQuote(value) {
+  return "'" + value.replaceAll("'", "'\"'\"'") + "'";
+}
+function escapeHtml(value) {
+  return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
 function updateCmd() {
   let parts = ['./maindaocl', '-corona ' + corona];
   MODELS[corona].params.forEach(p => {
@@ -816,6 +829,8 @@ function updateCmd() {
       parts.push('-' + (p.flag || p.name) + ' ' + fmtNum(v));
     });
   }
+  const label = document.getElementById('runLabel').value;
+  if (label) parts.push('-label ' + shellQuote(label));
   const cmd = parts.join(' ');
   document.getElementById('cmdText').textContent = cmd;
   document.getElementById('barCmd').textContent = '$ ' + cmd;
@@ -838,6 +853,7 @@ function copyCmd() { clipCopy(document.getElementById('cmdText').textContent); }
 
 function resetAll() {
   localStorage.removeItem(SKEY);
+  document.getElementById('runLabel').value = '';
   corona = DEFAULT_CORONA;
   vals = {};
   document.getElementById('angsca').checked = true;
@@ -866,7 +882,7 @@ function showToast(msg, type='success') {
 function persist() {
   try {
     localStorage.setItem(SKEY, JSON.stringify({
-      corona, vals,
+      corona, vals, label: document.getElementById('runLabel').value,
       angsca: document.getElementById('angsca').checked,
       testRt: document.getElementById('testRt').checked,
       queue,
@@ -878,7 +894,7 @@ function persist() {
 let queue = [];
 function getCmd() { return document.getElementById('cmdText').textContent; }
 function getSnapshot() {
-  return { corona, vals: {...vals},
+  return { corona, vals: {...vals}, label: document.getElementById('runLabel').value,
            testRt: document.getElementById('testRt').checked,
            angsca: document.getElementById('angsca').checked };
 }
@@ -900,6 +916,7 @@ function loadFromQueue(idx) {
   const snap = queue[idx].snap;
   corona = snap.corona;
   vals = {...snap.vals};
+  document.getElementById('runLabel').value = snap.label ?? '';
   document.getElementById('testRt').checked = snap.testRt;
   if (snap.angsca !== undefined) document.getElementById('angsca').checked = snap.angsca;
   document.getElementById('testParams').style.display = snap.testRt ? 'block' : 'none';
@@ -929,8 +946,8 @@ function renderQueue() {
     const s = cmdSummary(item.cmd);
     html += `<tr>
       <td class="q-idx">${i + 1}</td>
-      <td class="q-model">${s.model}</td>
-      <td class="q-params">${s.rest}</td>
+      <td class="q-model">${escapeHtml(s.model)}</td>
+      <td class="q-params">${escapeHtml(s.rest)}</td>
       <td class="q-actions">
         <button class="q-btn q-btn-load" onclick="loadFromQueue(${i})" aria-label="Load run ${i+1} into editor">↩ Load</button>
         <button class="q-btn q-btn-del" onclick="removeFromQueue(${i})" aria-label="Remove run ${i+1}">✕ Remove</button>
@@ -967,6 +984,7 @@ function rehydrate() {
     const s = JSON.parse(raw);
     if (s.corona && MODELS[s.corona]) corona = s.corona;
     if (s.vals) vals = {...s.vals};
+    document.getElementById('runLabel').value = s.label ?? '';
     if (Array.isArray(s.queue)) queue = s.queue;
     document.getElementById('angsca').checked = s.angsca !== false;
     document.getElementById('testRt').checked = !!s.testRt;
@@ -1254,6 +1272,19 @@ DOCS_HTML = r"""
       4. Single RT solve on the isothermal pure-scattering slab (T = kT<sub>e</sub>)<br>
       5. Save results to <code>results/&lt;hash&gt;/</code>
     </div>
+  </div>
+
+  <div class="section" id="run-labels">
+    <h2><span class="tick" aria-hidden="true"></span>Run labels and summaries</h2>
+    <p class="lead">Use the optional run label on the configuration page, or add
+      <code>-label "Iron abundance comparison"</code> to a command.</p>
+    <p class="lead">Each invocation writes <code>results/&lt;hash&gt;/RUN.txt</code> with its label,
+      timestamp, model summary and parameters. The label is also saved in <code>params.json</code>
+      and shown in the results selectors. RUN.txt describes the requested run; its presence does
+      not mean the calculation has finished.</p>
+    <div class="note-box">Labels are metadata and do not change the physics hash.
+      Repeating the same physical parameters reuses the same folder and replaces its label and summary.
+      The queue and exported commands retain each label.</div>
   </div>
 
   <!-- ── Example Commands ─────────────────── -->
@@ -1733,7 +1764,7 @@ async function init() {
     if (m.zeta !== undefined) label += `  z=${m.zeta}`;
     const ts = tsLabel(run.mtime);
     label += ts ? `  · ${ts}` : `  · ${run.hash}`;
-    o.textContent = label;
+    o.textContent = m.label ? `${m.label} · ${label}` : label;
     sel.appendChild(o);
   });
   // auto-select newest
@@ -1770,6 +1801,10 @@ function onRunChange() {
   loadData();
 }
 
+function escapeHtml(value) {
+  return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
 function showParams(meta) {
   const box = document.getElementById('paramsBox');
   if (!meta || !meta.corona) { box.style.display = 'none'; return; }
@@ -1778,7 +1813,7 @@ function showParams(meta) {
   for (const [k,v] of Object.entries(meta)) {
     if (skip.has(k)) continue;
     const fv = typeof v === 'number' ? (Math.abs(v)>=1e4||(Math.abs(v)<0.01&&v!==0) ? v.toExponential(2) : v) : v;
-    html += `<span class="pk">${k}</span>=<span class="pv">${fv}</span> &nbsp; `;
+    html += `<span class="pk">${escapeHtml(k)}</span>=<span class="pv">${escapeHtml(fv)}</span> &nbsp; `;
   }
   box.innerHTML = html;
   box.style.display = 'block';
@@ -2107,7 +2142,7 @@ async function init() {
     if (m.zeta !== undefined) label += `  z=${m.zeta}`;
     const ts = tsLabel(run.mtime);
     label += ts ? `  · ${ts}` : `  · ${run.hash}`;
-    o.textContent = label;
+    o.textContent = m.label ? `${m.label} · ${label}` : label;
     sel.appendChild(o);
   });
   sel.value = allRuns[0].hash;
@@ -2135,6 +2170,10 @@ function onRunChange() {
   loadProfiles(rid);
 }
 
+function escapeHtml(value) {
+  return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
 function showParams(meta) {
   const box = document.getElementById('paramsBox');
   if (!meta || !meta.corona) { box.style.display = 'none'; return; }
@@ -2143,7 +2182,7 @@ function showParams(meta) {
   for (const [k,v] of Object.entries(meta)) {
     if (skip.has(k)) continue;
     const fv = typeof v === 'number' ? (Math.abs(v)>=1e4||(Math.abs(v)<0.01&&v!==0) ? v.toExponential(2) : v) : v;
-    html += `<span class="pk">${k}</span>=<span class="pv">${fv}</span> &nbsp; `;
+    html += `<span class="pk">${escapeHtml(k)}</span>=<span class="pv">${escapeHtml(fv)}</span> &nbsp; `;
   }
   box.innerHTML = html;
   box.style.display = 'block';

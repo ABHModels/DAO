@@ -97,3 +97,6 @@ jobs:
 
       - name: Compile standalone Compton-kernel diagnostic
         run: make test_kernel_norm
+
+      - name: Test run labels and summaries
+        run: python tests/test_run_metadata.py

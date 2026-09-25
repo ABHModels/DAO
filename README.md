@@ -368,3 +368,18 @@ Third-party dependencies, obtained independently and each under its own license:
 We gratefully acknowledge **Prof. Jerzy Madej** (University of Warsaw) for his publicly available Fortran implementation of the exact Compton redistribution function, on which our C++ port is based.
 
 For questions, suggestions, or collaboration, open an issue on GitHub or contact the author at huangym23@m.fudan.edu.cn.
+
+### Run labels and summaries
+
+Add optional custom text with `-label`, or use **Run label** in the configurator:
+
+```bash
+./maindaocl -corona cutoffpl -Gamma 2 -Ecut 300 -label "Iron abundance comparison"
+```
+
+Each invocation writes `results/<hash>/RUN.txt` containing the run summary,
+label (or `(none)`), timestamp, hash, and model parameters. `params.json` also
+stores the label, which the plots and convergence pages display. The summary
+is written at startup, so it is not a completion marker. Labels do not affect
+the physics hash: repeating the same parameters reuses the folder and replaces
+its metadata. Quote labels in shell commands; the UI quotes them automatically.

@@ -1,6 +1,8 @@
 #ifndef PARAMS_H
 #define PARAMS_H
 
+#include <string>
+
 // Model parameters
 struct ModelParams
 {
@@ -42,6 +44,7 @@ struct ModelParams
 	// --- Run management (auto-computed from params) ---
 	char run_hash[12];   // 8-char hex hash of all physics params
 	char run_dir[256];   // "results/<hash>/"
+	std::string label;  // optional run description; excluded from the physics hash
 
 	// --- kernel type ---
 	int ktype; // 0: approximation QED kernel 1: Exactly
