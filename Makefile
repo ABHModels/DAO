@@ -36,6 +36,7 @@ SRCS = maindaocl.cpp \
        source/radiation.cpp \
        source/corona_models.cpp \
        source/cloudy_interface_v2.cpp \
+       source/cloudy_depth.cpp \
        source/compton_cross_section.cpp \
        source/compton_kernel.cpp \
        source/avg_compton_kernel.cpp \
@@ -50,7 +51,7 @@ OBJS = $(SRCS:.cpp=.o)
 HDRS = source/rt_grids.h \
        source/params.h source/save_results.h source/constants.h \
        source/radiation.h source/corona_models.h \
-       source/cloudy_interface.h source/cloudy_exception.h \
+       source/cloudy_interface.h source/cloudy_exception.h source/cloudy_depth.h \
        source/compton_cross_section.h source/compton_kernel.h source/avg_compton_kernel.h \
        source/kernel_payload.h source/kernel_row_spool.h source/rt_parallel.h \
        source/compton_rt.h source/source.h \
