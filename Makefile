@@ -10,7 +10,7 @@ CLOUDY_ROOT = $(CLOUDY_SRC)/..
 
 # Compiler
 CXX      = g++
-CXXFLAGS = -std=c++17 -O3 -Wall \
+CXXFLAGS = -std=c++17 -O3 -Wall -pthread \
            -DSYS_CONFIG=\"$(CLOUDY_SRC)/cloudyconfig.h\" \
            -I$(CLOUDY_SRC) \
            -Isource
@@ -51,7 +51,8 @@ HDRS = source/rt_grids.h \
        source/params.h source/save_results.h source/constants.h \
        source/radiation.h source/corona_models.h \
        source/cloudy_interface.h source/cloudy_exception.h \
-       source/compton_cross_section.h source/compton_kernel.h source/avg_compton_kernel.h source/compton_kernel_appro.h source/compton_kernel_v2.h \
+       source/compton_cross_section.h source/compton_kernel.h source/avg_compton_kernel.h \
+       source/kernel_payload.h source/kernel_row_spool.h source/rt_parallel.h \
        source/compton_rt.h source/source.h \
        source/production.h source/test_rt.h
 
@@ -69,7 +70,10 @@ $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Standalone kernel test (no Cloudy dependency)
-TEST_KERNEL_FLAGS = -std=c++17 -O3 -Wall -Isource
+TEST_KERNEL_FLAGS = -std=c++17 -O3 -Wall -pthread -Isource
+
+test_kernel_storage: source/test_kernel_storage.cpp source/kernel_payload.h source/kernel_row_spool.h source/rt_parallel.h
+	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $<
 
 test_kernel_norm: source/test_kernel_norm.cpp source/rt_grids.cpp source/compton_kernel.cpp source/compton_cross_section.cpp
 	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $^ -lm
@@ -78,4 +82,4 @@ multiscat: source/multiscat.cpp source/rt_grids.cpp source/compton_kernel.cpp so
 dump_kernel_slice: source/dump_kernel_slice.cpp source/compton_kernel.cpp source/compton_cross_section.cpp
 	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $^ -lm
 clean:
-	rm -f $(OBJS) $(TARGET) test_kernel_norm multiscat dump_kernel_slice
+	rm -f $(OBJS) $(TARGET) test_kernel_norm test_kernel_storage multiscat dump_kernel_slice

@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
 	const char* ksuffix = (ktype == 0) ? "_ap" : "";
 	char cache_file[512];
 	snprintf(cache_file, sizeof(cache_file),
-	         "%s/kernel/kernel_norm_NE%d_NA%d_NT%d%s.bin", cache_dir, NE, NA, kcache.NT, ksuffix);
+	         "%s/kernel_norm_NE%d_NA%d_NT%d%s.bin", cache_dir, NE, NA, kcache.NT, ksuffix);
 	fprintf(stdout, "Saving normalized kernel to %s...\n", cache_file);
 	kcache.save(cache_file);
 

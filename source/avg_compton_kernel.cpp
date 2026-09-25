@@ -1,6 +1,8 @@
 #include "avg_compton_kernel.h"
 #include "compton_kernel.h"          // profil_exact / profil_exact_ap
 #include "compton_cross_section.h"
+#include "kernel_row_spool.h"
+#include "rt_parallel.h"
 #include "constants.h"
 #include <cmath>
 #include <cstdio>
@@ -112,11 +114,8 @@ double angle_mean_kernel_element(double x, double x1, double T_K,
 // ============================================================
 static const char CACHE_MAGIC[8] = "AVKRN01";
 
-void avgKernelCache::save(const char* filename) const
+void avgKernelCache::write_header(FILE* fp) const
 {
-	FILE* fp = fopen(filename, "wb");
-	if (!fp) { fprintf(stderr, "Warning: cannot write %s\n", filename); return; }
-
 	long n_ge = long(NT) * NE;
 
 	fwrite(CACHE_MAGIC, 1, 8, fp);
@@ -131,8 +130,15 @@ void avgKernelCache::save(const char* filename) const
 	fwrite(band_off, sizeof(long),   n_ge,      fp);
 	fwrite(glo,      sizeof(int),    n_ge,      fp);
 	fwrite(ghi,      sizeof(int),    n_ge,      fp);
+}
+
+void avgKernelCache::save(const char* filename) const
+{
+	KernelCacheOutput output(filename);
+	FILE* fp = output.file();
+	write_header(fp);
 	fwrite(data,     sizeof(double), data_size, fp);
-	fclose(fp);
+	output.commit();
 
 	fprintf(stdout, "  avgKernelCache: saved to %s (%.1f MB)\n",
 	        filename, data_size * 8.0 / (1024.0 * 1024.0));
@@ -207,6 +213,13 @@ bool avgKernelCache::load(const char* filename)
 	fread(ghi, sizeof(int), n_ge, fp);
 
 	data_size = f_data_size;
+	data = payload.map(fp,size_t(data_size));
+	if(data) {
+		fclose(fp);
+		fprintf(stdout,"  avgKernelCache: mapped %s (%.1f MB virtual payload, demand-paged)\n",
+		        filename,data_size*8.0/(1024.0*1024.0));
+		return true;
+	}
 	data = new double[data_size];
 	size_t nread = fread(data, sizeof(double), data_size, fp);
 	fclose(fp);
@@ -253,10 +266,10 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 	const char* ksuffix = (ktype == 0) ? "_ap" : "";
 	char norm_file[512], raw_file[512];
 	snprintf(norm_file, sizeof(norm_file),
-	         "%s/kernel/avgkernel_norm_NE%d_NT%d%s.bin",
+	         "%s/avgkernel_norm_NE%d_NT%d%s.bin",
 	         cache_dir, NE, NT, ksuffix);
 	snprintf(raw_file, sizeof(raw_file),
-	         "%s/kernel/avgkernel_NE%d_NT%d%s.bin",
+	         "%s/avgkernel_NE%d_NT%d%s.bin",
 	         cache_dir, NE, NT, ksuffix);
 
 	if (load(norm_file))
@@ -294,7 +307,7 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 	band_hi  = new int[n_ge];
 	band_off = new long[n_ge];
 
-	double* row_buf = new double[NE];
+	KernelRowSpool computed_rows;
 
 	const double KMIN_ABS = 1e-30;
 	const double KMIN_REL = 1e-10;
@@ -302,17 +315,12 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 	// --- Pass 1: find band limits (upper triangle only: ne1 >= ne) ---
 	fprintf(stdout, "  avgKernelCache: pass 1 — finding band limits (upper triangle)...\n");
 
-	for (int iT = 0; iT < NT; ++iT)
-	{
-		fprintf(stdout, "  avgKernelCache: band scan T=%.2e K (%d/%d) ...",
-		        T_grid[iT], iT + 1, NT);
-		fflush(stdout);
-
-		for (int ne = 0; ne < NE; ++ne)
-		{
-			long r = row(iT, ne);
-
-			int lo_ne1 = NE, hi_ne1 = -1;
+	build_costh_quadrature(); // initialize shared read-only quadrature before workers
+	computed_rows.evaluate(size_t(n_ge),size_t(NE),[&](size_t index,double* row_buf,int& lo_ne1,int& hi_ne1) {
+		const long r=long(index);
+		const int ne=int(index%size_t(NE));
+		const int iT=int(index/size_t(NE));
+		lo_ne1=NE; hi_ne1=-1;
 			double K_max = 0.0;
 
 			// Only scan ne1 >= ne (upper triangle)
@@ -351,10 +359,7 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 
 			band_lo[r] = lo_ne1;
 			band_hi[r] = hi_ne1;
-		}
-
-		fprintf(stdout, " done.\n");
-	}
+	});
 
 	// Compute per-(iT,ne) global band including both triangles.
 	// Upper triangle: directly from stored band.
@@ -396,33 +401,12 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 	fprintf(stdout, "  avgKernelCache: data_size = %ld doubles (%.1f MB, %.1f%% dense fill)\n",
 	        data_size, data_size * 8.0 / (1024.0 * 1024.0), fill);
 
-	// --- Pass 2: compute and store kernel values (upper triangle only) ---
-	fprintf(stdout, "  avgKernelCache: pass 2 — computing kernel values (upper triangle)...\n");
-	data = new double[data_size];
+	// Reuse the exact values evaluated during the band scan.
+	fprintf(stdout, "  avgKernelCache: normalizing retained rows one temperature at a time...\n");
+	KernelCacheOutput output(norm_file);
+	write_header(output.file());
+	const off_t payload_offset=::ftello(output.file());
 
-	for (int iT = 0; iT < NT; ++iT)
-	{
-		fprintf(stdout, "  avgKernelCache: filling T=%.2e K (%d/%d) ...",
-		        T_grid[iT], iT + 1, NT);
-		fflush(stdout);
-
-		for (int ne = 0; ne < NE; ++ne)
-		{
-			long r  = row(iT, ne);
-			int  lo = band_lo[r];
-			int  hi = band_hi[r];
-			if (hi < lo) continue;
-
-			double* dst = data + band_off[r];
-			for (int ne1 = lo; ne1 <= hi; ++ne1)
-				*dst++ = angle_mean_kernel_element(
-					x_grid[ne], x_grid[ne1], T_grid[iT], ktype);
-		}
-
-		fprintf(stdout, " done.\n");
-	}
-
-	delete[] row_buf;
 
 	// --- Normalize via the angle-mean A23 sum rule ---
 	// For each incoming energy x₁, the kernel integrated over the
@@ -438,11 +422,11 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 	{
 		fprintf(stdout, "    T=%.2e K (%d/%d)...", T_grid[iT], iT + 1, NT);
 		fflush(stdout);
+		data=computed_rows.view(payload,size_t(data_size));
 
 		double* norm = new double[NE];
 
-		for (int nin = 0; nin < NE; ++nin)   // nin = incoming energy index x₁
-		{
+		rt_parallel_depths(NE, [&](int nin) { // independent incoming energies
 			double x1 = x_grid[nin];
 
 			double integral = 0.0;
@@ -459,7 +443,7 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 			                   / phys::sigma_T;
 
 			norm[nin] = (sigma_raw > 1e-30) ? sigma_exact / sigma_raw : 1.0;
-		}
+		}, "DAO_KERNEL_THREADS", 8);
 
 		// Apply: scale stored data by norm[ne_in] (incoming-energy index).
 		for (int ne_out = 0; ne_out < NE; ++ne_out)
@@ -475,11 +459,16 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 		}
 
 		delete[] norm;
+		const long begin=band_off[long(iT)*NE];
+		const long end=(iT+1<NT)?band_off[long(iT+1)*NE]:data_size;
+		if(end>begin && fwrite(data+begin,sizeof(double),size_t(end-begin),output.file())!=size_t(end-begin))
+			throw std::runtime_error("kernel: normalized temperature write failed");
 		fprintf(stdout, " done.\n");
 	}
 
 	// Save normalized kernel
-	save(norm_file);
+	data=output.map_payload(payload,size_t(data_size),payload_offset);
+	output.commit();
 	fprintf(stdout, "  Saved normalized angle-mean kernel to %s\n", norm_file);
 }
 
@@ -493,7 +482,7 @@ void avgKernelCache::free_memory()
 	delete[] band_off; band_off = nullptr;
 	delete[] glo;      glo      = nullptr;
 	delete[] ghi;      ghi      = nullptr;
-	delete[] data;     data     = nullptr;
+	payload.release(data);
 	NT = NE = 0;
 	data_size = 0;
 }

@@ -6,6 +6,7 @@
 maindaocl
 test_kernel_compare
 test_kernel_norm
+test_kernel_storage
 test_kernel_sym
 test_kernel_compare_old
 normalize_kernel

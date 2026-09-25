@@ -2,6 +2,7 @@
 #define AVG_COMPTON_KERNEL_H
 
 #include "constants.h"
+#include "kernel_payload.h"
 #include <cmath>
 
 // ============================================================
@@ -68,6 +69,7 @@ struct avgKernelCache
 	int* ghi;  // [NT * NE]
 
 	double* data;
+	KernelPayload payload;
 	long    data_size;
 
 	avgKernelCache() : NT(0), NE(0),
@@ -89,6 +91,7 @@ struct avgKernelCache
 	          int nt_user = 0, const double* T_user = nullptr);
 
 	void save(const char* filename) const;
+	void write_header(FILE* fp) const;
 	bool load(const char* filename);
 	void free_memory();
 
