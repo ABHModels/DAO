@@ -267,9 +267,13 @@ Dispatch:
 
 ### Kernel construction and memory use
 
-Kernel construction uses independent CPU workers, without changing the
-double-precision integrals, summation order within each kernel value, band
-thresholds, or cache format. The default is up to 8 workers. Override it with
+Kernel construction uses independent CPU workers. The low-temperature kernel
+uses peak-resolved angular quadrature and averages narrow redistribution
+features over energy cells. The electron integral keeps all 32 Gauss-Laguerre
+points. Directional and angle-mean kernels are normalized to the Compton cross
+section with symmetric scaling that preserves detailed balance. The cache
+format is versioned, so older cache files are recomputed. The default is up to
+8 workers. Override it with
 `DAO_KERNEL_THREADS=4 ./maindaocl ...` (valid range: 1–256). This setting affects
 cache construction only, not the RT solver. More workers are not always faster.
 Independent normalization integrals use the same kernel worker setting, while
@@ -289,18 +293,24 @@ file, then its private pages are released. The completed cache is mapped before
 publication, so construction does not retain a full-size heap payload during
 RT. This bounds construction's touched payload to one temperature plus metadata
 and worker scratch; OS file caching and later RT access still affect total RAM.
-The binary cache format and double-precision values are unchanged. Construction
+The numerical kernel values and binary cache version change. Construction
 requires working POSIX mappings; a mapping or output error aborts without
 publishing an incomplete cache.
 
 Run `make test_kernel_storage && ./test_kernel_storage` for the standalone
 storage/worker assertions (no Cloudy dependency). This is a storage test, not
 a physics-accuracy certification. No GPU or reduced-precision path is enabled.
+Run `make test_kernel_reference test_kernel_low_temp` followed by both
+executables for dense angular quadrature, conservation, detailed balance, and
+smooth-source checks. See [KERNEL_VALIDATION.md](KERNEL_VALIDATION.md) for measured
+results, including differences from the previous public kernel.
 
 The RT source-function calculation distributes independent depths across up to
 16 CPU workers (also capped by detected hardware threads and depth count).
 Set `DAO_RT_THREADS=1` for serial execution or choose 1–256
-workers. Each cell retains its original angular/energy summation order, with
+workers. Each cell retains its angular summation order; energy integration uses
+full-grid trapezoid weights so a narrow kernel band is not integrated as an
+isolated subgrid. There is
 a barrier before the next iteration stage. Formal transport, convergence
 criteria, and iteration ordering are unchanged. RT timing reports wall time,
 including a formal-solution/mean-intensity versus source-function breakdown.

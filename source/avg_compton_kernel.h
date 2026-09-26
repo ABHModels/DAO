@@ -92,7 +92,7 @@ struct avgKernelCache
 
 	void save(const char* filename) const;
 	void write_header(FILE* fp) const;
-	bool load(const char* filename);
+	bool load(const char* filename, const double* expected_ene_eV = nullptr);
 	void free_memory();
 
 	int find_T(double T_K) const;

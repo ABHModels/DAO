@@ -98,6 +98,12 @@ jobs:
       - name: Compile standalone Compton-kernel diagnostic
         run: make test_kernel_norm
 
+      - name: Check Compton quadrature and low-temperature redistribution
+        run: |
+          make test_kernel_reference test_kernel_low_temp
+          ./test_kernel_reference
+          ./test_kernel_low_temp
+
       - name: Test run labels and summaries
         run: python tests/test_run_metadata.py
 

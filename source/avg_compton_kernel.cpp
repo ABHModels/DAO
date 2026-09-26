@@ -4,64 +4,20 @@
 #include "kernel_row_spool.h"
 #include "rt_parallel.h"
 #include "constants.h"
+#include "kernel_quadrature.h"
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <vector>
 
 // ============================================================
 // Gauss-Legendre quadrature over the scattering-angle cosine
 //
 //   K̄(x; x₁) = 2π ∫₋₁¹ R(x, x₁, cosθ) d(cosθ)
 //
-// The nodes/weights on [-1, 1] are generated once via Newton
-// iteration on the Legendre polynomial.  NCTH can be raised if the
-// forward-scattering peak (cosθ → 1 for x ≈ x₁) needs finer
-// resolution.
+// Adaptive quadrature resolves the narrow low-temperature recoil peak.
 // ============================================================
-static const int NCTH = 32;
-static double cth_node[NCTH];
-static double cth_weight[NCTH];
-static bool   cth_ready = false;
-
-static void build_costh_quadrature()
-{
-	if (cth_ready) return;
-
-	const int    n   = NCTH;
-	const double eps = 1e-15;
-	const int    m   = (n + 1) / 2;   // roots are symmetric about 0
-
-	for (int i = 0; i < m; ++i)
-	{
-		// Initial guess for the i-th root of P_n (Abramowitz & Stegun)
-		double z = cos(M_PI * (i + 0.75) / (n + 0.5));
-		double z1, pp;
-
-		do {
-			// Evaluate P_n(z) and its derivative pp by recurrence
-			double p1 = 1.0, p2 = 0.0;
-			for (int j = 0; j < n; ++j)
-			{
-				double p3 = p2;
-				p2 = p1;
-				p1 = ((2.0 * j + 1.0) * z * p2 - j * p3) / (j + 1.0);
-			}
-			pp = n * (z * p1 - p2) / (z * z - 1.0);
-			z1 = z;
-			z  = z1 - p1 / pp;          // Newton step
-		} while (fabs(z - z1) > eps);
-
-		// Map symmetric roots onto [-1, 1]
-		cth_node[i]         = -z;
-		cth_node[n - 1 - i] =  z;
-		double w = 2.0 / ((1.0 - z * z) * pp * pp);
-		cth_weight[i]         = w;
-		cth_weight[n - 1 - i] = w;
-	}
-
-	cth_ready = true;
-}
 
 // ============================================================
 // Angle-mean kernel element
@@ -78,28 +34,65 @@ double angle_mean_kernel_element(double x, double x1, double T_K,
 	const double mec2_eV  = 511.0e3;          // electron rest energy [eV]
 
 	double x_inv = mec2_eV / (boltz_eV * T_K);   // m_e c² / kT
-
-	build_costh_quadrature();
-
-	double integ = 0.0;
-	for (int j = 0; j < NCTH; ++j)
-	{
-		double costh = cth_node[j];
-		double R = (ktype == 0)
-		         ? profil_exact_ap(x, x1, costh, x_inv)
-		         : profil_exact   (x, x1, costh, x_inv);
-		integ += cth_weight[j] * R;
+	const double delta=x-x1;
+	const double peak_q=fabs(delta);
+	const double peak_cos=1.0-peak_q/(x*x1);
+	if (ktype!=0) {
+		const double q=std::min(2.0*x*x1,peak_q);
+		const double gamma=q<=0 ? 1.0 :
+			0.5*(delta+sqrt(delta*delta+2*q)*sqrt(1.0+2.0/q));
+		if ((gamma-1.0)*x_inv>120.0) return 0.0;
 	}
 
-	return 2.0 * M_PI * integ;
+	auto profile=[&](double costh) {
+		const double c=std::min(std::nextafter(1.0,0.0),
+		                        std::max(-1.0,costh));
+		return ktype==0 ? profil_exact_ap(x,x1,c,x_inv)
+		                : profil_exact(x,x1,c,x_inv);
+	};
+	std::array<double,5> cuts{-1.0,1.0};
+	size_t count=2;
+	if (peak_cos>=-1.0 && peak_cos<=1.0) {
+		const double dc=4.0*sqrt(2.0/x_inv)/std::max(x,x1);
+		cuts[count++]=std::max(-1.0,peak_cos-dc);
+		cuts[count++]=peak_cos;
+		cuts[count++]=std::min(1.0,peak_cos+dc);
+	}
+	const double thermal=x*sqrt(2.0/x_inv);
+	const double integral=fabs(x1-x)<4.0*thermal
+		? kernel_quadrature::integrate_fixed<96>(profile,cuts,count)
+		: kernel_quadrature::integrate_fixed<48>(profile,cuts,count);
+	return 2.0*M_PI*integral;
+}
+
+static double angle_mean_energy_cell(double x,double lo,double hi,double T_K,int ktype)
+{
+	auto profile=[&](double x1) {
+		return angle_mean_kernel_element(x,x1,T_K,ktype);
+	};
+	const double thermal=x*sqrt(2.0*8.617333262e-5*T_K/511000.0);
+	std::array<double,6> cuts{lo,hi};
+	size_t count=2;
+	auto add=[&](double point) {
+		if(point>lo && point<hi) cuts[count++]=point;
+	};
+	add(x);
+	add(x-4*thermal);
+	add(x+4*thermal);
+	const double denominator=1.0/x-2.0;
+	if(denominator>0) add(1.0/denominator);
+	const double integral=lo<=x && x<=hi
+		? kernel_quadrature::integrate_fixed<128>(profile,cuts,count)
+		: kernel_quadrature::integrate_fixed<48>(profile,cuts,count);
+	return integral/(hi-lo);
 }
 
 // ============================================================
 // avgKernelCache implementation — banded storage, detailed balance
 // (upper triangle ne1 >= ne only)
 //
-// Binary cache file format (version 01):
-//   magic       [8 bytes]  "AVKRN01\0"
+// Binary cache file format (version 07):
+//   magic       [8 bytes]  "AVKRN07\0"
 //   NT, NE      [2×4 bytes]
 //   data_size   [8 bytes]
 //   T_grid      [NT doubles]
@@ -112,7 +105,7 @@ double angle_mean_kernel_element(double x, double x1, double T_K,
 //   ghi         [NT*NE ints]
 //   data        [data_size doubles]
 // ============================================================
-static const char CACHE_MAGIC[8] = "AVKRN01";
+static const char CACHE_MAGIC[8] = "AVKRN07";
 
 void avgKernelCache::write_header(FILE* fp) const
 {
@@ -144,7 +137,7 @@ void avgKernelCache::save(const char* filename) const
 	        filename, data_size * 8.0 / (1024.0 * 1024.0));
 }
 
-bool avgKernelCache::load(const char* filename)
+bool avgKernelCache::load(const char* filename, const double* expected_ene_eV)
 {
 	// NT, NE, T_grid must be set before calling.
 	FILE* fp = fopen(filename, "rb");
@@ -195,6 +188,16 @@ bool avgKernelCache::load(const char* filename)
 	// Read x_grid and theta
 	x_grid = new double[NE];
 	fread(x_grid, sizeof(double), NE, fp);
+	if (expected_ene_eV) {
+		bool grid_match=true;
+		for (int i=0; i<NE; ++i)
+			if (fabs(x_grid[i]-expected_ene_eV[i]/511000.0) >
+			    1e-12*expected_ene_eV[i]/511000.0) { grid_match=false; break; }
+		if (!grid_match) {
+			delete[] x_grid; x_grid=nullptr;
+			fclose(fp); return false;
+		}
+	}
 	theta = new double[NT];
 	fread(theta, sizeof(double), NT, fp);
 
@@ -272,12 +275,12 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 	         "%s/avgkernel_NE%d_NT%d%s.bin",
 	         cache_dir, NE, NT, ksuffix);
 
-	if (load(norm_file))
+	if (load(norm_file,ene_eV))
 	{
 		fprintf(stderr, "\n Load normalized angle-mean Compton kernel");
 		return;
 	}
-	if (load(raw_file))
+	if (load(raw_file,ene_eV))
 	{
 		fprintf(stderr,
 			"\n  WARNING: Loaded un-normalized angle-mean kernel %s\n"
@@ -315,7 +318,6 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 	// --- Pass 1: find band limits (upper triangle only: ne1 >= ne) ---
 	fprintf(stdout, "  avgKernelCache: pass 1 — finding band limits (upper triangle)...\n");
 
-	build_costh_quadrature(); // initialize shared read-only quadrature before workers
 	computed_rows.evaluate(size_t(n_ge),size_t(NE),[&](size_t index,double* row_buf,int& lo_ne1,int& hi_ne1) {
 		const long r=long(index);
 		const int ne=int(index%size_t(NE));
@@ -326,8 +328,27 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 			// Only scan ne1 >= ne (upper triangle)
 			for (int ne1 = ne; ne1 < NE; ++ne1)
 			{
-				double val = angle_mean_kernel_element(
-					x_grid[ne], x_grid[ne1], T_grid[iT], ktype);
+				double val;
+				const double lo=NE<2 ? x_grid[ne1] :
+					(ne1 ? 0.5*(x_grid[ne1-1]+x_grid[ne1])
+					     : x_grid[ne1]-0.5*(x_grid[ne1+1]-x_grid[ne1]));
+				const double hi=NE<2 ? x_grid[ne1] :
+					(ne1+1<NE ? 0.5*(x_grid[ne1]+x_grid[ne1+1])
+					          : x_grid[ne1]+0.5*(x_grid[ne1]-x_grid[ne1-1]));
+				const double thermal=x_grid[ne1]*sqrt(2.0*theta[iT]);
+				const double edge_margin=8.0*thermal;
+				// Average near the forward/back recoil edges, where point
+				// samples alias a narrow profile on the transfer grid.
+				const double recoil_den=1.0/x_grid[ne]-2.0;
+				const bool near_forward=lo<=x_grid[ne]+edge_margin &&
+				                        hi>=x_grid[ne]-edge_margin;
+				const bool near_back=recoil_den>0 &&
+					lo<=1.0/recoil_den+edge_margin && hi>=1.0/recoil_den-edge_margin;
+				if(NE>1 && hi-lo>2*thermal && (near_forward || near_back))
+					val=angle_mean_energy_cell(x_grid[ne],std::max(1e-30,lo),hi,
+				                              T_grid[iT],ktype);
+				else
+					val=angle_mean_kernel_element(x_grid[ne],x_grid[ne1],T_grid[iT],ktype);
 				row_buf[ne1] = val;
 				if (val > KMIN_ABS)
 				{
@@ -379,9 +400,10 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 		{
 			long rr = row(iT, ne1);
 			if (ne >= band_lo[rr] && ne <= band_hi[rr])
+			{
 				lo_g = ne1;
-			else
-				break;   // bands shrink away from diagonal
+				if (hi_g < ne1) hi_g = ne1;
+			}
 		}
 
 		glo[r] = (hi_g >= 0 || lo_g < NE) ? lo_g : 0;
@@ -424,8 +446,8 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 		fflush(stdout);
 		data=computed_rows.view(payload,size_t(data_size));
 
-		double* norm = new double[NE];
-
+		std::vector<double> norm(NE);
+		for (int iteration=0; iteration<20; ++iteration) {
 		rt_parallel_depths(NE, [&](int nin) { // independent incoming energies
 			double x1 = x_grid[nin];
 
@@ -442,10 +464,17 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 			double sigma_exact = compton_cross_section(ene_eV[nin], T_grid[iT])
 			                   / phys::sigma_T;
 
-			norm[nin] = (sigma_raw > 1e-30) ? sigma_exact / sigma_raw : 1.0;
+				norm[nin] = (sigma_raw > 1e-30) ? sigma_exact / sigma_raw : 0.0;
 		}, "DAO_KERNEL_THREADS", 8);
+		double max_error=0;
+		for (double ratio:norm) {
+			if (!(ratio>0) || !std::isfinite(ratio))
+				throw std::runtime_error("kernel: zero or nonfinite scattering normalization");
+			max_error=std::max(max_error,fabs(ratio-1.0));
+		}
+		if (max_error<1e-3) break;
 
-		// Apply: scale stored data by norm[ne_in] (incoming-energy index).
+		// Symmetric scaling preserves detailed balance on both triangles.
 		for (int ne_out = 0; ne_out < NE; ++ne_out)
 		{
 			long r  = row(iT, ne_out);
@@ -455,10 +484,11 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 
 			double* dst = data + band_off[r];
 			for (int ne_in = lo; ne_in <= hi; ++ne_in)
-				dst[ne_in - lo] *= norm[ne_in];
+				dst[ne_in - lo] *= sqrt(norm[ne_out]*norm[ne_in]);
 		}
-
-		delete[] norm;
+		if (iteration==19)
+			throw std::runtime_error("kernel: scattering normalization did not converge");
+		}
 		const long begin=band_off[long(iT)*NE];
 		const long end=(iT+1<NT)?band_off[long(iT+1)*NE]:data_size;
 		if(end>begin && fwrite(data+begin,sizeof(double),size_t(end-begin),output.file())!=size_t(end-begin))
