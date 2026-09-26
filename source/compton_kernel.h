@@ -91,7 +91,7 @@ struct KernelCache
 	          int nt_user = 0, const double* T_user = nullptr);
 
 	void save(const char* filename) const;
-	bool load(const char* filename);
+	bool load(const char* filename, const double* expected_ene_eV = nullptr);
 	void free_memory();
 
 	int find_T(double T_K) const;

@@ -20,7 +20,7 @@ static inline long sidx3(int nd, int nm, int ne)
 // compute_source_function
 //
 // S(nd,nm,ne) = (jnu[nd][ne] + jnu_line[nd][nm][ne]) / ktot
-//             + ksct[nd][ne] / ktot * S_compton(nd,nm,ne)
+//             + (1.21*n_h) * sigma_T / ktot * S_compton(nd,nm,ne)
 //
 // where ktot = kabs + ksct, and
 //   S_compton = x² ∫∫ K(x,μ;x₁,μ₁) I(x₁,μ₁)/x₁² dμ₁ dx₁
@@ -57,7 +57,6 @@ void compute_source_function(
 		for (int nm = 0; nm < NM; ++nm)
 		{	
 			double ktot = kabs[nd][ne] + ksct[nd][ne];
-
 			// --- Thermal term: (jnu_cont + jnu_line) / ktot ---
 			double S_th = jnu[nd][ne]/ ktot;
 
@@ -72,7 +71,6 @@ void compute_source_function(
 				double x = x_grid[ne];
 
 				double trapz  = 0.0;
-				double f_prev = 0.0;
 
 				for (int ne1 = ne1_lo; ne1 <= ne1_hi; ++ne1)
 				{
@@ -85,18 +83,16 @@ void compute_source_function(
 						         * intensity[sidx3(nd, nm1, ne1)]
 						         * wmu[nm1];
 
-					double f_curr = inte_mu / (x1 * x1);
-
-					if (ne1 > ne1_lo)
-						trapz += 0.5 * (f_curr + f_prev)
-						       * (x_grid[ne1] - x_grid[ne1 - 1]);
-
-					f_prev = f_curr;
+					const double weight = NE<2 ? 0.0 :
+						(ne1==0 ? 0.5*(x_grid[1]-x_grid[0]) :
+						 ne1==NE-1 ? 0.5*(x_grid[NE-1]-x_grid[NE-2]) :
+						 0.5*(x_grid[ne1+1]-x_grid[ne1-1]));
+					trapz += weight*inte_mu/(x1*x1);
 				}
 
 				S_sct = trapz * x * x;
 			}
-			source[sidx3(nd, nm, ne)] = S_th + 1.21 * n_h*phys::sigma_T / ktot * S_sct;
+			source[sidx3(nd, nm, ne)] = S_th + 1.21 * n_h * phys::sigma_T / ktot * S_sct;
 		}
 		}
 	});
@@ -135,7 +131,6 @@ void avgcompute_source_function(
 		for (int ne = 0; ne < NE; ++ne)
 		{
 			double ktot = kabs[nd][ne] + ksct[nd][ne];
-
 			// --- Thermal term ---
 			double S_th = jnu[nd][ne] / ktot;
 
@@ -150,7 +145,6 @@ void avgcompute_source_function(
 				double x = x_grid[ne];
 
 				double trapz  = 0.0;
-				double f_prev = 0.0;
 
 				for (int ne1 = ne1_lo; ne1 <= ne1_hi; ++ne1)
 				{
@@ -159,13 +153,11 @@ void avgcompute_source_function(
 					// Angle-mean kernel × mean intensity (no angular sum).
 					double inte = kcache.K(iT, ne, ne1) * meani[long(nd) * NE + ne1];
 
-					double f_curr = inte / (x1 * x1);
-
-					if (ne1 > ne1_lo)
-						trapz += 0.5 * (f_curr + f_prev)
-						       * (x_grid[ne1] - x_grid[ne1 - 1]);
-
-					f_prev = f_curr;
+					const double weight = NE<2 ? 0.0 :
+						(ne1==0 ? 0.5*(x_grid[1]-x_grid[0]) :
+						 ne1==NE-1 ? 0.5*(x_grid[NE-1]-x_grid[NE-2]) :
+						 0.5*(x_grid[ne1+1]-x_grid[ne1-1]));
+					trapz += weight*inte/(x1*x1);
 				}
 
 				S_sct = trapz * x * x;

@@ -54,6 +54,7 @@ HDRS = source/rt_grids.h \
        source/cloudy_interface.h source/cloudy_exception.h source/cloudy_depth.h \
        source/compton_cross_section.h source/compton_kernel.h source/avg_compton_kernel.h \
        source/kernel_payload.h source/kernel_row_spool.h source/rt_parallel.h \
+       source/kernel_quadrature.h \
        source/compton_rt.h source/source.h \
        source/production.h source/test_rt.h
 
@@ -78,9 +79,13 @@ test_kernel_storage: source/test_kernel_storage.cpp source/kernel_payload.h sour
 
 test_kernel_norm: source/test_kernel_norm.cpp source/rt_grids.cpp source/compton_kernel.cpp source/compton_cross_section.cpp
 	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $^ -lm
+test_kernel_low_temp: source/test_kernel_low_temp.cpp source/source.cpp source/rt_grids.cpp source/compton_kernel.cpp source/avg_compton_kernel.cpp source/compton_cross_section.cpp $(HDRS)
+	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $(filter %.cpp,$^) -lm
+test_kernel_reference: source/kernel_reference_probe.cpp source/compton_kernel.cpp source/avg_compton_kernel.cpp source/compton_cross_section.cpp source/kernel_quadrature.h
+	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $(filter %.cpp,$^) -lm
 multiscat: source/multiscat.cpp source/rt_grids.cpp source/compton_kernel.cpp source/compton_cross_section.cpp
 	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $^ -lm
 dump_kernel_slice: source/dump_kernel_slice.cpp source/compton_kernel.cpp source/compton_cross_section.cpp
 	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $^ -lm
 clean:
-	rm -f $(OBJS) $(TARGET) test_kernel_norm test_kernel_storage multiscat dump_kernel_slice
+	rm -f $(OBJS) $(TARGET) test_kernel_norm test_kernel_low_temp test_kernel_reference test_kernel_storage multiscat dump_kernel_slice

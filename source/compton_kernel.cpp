@@ -3,6 +3,7 @@
 #include "kernel_row_spool.h"
 #include "rt_parallel.h"
 #include "constants.h"
+#include "kernel_quadrature.h"
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -202,19 +203,8 @@ double profil_exact_ap(double eps, double eps1, double costh, double x_inv)
 // K(x, μ; x₁, μ₁) = ∫₀²π R(x, x₁, η(μ,μ₁,φ)) dφ
 //
 // where η = μμ₁ + √(1-μ²)√(1-μ₁²) cos(φ).
-// 10-point Gauss-Legendre quadrature on [0, 2π].
-//
-// Nodes and weights from radiative_transfer_sec.f90 (ckernel).
+// Adaptive Gauss-Legendre quadrature on [0, π], doubled by symmetry.
 // ============================================================
-static const int NPHI = 6;
-static const double phi_node[NPHI] = {
-	2.1215327807272738e-01, 1.0643421025827622e+00, 2.3919483715852459e+00,
-	3.8912369355943404e+00, 5.2188432045968236e+00, 6.0710320291068589e+00
-};
-static const double phi_weight[NPHI] = {
-	5.3823176663840211e-01, 1.1333659075855300e+00, 1.4699949793658615e+00,
-	1.4699949793658615e+00, 1.1333659075855300e+00, 5.3823176663840211e-01
-};
 
 double compton_kernel_element(double x, double mu, double x1, double mu1,
                               double T_K, const int ktype)
@@ -227,22 +217,95 @@ double compton_kernel_element(double x, double mu, double x1, double mu1,
 	double sin_mu  = sqrt(1.0 - mu  * mu);
 	double sin_mu1 = sqrt(1.0 - mu1 * mu1);
 
-	double intephi = 0.0;
-	for (int np = 0; np < NPHI; ++np)
-	{
-		double costh = mu * mu1 + sin_mu * sin_mu1 * cos(phi_node[np]);
-		intephi += profil_exact(x, x1, costh, x_inv) * phi_weight[np];
+	const double a=mu*mu1, b=sin_mu*sin_mu1;
+	const double delta=x-x1;
+	const double peak_q=fabs(delta);
+	const double peak_cos=1.0-peak_q/(x*x1);
+	if (ktype!=0) {
+		// gamma* is minimized at q=|x-x1|, including upscattering.
+		// Clamp this peak to the kinematically allowed angular interval.
+		const double q_min=x*x1*(1.0-a-b);
+		const double q_max=x*x1*(1.0-a+b);
+		const double q=std::max(q_min,std::min(q_max,peak_q));
+		const double gamma=q<=0 ? (delta==0 ? 1.0 : HUGE_VAL) :
+			0.5*(delta+sqrt(delta*delta+2*q)*sqrt(1.0+2.0/q));
+		if ((gamma-1.0)*x_inv>120.0) return 0.0;
 	}
+	auto profile=[&](double phi) {
+		const double costh=std::min(std::nextafter(1.0,0.0),
+		                            std::max(-1.0,a+b*cos(phi)));
+		return ktype==0 ? profil_exact_ap(x,x1,costh,x_inv)
+		                : profil_exact(x,x1,costh,x_inv);
+	};
+	std::array<double,5> cuts{0.0,M_PI};
+	size_t count=2;
+	// At low T the peak follows minimum required electron energy. Put quadrature
+	// intervals around it before estimating integration error; an ordinary
+	// adaptive rule can otherwise return zero after missing the whole peak.
+	if (b>0) {
+		if (peak_cos>=a-b && peak_cos<=a+b) {
+			const double phi=acos(std::max(-1.0,std::min(1.0,(peak_cos-a)/b)));
+			const double theta=1.0/x_inv;
+			const double dc=4.0*sqrt(2.0*theta)/std::max(x,x1);
+			const double width=std::min(0.5,std::max(1e-5,
+				 dc/std::max(1e-3,b*sin(phi))));
+			cuts[count++]=std::max(0.0,phi-width);
+			cuts[count++]=phi;
+			cuts[count++]=std::min(M_PI,phi+width);
+		}
+	}
+	const double thermal=x*sqrt(2.0/x_inv);
+	// Forward, nearly elastic scattering is the only case needing the
+	// higher angular order. The recoil-peak breakpoints resolve other pairs.
+	const bool forward=fabs(mu-mu1)<1e-14 && fabs(x1-x)<thermal;
+	// Above 10 keV the high-temperature azimuth profile is broad enough for
+	// half the angular order. Keep the full rule at low photon energies and
+	// at cold temperatures, where unresolved recoil peaks cause aliasing.
+	const bool broad=ktype!=0 && x_inv<600.0 && x>=10000.0/511000.0;
+	const double integral=broad
+		? (forward ? kernel_quadrature::integrate_fixed<48>(profile,cuts,count)
+		           : kernel_quadrature::integrate_fixed<24>(profile,cuts,count))
+		: (forward ? kernel_quadrature::integrate_fixed<96>(profile,cuts,count)
+		           : kernel_quadrature::integrate_fixed<48>(profile,cuts,count));
+	return 2.0*integral;
+}
 
-	return intephi;
+// The cold redistribution can be much narrower than one energy interval.
+// Average over the incoming energy cell before storing a discrete matrix
+// element. This also regularizes the forward-scattering diagonal.
+static double energy_cell_kernel(double x, double mu, double mu1,
+                                 double lo, double hi, double T_K, int ktype)
+{
+	auto profile=[&](double x1) {
+		return compton_kernel_element(x,mu,x1,mu1,T_K,ktype);
+	};
+	const double thermal=x*sqrt(2.0*8.617333262e-5*T_K/511000.0);
+	std::array<double,8> cuts{lo,hi};
+	size_t count=2;
+	auto add=[&](double point) {
+		if (point>lo && point<hi) cuts[count++]=point;
+	};
+	add(x);
+	add(x-4*thermal);
+	add(x+4*thermal);
+	const double a=mu*mu1, b=sqrt(1-mu*mu)*sqrt(1-mu1*mu1);
+	for (double c:{a-b,a+b}) {
+		const double denominator=1.0/x-(1.0-c);
+		if (denominator>0) add(1.0/denominator);
+	}
+	// The same-angle diagonal contains an integrable forward peak.
+	const double integral=(fabs(mu-mu1)<1e-14 && lo<=x && x<=hi)
+		? kernel_quadrature::integrate_fixed<128>(profile,cuts,count)
+		: kernel_quadrature::integrate_fixed<48>(profile,cuts,count);
+	return integral/(hi-lo);
 }
 
 // ============================================================
 // KernelCache implementation — banded storage with symmetry reduction
 // + detailed balance (upper triangle only)
 //
-// Binary cache file format (version 04):
-//   magic          [8 bytes]  "CKERN04\0"
+// Binary cache file format (version 11):
+//   magic          [8 bytes]  "CKERN11\0"
 //   NT,NE,NA_full,n_indep  [4×4 bytes]
 //   data_size      [8 bytes]
 //   T_grid         [NT doubles]
@@ -255,7 +318,7 @@ double compton_kernel_element(double x, double mu, double x1, double mu1,
 //   ghi            [NT*NE ints]
 //   data           [data_size doubles]
 // ============================================================
-static const char CACHE_MAGIC[8] = "CKERN04";
+static const char CACHE_MAGIC[8] = "CKERN11";
 
 // ------------------------------------------------------------
 // build_canon — compute symmetry reduction tables from NA_full
@@ -335,7 +398,7 @@ void KernelCache::save(const char* filename) const
 	        filename, data_size * 8.0 / (1024.0 * 1024.0));
 }
 
-bool KernelCache::load(const char* filename)
+bool KernelCache::load(const char* filename, const double* expected_ene_eV)
 {
 	// NT, NE, NA_full, n_indep, T_grid must be set before calling.
 	FILE* fp = fopen(filename, "rb");
@@ -388,6 +451,16 @@ bool KernelCache::load(const char* filename)
 	// Read x_grid and theta
 	x_grid = new double[NE];
 	fread(x_grid, sizeof(double), NE, fp);
+	if (expected_ene_eV) {
+		bool grid_match=true;
+		for (int i=0; i<NE; ++i)
+			if (fabs(x_grid[i]-expected_ene_eV[i]/511000.0) >
+			    1e-12*expected_ene_eV[i]/511000.0) { grid_match=false; break; }
+		if (!grid_match) {
+			delete[] x_grid; x_grid=nullptr;
+			fclose(fp); return false;
+		}
+	}
 	theta = new double[NT];
 	fread(theta, sizeof(double), NT, fp);
 
@@ -470,12 +543,12 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 	         "%s/kernel_NE%d_NI%d_NT%d%s.bin",
 	         cache_dir, NE, n_indep, NT, ksuffix);
 
-	if (load(norm_file))
+	if (load(norm_file,ene_eV))
 	{
 		fprintf(stderr, "\n Load normalized Compton scattering kernel");
 		return;
 	}
-	if (load(raw_file))
+	if (load(raw_file,ene_eV))
 	{
 		fprintf(stderr,
 			"\n  WARNING: Loaded un-normalized kernel %s\n"
@@ -526,8 +599,35 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 			// Only scan ne1 >= ne (upper triangle)
 			for (int ne1 = ne; ne1 < NE; ++ne1)
 			{
-				double val = compton_kernel_element(
-					x_grid[ne], mu[nm], x_grid[ne1], mu[nm1], T_grid[iT], ktype);
+				double val;
+				const double lo=NE<2 ? x_grid[ne1] :
+					(ne1 ? 0.5*(x_grid[ne1-1]+x_grid[ne1])
+					     : x_grid[ne1]-0.5*(x_grid[ne1+1]-x_grid[ne1]));
+				const double hi=NE<2 ? x_grid[ne1] :
+					(ne1+1<NE ? 0.5*(x_grid[ne1]+x_grid[ne1+1])
+					          : x_grid[ne1]+0.5*(x_grid[ne1]-x_grid[ne1-1]));
+				const double thermal=x_grid[ne1]*sqrt(2.0*theta[iT]);
+				const double a=mu[nm]*mu[nm1];
+				const double b=sqrt(1-mu[nm]*mu[nm])*sqrt(1-mu[nm1]*mu[nm1]);
+				const double min_den=1.0/x_grid[ne]-(1.0-a-b);
+				const double max_den=1.0/x_grid[ne]-(1.0-a+b);
+				const double edge_margin=8.0*thermal;
+				// Cell averaging is needed at recoil-support edges; elsewhere
+				// the azimuth-integrated profile varies smoothly across a cell.
+				auto near_edge=[&](double denominator) {
+					if (denominator<=0) return false;
+					const double edge=1.0/denominator;
+					return lo<=edge+edge_margin && hi>=edge-edge_margin;
+				};
+				const bool needs_average=(ne==ne1 && nm==nm1) ||
+					(hi-lo>2*thermal && (near_edge(min_den) || near_edge(max_den)));
+				if (NE>1 && needs_average) {
+					val=energy_cell_kernel(x_grid[ne],mu[nm],mu[nm1],
+					                       std::max(1e-30,lo),hi,T_grid[iT],ktype);
+				} else {
+					val=compton_kernel_element(x_grid[ne],mu[nm],x_grid[ne1],
+					                           mu[nm1],T_grid[iT],ktype);
+				}
 				row_buf[ne1] = val;
 				if (val > KMIN_ABS)
 				{
@@ -596,8 +696,7 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 			}
 			if (found) {
 				lo_g = ne1;
-			} else {
-				break;   // bands shrink away from diagonal
+				if (hi_g < ne1) hi_g = ne1;
 			}
 		}
 
@@ -636,8 +735,8 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 		fflush(stdout);
 		data=computed_rows.view(payload,size_t(data_size));
 
-		double* norm = new double[NE];
-
+		std::vector<double> norm(NE);
+		for (int iteration=0; iteration<20; ++iteration) {
 		rt_parallel_depths(NE, [&](int ne) {
 			double x = x_grid[ne];
 
@@ -681,10 +780,21 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 			double sigma_exact = compton_cross_section(ene_eV[ne], T_grid[iT])
 			                   / phys::sigma_T;
 
-			norm[ne] = (sigma_raw > 1e-30) ? sigma_exact / sigma_raw : 1.0;
+				norm[ne] = (sigma_raw > 1e-30) ? sigma_exact / sigma_raw : 0.0;
 		}, "DAO_KERNEL_THREADS", 8);
+		double max_error=0;
+		for (int i=0;i<NE;++i) {
+			const double ratio=norm[i];
+			if (!(ratio>0) || !std::isfinite(ratio)) {
+				fprintf(stderr,"kernel normalization failed: T=%g E=%g eV index=%d ratio=%g\n",
+				        T_grid[iT],ene_eV[i],i,ratio);
+				throw std::runtime_error("kernel: zero or nonfinite scattering normalization");
+			}
+			max_error=std::max(max_error,fabs(ratio-1.0));
+		}
+		if (max_error<1e-3) break;
 
-		// Apply: scale stored data by norm[ne_in]
+		// Symmetric scaling preserves detailed balance on both triangles.
 		for (int ne_out = 0; ne_out < NE; ++ne_out)
 		for (int ia = 0; ia < n_indep; ++ia)
 		{
@@ -695,10 +805,11 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 
 			double* dst = data + band_off[r];
 			for (int ne_in = lo; ne_in <= hi; ++ne_in)
-				dst[ne_in - lo] *= norm[ne_in];
+				dst[ne_in - lo] *= sqrt(norm[ne_out]*norm[ne_in]);
 		}
-
-		delete[] norm;
+		if (iteration==19)
+			throw std::runtime_error("kernel: scattering normalization did not converge");
+		}
 		const long begin=band_off[long(iT)*NE*n_indep];
 		const long end=(iT+1<NT)?band_off[long(iT+1)*NE*n_indep]:data_size;
 		if(end>begin && fwrite(data+begin,sizeof(double),size_t(end-begin),output.file())!=size_t(end-begin))
