@@ -744,9 +744,10 @@ void CloudyInput::issue_constant()
 // spacing, which would distort the shape). "units eV" must be on the first
 // data line. Values are floored at 1e-30 (not dropped) so absorption troughs
 // are preserved rather than bridged over by Cloudy's log-log interpolation.
-void CloudyInput::issue_depth(int id, const RadField& rad, const RTGrids& g,const ModelParams& par)
+void CloudyInput::issue_depth(int id, const RadField& rad, const RTGrids& g,const ModelParams& par,
+                              const char* sed_file)
 {
-	FILE* fsed = open_data("SED_TEST_API_INCI.dat", "w");
+	FILE* fsed = open_data(sed_file, "w");
 	fprintf(fsed, "# E_eV  J0 (F_nu shape)\n");
 
 	bool units_written = false;
@@ -766,7 +767,7 @@ void CloudyInput::issue_depth(int id, const RadField& rad, const RTGrids& g,cons
 	}
 	fprintf(fsed, "************");
 	fclose(fsed);
-	cdRead("table SED \"SED_TEST_API_INCI.dat\"");
+	cdRead((std::string("table SED \"") + sed_file + "\"").c_str());
 
 	char buf[256];
 	double E_loryd = g.E_IN_LO/phys::eV_per_Ryd;

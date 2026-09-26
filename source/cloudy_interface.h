@@ -40,7 +40,8 @@ struct CloudyInput
 
 	void init(const ModelParams& par);
 	void issue_constant();
-	void issue_depth(int id, const RadField& rad,const RTGrids& g, const ModelParams& par);
+	void issue_depth(int id, const RadField& rad,const RTGrids& g, const ModelParams& par,
+	                 const char* sed_file = "SED_TEST_API_INCI.dat");
 	void issue_depth_lastest(int id, const RadField& rad, const RTGrids& g,const ModelParams& par);
 };
 
