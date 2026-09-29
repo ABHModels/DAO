@@ -13,7 +13,7 @@ struct RTGrids {
 
 	// --- Compile-time constants ---
 	static const int NA              = 8;
-	static const int ND_EDGE_DEFAULT = 51;
+	static const int ND_EDGE_DEFAULT = 101;
 	static const int ND_MID_DEFAULT  = ND_EDGE_DEFAULT - 1;
 	static const int NE_DEFAULT      = 1000;
 
@@ -56,7 +56,7 @@ struct RTGrids {
 	// Requires NA even.
 	void init_angle_double_gauss();
 
-	// Symmetric-log tanh grid; re-sizes the depth arrays to
+	// Log-spaced positive edges plus a surface edge at zero; re-sizes to
 	// the default ND_EDGE_DEFAULT.
 	void init_depth(double tau_min, double tau_max, double nh);
 

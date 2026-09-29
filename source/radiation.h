@@ -34,6 +34,8 @@ struct RadField
 	double** kabs;   // [ND_MID][NE]
 	double** ksct;   // [ND_MID][NE]
 	double*** Inu;   // [ND_MID][NA][NE]
+	double** Inu_top; // [NA][NE], upper slab face
+	double** Inu_bottom; // [NA][NE], lower slab face
 	double** J0;     // [ND_MID][NE]
 	double** J2;     // [ND_MID][NE]
 	double** J3;     // [ND_MID][NE]
@@ -54,7 +56,8 @@ struct RadField
 	RadField(const RTGrids& gr)
 		: g(gr),
 		  jnu(nullptr), kabs(nullptr), ksct(nullptr),
-		  Inu(nullptr), J0(nullptr), J2(nullptr), J3(nullptr),
+		  Inu(nullptr), Inu_top(nullptr), Inu_bottom(nullptr),
+		  J0(nullptr), J2(nullptr), J3(nullptr),
 		  jnu_line(nullptr), kabs_line(nullptr),
 		  T_K(nullptr), log_xi(nullptr), log_inte(nullptr),
 		  n_e(nullptr), heating(nullptr), line_heat(nullptr),
