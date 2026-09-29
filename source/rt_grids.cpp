@@ -158,28 +158,23 @@ void RTGrids::init_depth(double tau_min, double tau_max, double nh)
 
 	tau_edge[0] = 0.0;
 
-	// --- Symmetric logarithmic depth grid (TITAN-style) ---
-	// log tau(u) = log tau_mid + A * tanh(k * u), u in [-1/2, +1/2]
-	// Refines zones near both tau_min and tau_max.
-	// -------------------------------------------------------
-	const double k        = 3.0;
+	// Keep a thin surface cell [0, tau_min], then use logarithmically
+	// spaced positive edges through tau_max.
 	const double log_tmin = log10(tau_min);
 	const double log_tmax = log10(tau_max);
-	const double log_tmid = 0.5 * (log_tmin + log_tmax);
-	const double A        = (log_tmax - log_tmid) / tanh(k / 2.0);
-
 	const int N = ND_EDGE - 1;   // tau_edge[1]..tau_edge[N]
 	for (int i = 1; i < ND_EDGE; ++i)
 	{
-		double u = static_cast<double>(i - 1) / (N - 1) - 0.5;
-		double log_tau = log_tmid + A * tanh(k * u);
-		tau_edge[i] = pow(10.0, log_tau);
+		double fraction = static_cast<double>(i - 1) / (N - 1);
+		tau_edge[i] = pow(10.0, log_tmin + fraction * (log_tmax - log_tmin));
 	}
+	tau_edge[1] = tau_min;
+	tau_edge[N] = tau_max;
 
 	for (int i = 0; i < ND_MID; ++i)
 		tau_mid[i] = 0.5 * (tau_edge[i] + tau_edge[i + 1]);
 
-	const double n_e = 1.2 * pow(10.0, nh);
+	const double n_e = phys::reference_electrons_per_hydrogen * pow(10.0, nh);
 	const double factor = 1.0 / (n_e * phys::sigma_T);
 
 	for (int i = 0; i < ND_MID; ++i)

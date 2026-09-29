@@ -73,6 +73,8 @@ void RadField::allocate()
 	kabs      = alloc_2d(g.ND_MID, g.NE);
 	ksct      = alloc_2d(g.ND_MID, g.NE);
 	Inu       = alloc_3d(g.ND_MID, g.NA, g.NE);
+	Inu_top   = alloc_2d(g.NA, g.NE);
+	Inu_bottom = alloc_2d(g.NA, g.NE);
 	J0        = alloc_2d(g.ND_MID, g.NE);
 	J2        = alloc_2d(g.ND_MID, g.NE);
 	J3        = alloc_2d(g.ND_MID, g.NE);
@@ -97,6 +99,8 @@ void RadField::deallocate()
 	free_2d(kabs,      g.ND_MID);
 	free_2d(ksct,      g.ND_MID);
 	free_3d(Inu,       g.ND_MID, g.NA);
+	free_2d(Inu_top, g.NA);
+	free_2d(Inu_bottom, g.NA);
 	free_2d(J0,        g.ND_MID);
 	free_2d(J2,        g.ND_MID);
 	free_2d(J3,        g.ND_MID);

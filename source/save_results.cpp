@@ -31,11 +31,11 @@ void save_results(const RadField& rad, const RTGrids& g,
 
 	char fname[256];
 
-	// 1. Emergent angle-dependent intensity at surface (nd=0)
+	// 1. Emergent angle-dependent intensity at the upper slab face
 	{
 		snprintf(fname, sizeof(fname), "%s/emergent_iter%03d.dat", dir, iter);
 		FILE* fp = fopen(fname, "w");
-		fprintf(fp, "# Emergent specific intensity at surface (nd=0)  iter=%d\n", iter);
+		fprintf(fp, "# Emergent specific intensity at upper slab face  iter=%d\n", iter);
 		fprintf(fp, "# Col 1: E [eV]\n");
 		fprintf(fp, "# Col 2: I_corona (incident) [erg cm^-2 s^-1 eV^-1 sr^-1]\n");
 		fprintf(fp, "# Col 3: I_disk (incident) [erg cm^-2 s^-1 eV^-1 sr^-1]\n");
@@ -47,7 +47,7 @@ void save_results(const RadField& rad, const RTGrids& g,
 			fprintf(fp, "%.6e  %.6e  %.6e",
 			        g.ene[ie], rad.illum.I_corona[ie], rad.illum.I_disk[ie]);
 			for (int nm = 0; nm < g.NA; ++nm)
-				fprintf(fp, "  %.6e", rad.Inu[0][nm][ie]);
+				fprintf(fp, "  %.6e", rad.Inu_top[nm][ie]);
 			fprintf(fp, "\n");
 		}
 		fclose(fp);
