@@ -255,6 +255,14 @@ Dispatch:
                        └── Save results
 ```
 
+The default slab has 100 depth cells. Its reference Thomson-depth edges are
+zero followed by 100 logarithmically spaced positive edges from 10^-4 to 5.
+The reference depth uses 1.21 n_H electrons per hydrogen atom, consistent
+with the scattering-opacity convention; Cloudy's local electron density may
+differ. The cubic Bézier short-characteristics solver integrates the boundary
+half cells and records the emergent intensity at the actual slab face.
+Depth-resolution convergence should be checked for each physical regime.
+
 ### Corona-model dispatch
 
 | Model | Spectral shape | Interface |

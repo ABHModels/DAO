@@ -56,6 +56,7 @@ HDRS = source/rt_grids.h \
        source/kernel_payload.h source/kernel_row_spool.h source/rt_parallel.h \
        source/kernel_quadrature.h \
        source/compton_rt.h source/source.h \
+       source/bezier3_transfer.h source/cell_transfer.h source/incidence_boundary.h \
        source/production.h source/test_rt.h
 
 # Targets
@@ -73,6 +74,18 @@ $(TARGET): $(OBJS)
 
 # Standalone kernel test (no Cloudy dependency)
 TEST_KERNEL_FLAGS = -std=c++17 -O3 -Wall -pthread -Isource
+
+test_log_depth_grid: source/test_log_depth_grid.cpp source/rt_grids.cpp source/rt_grids.h source/constants.h
+	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ source/test_log_depth_grid.cpp source/rt_grids.cpp -lm
+
+test_cell_transfer: source/test_cell_transfer.cpp source/rt_grids.cpp $(HDRS)
+	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ source/test_cell_transfer.cpp source/rt_grids.cpp -lm
+
+test_bezier3_transfer: source/test_bezier3_transfer.cpp source/rt_grids.cpp $(HDRS)
+	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ source/test_bezier3_transfer.cpp source/rt_grids.cpp -lm
+
+test_compton_transfer: source/test_compton_transfer.o source/compton_rt.o source/source.o source/compton_kernel.o source/avg_compton_kernel.o source/compton_cross_section.o source/rt_grids.o source/radiation.o source/corona_models.o source/save_results.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 test_kernel_storage: source/test_kernel_storage.cpp source/kernel_payload.h source/kernel_row_spool.h source/rt_parallel.h
 	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $<
