@@ -203,8 +203,8 @@ int main() {
     const std::string old_directional=std::string(cache_dir)+"/old-directional.bin";
     const std::string old_mean=std::string(cache_dir)+"/old-mean.bin";
     directional.save(old_directional.c_str()); averaged.save(old_mean.c_str());
-    for(const auto& old : {std::make_pair(old_directional,"CKERN11"),
-                           std::make_pair(old_mean,"AVKRN07")}) {
+    for(const auto& old : {std::make_pair(old_directional,"CKERN12"),
+                           std::make_pair(old_mean,"AVKRN08")}) {
         FILE* fp=std::fopen(old.first.c_str(),"r+b");
         check(fp!=nullptr,"open obsolete cache fixture");
         check(std::fwrite(old.second,1,8,fp)==8,"write obsolete cache magic");

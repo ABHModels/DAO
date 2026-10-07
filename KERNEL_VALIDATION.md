@@ -1,8 +1,41 @@
 # Low-temperature Compton-kernel validation
 
-## 2026-10-07: reduced electron quadrature
+## 2026-10-07: restore the local electron-integration rule
 
-The current kernel uses 2-point Gauss-Laguerre electron integration for
+The electron integration is restored to the user's local implementation:
+2 points for `m_e*c^2/(kT) >= 1000`, 4 points for
+`5 <= m_e*c^2/(kT) < 1000`, and 32 points below 5, with no photon-energy
+restriction. This reverses the additional threshold and energy-range changes
+introduced in `94ca525`. Angular peak resolution, energy-cell averaging,
+symmetric normalization and the other changes in that commit are retained.
+
+The restored electron function was copied directly from the local source.
+On the local build, all 12,672 sampled raw profiles were finite, nonnegative
+and byte-identical between that source and this restoration. Twelve frozen
+local profiles cover the switch boundaries and out-of-range energies; their
+relative tolerance is `1e-11`. The replaced public rule fails this regression.
+
+`./test_kernel_electron --local-baseline` checks those frozen values and finite,
+nonnegative profiles, and audits differences from 32-point integration. Across
+9,011 profiles with a 32-point reference above `1e-100`, 865 differ by more than
+`1e-5`. The maximum relative difference is `0.172102984`, at inverse temperature
+5, photon energies 10 and 100 MeV, and scattering cosine -0.999; the reference
+profile there is `1.9689527e-41`. The previously noted difference of about
+`4.90e-3` at 1 MeV also remains. These are raw-profile comparisons, not final
+spectrum errors. Running the test without `--local-baseline` retains the
+original strict `1e-5` check and reports failure for the restored rule. CI uses
+the local-baseline check; it does not certify full-range 32-point accuracy.
+
+Cache identifiers advance to `CKERN13` and `AVKRN09` so caches computed with the
+replaced rule cannot be reused. The dense angular reference, low-temperature
+conservation/detailed-balance and smooth-source checks, and cache/storage tests
+pass. The full executable builds with local Cloudy/HEASoft, and the linked
+production-transfer regression passes. A full converged Cloudy reflection
+spectrum comparison has not been run.
+
+## Historical validation: 2026-10-07 restricted electron quadrature
+
+Commit `94ca525` used 2-point Gauss-Laguerre electron integration for
 `m_e*c^2/(kT) >= 1000` and 4 points for `30 <= m_e*c^2/(kT) < 1000`, when
 both photon energies lie between 1 eV and 1 MeV. Hotter electrons and energies
 outside that range retain the previous 32-point rule. The physical profile,

@@ -144,8 +144,8 @@ static const double gl_weight[NGL] = {
 };
 
 // The electron integral is smooth over a thermal step at slab temperatures.
-// Use reduced orders in the tested 1 eV--1 MeV range, retaining 32 points
-// for hot electrons and outside that energy range. See KERNEL_VALIDATION.md.
+// Keep the 32-point reference rule beyond the cached temperature range.
+// Lower orders are checked against it on normalized kernels.
 static const double gl2_node[2] = {
     5.85786437626904966e-01, 3.41421356237309492e+00
 };
@@ -173,13 +173,9 @@ double profil_exact(double eps, double eps1, double costh, double x_inv)
 	const double* nodes = gl_node;
 	const double* weights = gl_weight;
 	int count = NGL;
-	const bool tested_energies = eps >= 1.0/phys::m_e_c2_eV &&
-	                            eps1 >= 1.0/phys::m_e_c2_eV &&
-	                            eps <= 1e6/phys::m_e_c2_eV &&
-	                            eps1 <= 1e6/phys::m_e_c2_eV;
-	if (tested_energies && x_inv >= 1000.0) {
+	if (x_inv >= 1000.0) {
 		nodes = gl2_node; weights = gl2_weight; count = 2;
-	} else if (tested_energies && x_inv >= 30.0) {
+	} else if (x_inv >= 5.0) {
 		nodes = gl4_node; weights = gl4_weight; count = 4;
 	}
 	double integ = 0.0;
@@ -334,8 +330,8 @@ static double energy_cell_kernel(double x, double mu, double mu1,
 // KernelCache implementation — banded storage with symmetry reduction
 // + detailed balance (upper triangle only)
 //
-// Binary cache file format (version 12, reduced electron quadrature):
-//   magic          [8 bytes]  "CKERN12\0"
+// Binary cache file format (version 13, restored local electron quadrature):
+//   magic          [8 bytes]  "CKERN13\0"
 //   NT,NE,NA_full,n_indep  [4×4 bytes]
 //   data_size      [8 bytes]
 //   T_grid         [NT doubles]
@@ -348,7 +344,7 @@ static double energy_cell_kernel(double x, double mu, double mu1,
 //   ghi            [NT*NE ints]
 //   data           [data_size doubles]
 // ============================================================
-static const char CACHE_MAGIC[8] = "CKERN12";
+static const char CACHE_MAGIC[8] = "CKERN13";
 
 // ------------------------------------------------------------
 // build_canon — compute symmetry reduction tables from NA_full
