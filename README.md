@@ -287,8 +287,10 @@ Depth-resolution convergence should be checked for each physical regime.
 
 Kernel construction uses independent CPU workers. The low-temperature kernel
 uses peak-resolved angular quadrature and averages narrow redistribution
-features over energy cells. The electron integral uses validated 2/4-point
-Gauss-Laguerre rules with a 32-point fallback. Directional and angle-mean kernels are normalized to the Compton cross
+features over energy cells. The electron integral follows the local rule:
+2 Gauss-Laguerre points for inverse temperature at least 1000, 4 for inverse
+temperature from 5 to 1000, and 32 below 5, without a photon-energy restriction.
+Directional and angle-mean kernels are normalized to the Compton cross
 section with symmetric scaling that preserves detailed balance. The cache
 format is versioned, so older cache files are recomputed. The default is up to
 16 workers. Override it with
@@ -318,13 +320,16 @@ publishing an incomplete cache.
 Run `make test_kernel_storage && ./test_kernel_storage` for the standalone
 storage/worker assertions (no Cloudy dependency). This is a storage test, not
 a physics-accuracy certification. No GPU or reduced-precision path is enabled.
-Run `make test_kernel_reference test_kernel_low_temp test_kernel_electron`
-followed by all three executables for dense angular quadrature, conservation,
-detailed balance, smooth-source and fixed-32-point electron reference checks.
-The exact profile uses 2/4-point electron rules in the tested temperature/energy
-range and retains 32 points for hot electrons or out-of-range energies. Older
-kernel caches are invalidated and rebuilt. See [KERNEL_VALIDATION.md](KERNEL_VALIDATION.md) for measured
-results, including differences from the previous public kernel.
+Run `make test_kernel_reference test_kernel_low_temp test_kernel_electron`,
+then `./test_kernel_reference`, `./test_kernel_low_temp` and
+`./test_kernel_electron --local-baseline`. These check angular quadrature,
+conservation, detailed balance, smooth sources and reproduction of frozen local
+electron profiles. The last command also reports differences from 32-point
+electron integration. Running `./test_kernel_electron` without the flag retains
+the strict `1e-5` accuracy check, which the restored local rule does not pass
+over the full sampled range. Caches from the replaced rule are invalidated.
+See [KERNEL_VALIDATION.md](KERNEL_VALIDATION.md) for measured differences and
+validation limits.
 
 The RT source-function calculation distributes independent depths across up to
 16 CPU workers (also capped by detected hardware threads and depth count).
