@@ -10,8 +10,8 @@ struct ModelParams
 	double nh;         // log hydrogen column density [cm^-3]
 	double zeta;       // ionization parameter exponent: xi = 10^zeta [erg cm s^-1]
 	double frac;       // flux ratio: F_corona / F_disk
-	double incidence;  // cosine of incidence angle (snapped to nearest GL node)
-	int    i_incidence; // index into mu_gl[] for incidence angle
+	double incidence;  // cosine of incidence angle; -2 selects isotropic top illumination
+	int    i_incidence; // index into mu_gl[], or -1 for isotropic top illumination
 
 	// --- Corona model selection and parameters ---
 	char   corona[32]; // corona model name: powerlaw, cutoffpl, nthcomp, comptt, blackbody
@@ -55,7 +55,7 @@ ModelParams read_params(int argc, char *argv[]);
 
 struct RTGrids;  // forward declaration
 
-// Snap incidence to nearest GL node; call after grids.init_all()
+// Snap beam incidence to nearest GL node, or select isotropic mode for -2.
 void snap_incidence(ModelParams& par, const RTGrids& g);
 
 #endif // PARAMS_H

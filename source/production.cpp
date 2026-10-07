@@ -80,6 +80,10 @@ void run_production(RadField& rad, const RTGrids& g,
 
 		fprintf(stdout, "  Outer iter %d: max|d log T|=%.4e  max|d log xi|=%.4e\n",
 			outer_iter, max_dT, max_dXi);
+		// Use the loop's exact stopping condition so diagnostics follow its
+		// final iteration, including an unexpected non-finite residual.
+		if (!((max_dT > cir || max_dXi > cir) && outer_iter < max_outer))
+			apply_line_escape(rad, g, line_store, par, outer_iter, true);
 
 		// --- save results of current iteration ---
 		save_results(rad, g, par, outer_iter);

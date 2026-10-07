@@ -100,9 +100,10 @@ jobs:
 
       - name: Check Compton quadrature and low-temperature redistribution
         run: |
-          make test_kernel_reference test_kernel_low_temp
+          make test_kernel_reference test_kernel_low_temp test_kernel_electron
           ./test_kernel_reference
           ./test_kernel_low_temp
+          ./test_kernel_electron
 
       - name: Test run labels and summaries
         run: python tests/test_run_metadata.py

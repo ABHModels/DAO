@@ -318,6 +318,13 @@ ModelParams read_params(int argc, char *argv[])
 
 void snap_incidence(ModelParams& par, const RTGrids& g)
 {
+	if (par.incidence == -2.0)
+	{
+		par.i_incidence = -1;
+		printf("Incidence: isotropic over all downward angles (mu < 0)\n");
+		return;
+	}
+
 	// snap incidence to nearest GL node (negative = downward)
 	double mu_target = -fabs(par.incidence);
 	int i_mu = 0;

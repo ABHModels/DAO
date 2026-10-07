@@ -511,7 +511,8 @@ static void write_line_escape_diagnostics(
 // H_Pdest is accumulated in rad.line_heat for the next Cloudy thermal pass.
 void apply_line_escape(RadField& rad, const RTGrids& g,
                        const std::vector<std::vector<LineRec>>& store,
-                       const ModelParams& par, int iter)
+                       const ModelParams& par, int iter,
+                       bool diagnostics_only)
 {
 	const int ND = g.ND_MID;
 
@@ -529,21 +530,29 @@ void apply_line_escape(RadField& rad, const RTGrids& g,
 	// No lines inside the RT window: still fold fluorescence (C) into jnu
 	if (NL == 0)
 	{
-		for (int id = 0; id < ND; ++id)
-			for (int i = 0; i < g.NE; ++i)
-				rad.jnu[id][i] += rad.jnu_line[id][i];
+		if (!diagnostics_only)
+			for (int id = 0; id < ND; ++id)
+				for (int i = 0; i < g.NE; ++i)
+					rad.jnu[id][i] += rad.jnu_line[id][i];
 		return;
 	}
 
-	// output 
-	std::vector<LineEscapeDiag> diag(NL);
-	std::vector<std::vector<double>> thin_depth(NL, std::vector<double>(ND, 0.0));
-	std::vector<std::vector<double>> esc_depth(NL, std::vector<double>(ND, 0.0));
-	std::vector<std::vector<double>> heat_depth(NL, std::vector<double>(ND, 0.0));
-	std::vector<std::vector<double>> beta_depth_w(NL, std::vector<double>(ND, 0.0));
-	std::vector<std::vector<double>> pelec_depth_w(NL, std::vector<double>(ND, 0.0));
-	std::vector<std::vector<double>> pdest_depth_w(NL, std::vector<double>(ND, 0.0));
-	std::vector<std::vector<double>> y_depth_w(NL, std::vector<double>(ND, 0.0));
+	// Allocate diagnostic arrays only for the final, output-only pass.
+	std::vector<LineEscapeDiag> diag;
+	std::vector<std::vector<double>> thin_depth, esc_depth, heat_depth;
+	std::vector<std::vector<double>> beta_depth_w, pelec_depth_w;
+	std::vector<std::vector<double>> pdest_depth_w, y_depth_w;
+	if (diagnostics_only)
+	{
+		diag.resize(NL);
+		thin_depth.assign(NL, std::vector<double>(ND, 0.0));
+		esc_depth.assign(NL, std::vector<double>(ND, 0.0));
+		heat_depth.assign(NL, std::vector<double>(ND, 0.0));
+		beta_depth_w.assign(NL, std::vector<double>(ND, 0.0));
+		pelec_depth_w.assign(NL, std::vector<double>(ND, 0.0));
+		pdest_depth_w.assign(NL, std::vector<double>(ND, 0.0));
+		y_depth_w.assign(NL, std::vector<double>(ND, 0.0));
+	}
 
 	// Column line opacity: absorbing cells matter even when they emit nothing.
 	std::vector<std::vector<double>> kL(NL, std::vector<double>(ND, 0.0));
@@ -552,7 +561,7 @@ void apply_line_escape(RadField& rad, const RTGrids& g,
 		{
 			const int L = idx[r.ip];
 			kL[L][id] = r.kappaL;
-			if (diag[L].ip < 0)
+			if (diagnostics_only && diag[L].ip < 0)
 			{
 				diag[L].ip = r.ip;
 				diag[L].E_eV = r.E_eV;
@@ -575,7 +584,8 @@ void apply_line_escape(RadField& rad, const RTGrids& g,
 			c += kL[L][id] * g.dr[id];
 		}
 		tot[L] = c;
-		diag[L].tau_col_max = c;
+		if (diagnostics_only)
+			diag[L].tau_col_max = c;
 	}
 
 	// For each emitted line photon packet, compute the surviving fraction P.
@@ -662,11 +672,11 @@ void apply_line_escape(RadField& rad, const RTGrids& g,
 			// Assume the line photons, which destroyed by continuum absorption, 
 			// are all contribute to the thermal source.
 			// TODO: seperate it to thermal energy and ionization threshold
-			if (denom > 0.0 && Pdest > 0.0)
+			if (!diagnostics_only && denom > 0.0 && Pdest > 0.0)
 				rad.line_heat[id] += r.emiss * (1.0 + r.y) * Pdest / denom;
 
 			// These are stored for later output
-			if (r.emiss > 0.0)
+			if (diagnostics_only && r.emiss > 0.0)
 			{
 				const double Hdest = (denom > 0.0 && Pdest > 0.0) ?
 					r.emiss * (1.0 + r.y) * Pdest / denom : 0.0;
@@ -690,20 +700,22 @@ void apply_line_escape(RadField& rad, const RTGrids& g,
 			}
 
 			// Convert escaped line power to per-eV, per-sr emissivity.
-			rad.jnu_line[id][r.bin] += r.emiss / (r.dE_eV * phys::four_pi) * P;
+			if (!diagnostics_only)
+				rad.jnu_line[id][r.bin] += r.emiss / (r.dE_eV * phys::four_pi) * P;
 		}
 	}
 
-	// this is a diagnostic function for escape probability, used for figure 1 in paper
-
-	// write_line_escape_diagnostics(rad, g, par, iter, diag, thin_depth, esc_depth,
-	//                               heat_depth, beta_depth_w, pelec_depth_w,
-	//                               pdest_depth_w, y_depth_w);
+	// Write once, after the outer loop has identified its last iteration.
+	if (diagnostics_only)
+		write_line_escape_diagnostics(rad, g, par, iter, diag, thin_depth,
+		                              esc_depth, heat_depth, beta_depth_w,
+		                              pelec_depth_w, pdest_depth_w, y_depth_w);
 
 	// 5. Fold lines (B) + fluorescence (C) into jnu.
-	for (int id = 0; id < ND; ++id)
-		for (int i = 0; i < g.NE; ++i)
-			rad.jnu[id][i] += rad.jnu_line[id][i];
+	if (!diagnostics_only)
+		for (int id = 0; id < ND; ++id)
+			for (int i = 0; i < g.NE; ++i)
+				rad.jnu[id][i] += rad.jnu_line[id][i];
 }
 
 // Cloudy commands issued once before the depth loop. Cloudy is run as a

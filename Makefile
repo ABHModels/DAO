@@ -93,9 +93,19 @@ test_kernel_low_temp: source/test_kernel_low_temp.cpp source/source.cpp source/r
 	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $(filter %.cpp,$^) -lm
 test_kernel_reference: source/kernel_reference_probe.cpp source/compton_kernel.cpp source/avg_compton_kernel.cpp source/compton_cross_section.cpp source/kernel_quadrature.h
 	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $(filter %.cpp,$^) -lm
+test_kernel_electron: source/test_kernel_electron.cpp source/compton_kernel.cpp source/compton_cross_section.cpp $(HDRS)
+	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ source/test_kernel_electron.cpp source/compton_cross_section.cpp -lm
+test_incidence_boundary: source/test_incidence_boundary.o source/params.o source/rt_grids.o source/radiation.o source/corona_models.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+test_line_escape_diagnostics: source/test_line_escape_diagnostics.o source/cloudy_interface_v2.o source/compton_cross_section.o source/rt_grids.o source/radiation.o source/corona_models.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+source/test_test_rt_output.o: source/test_rt.cpp
+test_test_rt_output: source/test_test_rt_output.o source/compton_rt.o source/source.o source/compton_kernel.o source/avg_compton_kernel.o source/compton_cross_section.o source/rt_grids.o source/radiation.o source/corona_models.o source/save_results.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 multiscat: source/multiscat.cpp source/rt_grids.cpp source/compton_kernel.cpp source/compton_cross_section.cpp
 	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $^ -lm
 dump_kernel_slice: source/dump_kernel_slice.cpp source/compton_kernel.cpp source/compton_cross_section.cpp
 	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $^ -lm
 clean:
 	rm -f $(OBJS) $(TARGET) test_kernel_norm test_kernel_low_temp test_kernel_reference test_kernel_storage multiscat dump_kernel_slice
+	rm -f test_kernel_electron test_incidence_boundary test_line_escape_diagnostics test_test_rt_output source/test_incidence_boundary.o source/test_line_escape_diagnostics.o source/test_test_rt_output.o

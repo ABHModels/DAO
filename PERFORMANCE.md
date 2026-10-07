@@ -1,6 +1,10 @@
 # Performance validation
 
-This change preserves the kernel format, double precision, quadrature, band
+The measurements below describe the original memory/parallelism change.
+Subsequent electron quadrature and cache-version changes are documented in
+[KERNEL_VALIDATION.md](KERNEL_VALIDATION.md).
+
+The original change preserves the kernel format, double precision, quadrature, band
 thresholds, per-cell summation order, grids, and RT convergence criteria.
 Cloudy sources and the linked Cloudy library were not modified.
 
@@ -15,7 +19,7 @@ Cloudy sources and the linked Cloudy library were not modified.
 - Reuse identical detailed-balance exponentials across angles without changing
   subsequent arithmetic or reduction order.
 
-`DAO_KERNEL_THREADS` controls construction and normalization (default up to 8).
+`DAO_KERNEL_THREADS` controls construction and normalization (current default up to 16).
 `DAO_RT_THREADS` controls source-function evaluation (default up to 16).
 Both accept 1–256. More threads are not always faster.
 

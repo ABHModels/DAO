@@ -53,7 +53,7 @@ public:
 	// order. Each worker owns one scratch row; no floating-point sum changes.
 	template<class Compute>
 	void evaluate(size_t rows,size_t energies,Compute compute) {
-		unsigned workers=std::min(8u,std::max(1u,std::thread::hardware_concurrency()));
+		unsigned workers=std::min(16u,std::max(1u,std::thread::hardware_concurrency()));
 		if(const char* value=std::getenv("DAO_KERNEL_THREADS")) {
 			char* end=nullptr; const long requested=std::strtol(value,&end,10);
 			if(!end || *end || requested<1 || requested>256)
@@ -80,6 +80,11 @@ public:
 					if(failure) break;
 					if(hi>=lo) append(row.data()+lo,size_t(hi-lo+1));
 					++written;
+					if (rows >= 100000 && written % std::max(size_t(1),rows/20) == 0) {
+						std::fprintf(stdout,"  Kernel construction: %zu/%zu rows (%.0f%%)\n",
+						             written,rows,100.0*written/rows);
+						std::fflush(stdout);
+					}
 					lock.unlock(); ready.notify_all();
 				}
 			} catch(...) {
