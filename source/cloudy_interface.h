@@ -60,9 +60,12 @@ void extract_cloudy_output(int id, RadField& rad, const RTGrids& g,
 //   j_line = emiss * P / (dE * 4pi)
 // Continuum-destroyed line power is stored in rad.line_heat for the next
 // Cloudy thermal-balance pass.
+// diagnostics_only recomputes the same escape fractions for final-iteration
+// output without adding line emissivity or heating to rad.
 void apply_line_escape(RadField& rad, const RTGrids& g,
                        const std::vector<std::vector<LineRec>>& store,
-                       const ModelParams& par, int iter);
+                       const ModelParams& par, int iter,
+                       bool diagnostics_only = false);
 
 
 #endif // CLOUDY_INTERFACE_H

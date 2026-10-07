@@ -151,7 +151,7 @@ All `kT_*` temperatures are in **keV**. Defaults are from `source/params.cpp`.
 | `-nh` | 15 | log₁₀ hydrogen density [cm⁻³] |
 | `-zeta` | 3.0 | Ionisation parameter: ξ = 10^zeta (see convention below) |
 | `-frac` | **−1** | Flux ratio F_corona / F_disk; **≤0 (default) → corona only, no disk component** |
-| `-incidence` | 0.7071 | cos θ of corona incidence (snapped to nearest Gauss–Legendre node) |
+| `-incidence` | 0.7071 | cos θ of corona incidence (snapped to nearest Gauss–Legendre node); `-2` illuminates all downward angles isotropically at the same incident mean intensity |
 | `-kT_disk` | 0.35 | Disk blackbody temperature, keV (thermal component illuminating from below) |
 | `-Afe` | 1.0 | Iron abundance [solar] |
 | `-angsca` | true | `true`/`1`/`yes` → angle-dependent kernel; `false`/`0`/`no` → angle-mean kernel |
@@ -175,6 +175,9 @@ All `kT_*` temperatures are in **keV**. Defaults are from `source/params.cpp`.
 
 `-test_rt compps` (the command in the [Usage examples](#usage) above) runs an **isothermal, pure-scattering** slab seeded by a **bottom blackbody**, benchmarked against Xspec's compPS (Poutanen & Svensson 1996). The slab temperature is `-kT_e` [keV] and its vertical Thomson depth is `-tau`. This mode skips Cloudy entirely and uses a double-Gauss angle grid; it is a validation benchmark, not a production reflection run.
 
+Both test-spectrum writers save the actual upper slab-face intensity, matching
+the production emergent-spectrum convention.
+
 ---
 
 ## Outputs
@@ -188,6 +191,13 @@ Results are written to `results/<hash>/`, where `<hash>` is an 8-character FNV-1
 | `moments_iter{NNN}.dat` | production | Angular moments J0, J2, J3 at all depths and energies |
 | `profile_iter{NNN}.dat` | production | Depth profile: τ, T, n_e, heating, cooling, log ξ |
 | `emergent_compps.dat` | compps test | Emergent spectrum (no `_iter` files) |
+| `line_escape_lines_iter{NNN}.dat` | final production iteration, when lines are present | Per-line escaped power, continuum-destroyed heat and escape probabilities |
+| `line_escape_selected_iter{NNN}.dat` | final production iteration, when lines are present | Depth profiles for representative lines |
+
+Line-escape diagnostics use an output-only pass after the final outer iteration;
+they do not add line emissivity or thermal feedback a second time. A final
+iteration can also be the iteration limit, so these files alone do not imply
+convergence.
 
 ### Data units (per-eV throughout)
 
@@ -277,11 +287,11 @@ Depth-resolution convergence should be checked for each physical regime.
 
 Kernel construction uses independent CPU workers. The low-temperature kernel
 uses peak-resolved angular quadrature and averages narrow redistribution
-features over energy cells. The electron integral keeps all 32 Gauss-Laguerre
-points. Directional and angle-mean kernels are normalized to the Compton cross
+features over energy cells. The electron integral uses validated 2/4-point
+Gauss-Laguerre rules with a 32-point fallback. Directional and angle-mean kernels are normalized to the Compton cross
 section with symmetric scaling that preserves detailed balance. The cache
 format is versioned, so older cache files are recomputed. The default is up to
-8 workers. Override it with
+16 workers. Override it with
 `DAO_KERNEL_THREADS=4 ./maindaocl ...` (valid range: 1–256). This setting affects
 cache construction only, not the RT solver. More workers are not always faster.
 Independent normalization integrals use the same kernel worker setting, while
@@ -308,9 +318,12 @@ publishing an incomplete cache.
 Run `make test_kernel_storage && ./test_kernel_storage` for the standalone
 storage/worker assertions (no Cloudy dependency). This is a storage test, not
 a physics-accuracy certification. No GPU or reduced-precision path is enabled.
-Run `make test_kernel_reference test_kernel_low_temp` followed by both
-executables for dense angular quadrature, conservation, detailed balance, and
-smooth-source checks. See [KERNEL_VALIDATION.md](KERNEL_VALIDATION.md) for measured
+Run `make test_kernel_reference test_kernel_low_temp test_kernel_electron`
+followed by all three executables for dense angular quadrature, conservation,
+detailed balance, smooth-source and fixed-32-point electron reference checks.
+The exact profile uses 2/4-point electron rules in the tested temperature/energy
+range and retains 32 points for hot electrons or out-of-range energies. Older
+kernel caches are invalidated and rebuilt. See [KERNEL_VALIDATION.md](KERNEL_VALIDATION.md) for measured
 results, including differences from the previous public kernel.
 
 The RT source-function calculation distributes independent depths across up to

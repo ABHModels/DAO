@@ -97,7 +97,7 @@ static void save_emergent_compps(const RadField& rad, const RTGrids& g,
 		fprintf(fp, "%.6e  %.6e  %.6e",
 		        g.ene[ie], rad.illum.I_corona[ie], rad.illum.I_disk[ie]);
 		for (int nm = 0; nm < g.NA; ++nm)
-			fprintf(fp, "  %.6e", rad.Inu[0][nm][ie]);
+			fprintf(fp, "  %.6e", rad.Inu_top[nm][ie]);
 		fprintf(fp, "\n");
 	}
 
@@ -136,7 +136,7 @@ static void save_emergent_tavg(const RadField& rad, const RTGrids& g,
 		fprintf(fp, "%.6e  %.6e  %.6e",
 		        g.ene[ie], rad.illum.I_corona[ie], rad.illum.I_disk[ie]);
 		for (int nm = 0; nm < g.NA; ++nm)
-			fprintf(fp, "  %.6e", rad.Inu[0][nm][ie]);
+			fprintf(fp, "  %.6e", rad.Inu_top[nm][ie]);
 		fprintf(fp, "\n");
 	}
 
@@ -170,7 +170,7 @@ static void run_test_rt_compps(RadField& rad, const RTGrids& g,
 
 	// Illumination: no top source; isotropic blackbody seed at kTbb
 	// enters from the bottom (compute_boundary_illumination uses
-	// ill_top = I_corona, ill_bot = I_disk/2).
+	// ill_top = 2*I_corona/wt[i_inc], ill_bot = 2*I_disk).
 	blackbody(rad.illum.I_disk, g, par.kT_bb * 1.0e3);
 	for (int ie = 0; ie < g.NE; ++ie)
 		rad.illum.I_corona[ie] = 0.0;
@@ -211,7 +211,7 @@ static void run_test_rt_compps(RadField& rad, const RTGrids& g,
 //
 // In compute_boundary_illumination, I_corona enters as a pencil beam at
 // the i_inc angle node (ill_top[ne] = 2*I_corona/wt[i_inc]); I_disk
-// enters isotropically from the bottom (ill_bot = I_disk/2). So a top
+// enters isotropically from the bottom (ill_bot = 2*I_disk). So a top
 // pencil beam means: seed -> I_corona, and I_disk = 0.
 // ============================================================
 template<class Cache>

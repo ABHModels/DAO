@@ -91,8 +91,8 @@ static double angle_mean_energy_cell(double x,double lo,double hi,double T_K,int
 // avgKernelCache implementation — banded storage, detailed balance
 // (upper triangle ne1 >= ne only)
 //
-// Binary cache file format (version 07):
-//   magic       [8 bytes]  "AVKRN07\0"
+// Binary cache file format (version 08, reduced electron quadrature):
+//   magic       [8 bytes]  "AVKRN08\0"
 //   NT, NE      [2×4 bytes]
 //   data_size   [8 bytes]
 //   T_grid      [NT doubles]
@@ -105,7 +105,7 @@ static double angle_mean_energy_cell(double x,double lo,double hi,double T_K,int
 //   ghi         [NT*NE ints]
 //   data        [data_size doubles]
 // ============================================================
-static const char CACHE_MAGIC[8] = "AVKRN07";
+static const char CACHE_MAGIC[8] = "AVKRN08";
 
 void avgKernelCache::write_header(FILE* fp) const
 {

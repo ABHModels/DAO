@@ -143,6 +143,24 @@ static const double gl_weight[NGL] = {
 	1.19224876e-34, 2.67151122e-38, 1.33861694e-42, 4.5105362e-48
 };
 
+// The electron integral is smooth over a thermal step at slab temperatures.
+// Use reduced orders in the tested 1 eV--1 MeV range, retaining 32 points
+// for hot electrons and outside that energy range. See KERNEL_VALIDATION.md.
+static const double gl2_node[2] = {
+    5.85786437626904966e-01, 3.41421356237309492e+00
+};
+static const double gl2_weight[2] = {
+    8.53553390593273731e-01, 1.46446609406726241e-01
+};
+static const double gl4_node[4] = {
+    3.22547689619392397e-01, 1.74576110115834648e+00,
+    4.53662029692112778e+00, 9.39507091230113289e+00
+};
+static const double gl4_weight[4] = {
+    6.03154104341633746e-01, 3.57418692437799557e-01,
+    3.88879085150053844e-02, 5.39294705561329580e-04
+};
+
 double profil_exact(double eps, double eps1, double costh, double x_inv)
 {
 	// Minimum Lorentz factor for the scattering kinematics
@@ -152,11 +170,23 @@ double profil_exact(double eps, double eps1, double costh, double x_inv)
 
 	// Gauss-Laguerre quadrature: ∫₀^∞ f(γ) exp(-t) dt
 	// with γ = t/x_inv + γ*
+	const double* nodes = gl_node;
+	const double* weights = gl_weight;
+	int count = NGL;
+	const bool tested_energies = eps >= 1.0/phys::m_e_c2_eV &&
+	                            eps1 >= 1.0/phys::m_e_c2_eV &&
+	                            eps <= 1e6/phys::m_e_c2_eV &&
+	                            eps1 <= 1e6/phys::m_e_c2_eV;
+	if (tested_energies && x_inv >= 1000.0) {
+		nodes = gl2_node; weights = gl2_weight; count = 2;
+	} else if (tested_energies && x_inv >= 30.0) {
+		nodes = gl4_node; weights = gl4_weight; count = 4;
+	}
 	double integ = 0.0;
-	for (int j = 0; j < NGL; ++j)
+	for (int j = 0; j < count; ++j)
 	{
-		double gamma = gl_node[j] / x_inv + gam_star;
-		integ += gl_weight[j] * fexact(eps, eps1, costh, gamma);
+		double gamma = nodes[j] / x_inv + gam_star;
+		integ += weights[j] * fexact(eps, eps1, costh, gamma);
 	}
 
 	// bk2_exp(x) = K₂(x) × exp(x), so:
@@ -304,8 +334,8 @@ static double energy_cell_kernel(double x, double mu, double mu1,
 // KernelCache implementation — banded storage with symmetry reduction
 // + detailed balance (upper triangle only)
 //
-// Binary cache file format (version 11):
-//   magic          [8 bytes]  "CKERN11\0"
+// Binary cache file format (version 12, reduced electron quadrature):
+//   magic          [8 bytes]  "CKERN12\0"
 //   NT,NE,NA_full,n_indep  [4×4 bytes]
 //   data_size      [8 bytes]
 //   T_grid         [NT doubles]
@@ -318,7 +348,7 @@ static double energy_cell_kernel(double x, double mu, double mu1,
 //   ghi            [NT*NE ints]
 //   data           [data_size doubles]
 // ============================================================
-static const char CACHE_MAGIC[8] = "CKERN11";
+static const char CACHE_MAGIC[8] = "CKERN12";
 
 // ------------------------------------------------------------
 // build_canon — compute symmetry reduction tables from NA_full

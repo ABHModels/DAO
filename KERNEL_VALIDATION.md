@@ -1,5 +1,47 @@
 # Low-temperature Compton-kernel validation
 
+## 2026-10-07: reduced electron quadrature
+
+The current kernel uses 2-point Gauss-Laguerre electron integration for
+`m_e*c^2/(kT) >= 1000` and 4 points for `30 <= m_e*c^2/(kT) < 1000`, when
+both photon energies lie between 1 eV and 1 MeV. Hotter electrons and energies
+outside that range retain the previous 32-point rule. The physical profile,
+angular/energy quadrature and symmetric normalization are unchanged.
+
+`test_kernel_electron` compares 9,011 non-negligible raw profiles with the
+previous fixed 32-point integral, including both sides of each order switch,
+forward/backward scattering, up/downscattering and out-of-range energies.
+All evaluated profiles must be finite and nonnegative; relative errors are
+tested where the reference exceeds `1e-100`. The maximum relative difference
+was `4.2374e-6`, below the `1e-5` acceptance limit. This is a sampled profile
+test, not a bound on the final emergent spectrum. The original experimental
+4-point cutoff at inverse temperature 5 was not retained: it differed by
+`4.90e-3` at 1 MeV in near-backward scattering.
+
+Both cache identifiers advance (`CKERN12`, `AVKRN08`) so earlier kernels are
+recomputed. Tests explicitly reject the previous identifiers. Default kernel
+construction uses up to 16 workers, with ordered row output and the existing
+`DAO_KERNEL_THREADS` override.
+
+The dense angular reference, low-temperature conservation/detailed-balance and
+smooth-source checks, cache/storage tests, log-grid and analytic Bezier tests
+passed. The full executable built with local Cloudy/HEASoft. Linked tests also
+passed for isotropic/beam boundary normalization, production transport energy
+budgets, both benchmark upper-face output writers, and line diagnostics that
+leave emissivity and heating unchanged. The line tests include free escape,
+continuum destruction and the escaped-plus-destroyed energy budget with zero
+collisional quenching. The public default remains 100 depth cells.
+
+Run `make test_kernel_electron && ./test_kernel_electron` for the electron
+reference check. With Cloudy/HEASoft configured, additionally build and run
+`test_incidence_boundary`, `test_line_escape_diagnostics`,
+`test_test_rt_output`, and `test_compton_transfer`.
+
+A full converged Cloudy reflection spectrum comparison was not run for this
+change; kernel/transport checks do not establish that end-to-end result.
+
+## Historical validation: 2026-09-26
+
 Validated on 2026-09-26 against public `main` at `a05d541`. The change keeps
 the exact electron redistribution profile, Klein-Nishina cross section, 32-point
 Gauss-Laguerre electron integral, and `1.21*nH` scattering density. The
