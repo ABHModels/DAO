@@ -67,7 +67,7 @@ CORONA_MODELS = {
 SLAB_PARAMS = [
     {"name": "nh",        "label": "log n<sub>H</sub>",  "desc": "Hydrogen density [cm⁻³]",      "default": 15.0,   "min": 10,  "max": 22,   "step": 0.1,    "scale": "log"},
     {"name": "zeta",      "label": "log ξ",              "desc": "Ionisation parameter",          "default": 3.0,    "min": 0,   "max": 6,    "step": 0.1,    "scale": "log"},
-    {"name": "frac",      "label": "f<sub>cor</sub>",    "desc": "F<sub>corona</sub> / F<sub>disk</sub>; ≤ 0 → corona only (no disk)", "default": -1, "min": -1, "max": 100, "step": 0.01},
+    {"name": "frac",      "label": "f<sub>cor</sub>",    "desc": "J<sub>corona</sub> / J<sub>disk</sub>; ≤ 0 → corona only (no disk)", "default": -1, "min": -1, "max": 100, "step": 0.01},
     {"name": "incidence", "label": "cos θ",              "desc": "Incidence angle cosine",        "default": 0.7071, "min": 0.01,"max": 1,    "step": 0.0001},
     {"name": "Afe",       "label": "A<sub>Fe</sub>",     "desc": "Iron abundance [solar]",        "default": 1.0,    "min": 0.1, "max": 10,   "step": 0.1},
 ]
@@ -386,6 +386,13 @@ HTML = r"""
   .model-btn.active { border-color:var(--accent); background:var(--accent-sft); color:var(--accent); }
   .model-btn[disabled] { opacity:.4; cursor:not-allowed; }
 
+  .cloudy-workers { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .cloudy-workers label { font-size:var(--fs-sm); font-weight:500; }
+  .cloudy-workers input { width:84px; padding:8px; border:1px solid var(--border); border-radius:8px;
+    background:white; color:var(--text); font:inherit; }
+  .cloudy-workers input:disabled { opacity:.45; }
+  .cloudy-workers input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
   /* ── Parameter fields ───────────────────────── */
   .field { display:grid; grid-template-columns:84px minmax(0,1fr) 92px; align-items:center; column-gap:var(--sp-3); row-gap:4px; margin-bottom:var(--sp-1); }
   .field label { font-size:var(--fs-sm); font-weight:500; color:var(--text); text-align:left; white-space:nowrap; }
@@ -590,6 +597,13 @@ HTML = r"""
            aria-describedby="runLabelHint" oninput="updateCmd();persist()">
     <p class="cmd-hint" id="runLabelHint">Saved in RUN.txt and params.json. Labels do not change the result folder;
       rerunning the same physics replaces that folder’s label and summary.</p>
+    <div class="cloudy-workers">
+      <label for="cloudyWorkers">Cloudy workers</label>
+      <input type="number" id="cloudyWorkers" min="1" max="64" step="1" value="4"
+             aria-describedby="cloudyWorkersHint" onchange="updateCloudyWorkers()">
+    </div>
+    <p class="cmd-hint" id="cloudyWorkersHint">4 workers by default. Set 1 for serial Cloudy; more workers use more memory.
+      <a href="/docs#cloudy-execution">Execution reference</a></p>
     <div class="cmd-cap">Run this in your terminal:</div>
     <div class="cmd-box" id="cmdBox"><span class="prompt">$ </span><span id="cmdText"></span></div>
     <div class="actions">
@@ -828,6 +842,15 @@ function toggleTest() {
   updateCmd(); persist();
 }
 
+function cloudyWorkerCount(value = document.getElementById('cloudyWorkers').value) {
+  const n = Number(value);
+  return Number.isFinite(n) && value !== '' ? Math.min(64, Math.max(1, Math.round(n))) : 4;
+}
+function updateCloudyWorkers() {
+  document.getElementById('cloudyWorkers').value = cloudyWorkerCount();
+  updateCmd(); persist();
+}
+
 // ── Command builder ───────────────────────
 function shellQuote(value) {
   return "'" + value.replaceAll("'", "'\"'\"'") + "'";
@@ -837,7 +860,13 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }
 function updateCmd() {
-  let parts = ['./maindaocl', '-corona ' + corona];
+  const testOn = document.getElementById('testRt').checked;
+  document.getElementById('cloudyWorkers').disabled = testOn;
+  document.getElementById('cloudyWorkersHint').innerHTML = testOn
+    ? 'Cloudy workers are unused in test mode, which bypasses Cloudy.'
+    : 'Set 1 for serial Cloudy; more workers use more memory. <a href="/docs#cloudy-execution">Execution reference</a>';
+  let parts = testOn ? [] : ['DAO_CLOUDY_WORKERS=' + cloudyWorkerCount()];
+  parts.push('./maindaocl', '-corona ' + corona);
   MODELS[corona].params.forEach(p => {
     parts.push('-' + p.name + ' ' + fmtNum(vals[p.name] ?? p.default));
   });
@@ -880,6 +909,7 @@ function resetAll() {
   document.getElementById('runLabel').value = '';
   corona = DEFAULT_CORONA;
   vals = {};
+  document.getElementById('cloudyWorkers').value = 4;
   document.getElementById('angsca').checked = true;
   document.getElementById('testRt').checked = false;
   buildModels();
@@ -906,7 +936,7 @@ function showToast(msg, type='success') {
 function persist() {
   try {
     localStorage.setItem(SKEY, JSON.stringify({
-      corona, vals, label: document.getElementById('runLabel').value,
+      corona, vals, label: document.getElementById('runLabel').value, cloudyWorkers: cloudyWorkerCount(),
       angsca: document.getElementById('angsca').checked,
       testRt: document.getElementById('testRt').checked,
       queue,
@@ -918,7 +948,7 @@ function persist() {
 let queue = [];
 function getCmd() { return document.getElementById('cmdText').textContent; }
 function getSnapshot() {
-  return { corona, vals: {...vals}, label: document.getElementById('runLabel').value,
+  return { corona, vals: {...vals}, label: document.getElementById('runLabel').value, cloudyWorkers: cloudyWorkerCount(),
            testRt: document.getElementById('testRt').checked,
            angsca: document.getElementById('angsca').checked };
 }
@@ -941,6 +971,7 @@ function loadFromQueue(idx) {
   corona = snap.corona;
   vals = {...snap.vals};
   document.getElementById('runLabel').value = snap.label ?? '';
+  document.getElementById('cloudyWorkers').value = cloudyWorkerCount(snap.cloudyWorkers ?? 4);
   document.getElementById('testRt').checked = snap.testRt;
   if (snap.angsca !== undefined) document.getElementById('angsca').checked = snap.angsca;
   document.getElementById('testParams').style.display = snap.testRt ? 'block' : 'none';
@@ -1010,6 +1041,7 @@ function rehydrate() {
     if (s.vals) vals = {...s.vals};
     document.getElementById('runLabel').value = s.label ?? '';
     if (Array.isArray(s.queue)) queue = s.queue;
+    document.getElementById('cloudyWorkers').value = cloudyWorkerCount(s.cloudyWorkers ?? 4);
     document.getElementById('angsca').checked = s.angsca !== false;
     document.getElementById('testRt').checked = !!s.testRt;
     return true;
@@ -1196,14 +1228,14 @@ DOCS_HTML = r"""
       </tr>
       <tr>
         <td class="p-flag">-frac</td><td class="p-type">float</td><td class="p-default">-1</td>
-        <td class="p-desc">frac = F<sub>corona</sub> / F<sub>disk</sub> sets the corona-to-disk illumination ratio.
+        <td class="p-desc">frac = J<sub>corona</sub> / J<sub>disk</sub> sets the ratio of energy-integrated incident mean intensities.
           frac ≤ 0 (the default, −1) illuminates with the corona only — no thermal disk component.</td>
       </tr>
       <tr>
         <td class="p-flag">-incidence</td><td class="p-type">float</td><td class="p-default">0.7071</td>
         <td class="p-desc">Cosine of the incidence angle cos θ (snapped to nearest Gauss-Legendre
           quadrature node at runtime). Default corresponds to θ = 45°.
-          <div class="p-note">Negative μ = downward direction; the code uses |cos θ| and snaps.</div></td>
+          <div class="p-note">Use <code>-incidence -2</code> on the command line for isotropic illumination at every μ &lt; 0. Other values are snapped to a downward node.</div></td>
       </tr>
       <tr>
         <td class="p-flag">-Afe</td><td class="p-type">float</td><td class="p-default">1.0</td>
@@ -1243,6 +1275,31 @@ DOCS_HTML = r"""
           angle-averaged kernel (<code>avgKernelCache</code>).</td>
       </tr>
     </table>
+  </div>
+
+  <div class="section" id="cloudy-execution">
+    <h2><span class="tick" aria-hidden="true"></span>Cloudy execution</h2>
+    <p class="lead">Choose the number of depth cells calculated at once on the configuration page.
+      The generated command sets <code>DAO_CLOUDY_WORKERS</code> before <code>./maindaocl</code>.</p>
+    <table>
+      <tr><th>Setting</th><th>Value</th><th>Behavior</th></tr>
+      <tr><td class="p-flag">DAO_CLOUDY_WORKERS</td><td>1–64</td>
+        <td class="p-desc">Maximum simultaneous Cloudy processes, capped by the number of depth cells.
+          The configurator starts at 4. Without an environment override, the executable uses up to 4,
+          also capped by available hardware threads.</td></tr>
+      <tr><td>Serial Cloudy</td><td>1</td><td class="p-desc">Calculate one depth at a time.
+        Keeps the current physics fixes, including disk illumination and electron density;
+        this does not restore an older release.</td></tr>
+      <tr><td>Parallel Cloudy</td><td>2–64</td><td class="p-desc">Calculate independent cells in separate processes.
+        More workers need more RAM. Line escape and radiative transfer wait for all cells.</td></tr>
+    </table>
+    <div class="formula-box" style="font-size:.78rem;overflow-wrap:anywhere;">
+      <div><code>DAO_CLOUDY_WORKERS=4 ./maindaocl -corona cutoffpl -Gamma 2 -Ecut 300</code></div>
+      <div><code>DAO_CLOUDY_WORKERS=1 ./maindaocl -corona cutoffpl -Gamma 2 -Ecut 300</code></div>
+    </div>
+    <div class="note-box">Applies to new production runs. An existing run keeps its original settings.
+      Test mode bypasses Cloudy, so this setting is disabled there.
+      The run queue and exported scripts retain each run’s worker count.</div>
   </div>
 
   <!-- ── Test Mode ────────────────────────── -->
@@ -1285,7 +1342,7 @@ DOCS_HTML = r"""
       2. Initialise grids (angle, depth, energy)<br>
       3. Compute corona + disk illumination spectra<br>
       4. Precompute Compton kernel + scattering cross-sections (cached on disk)<br>
-      5. Outer loop: Cloudy depth sweep → extract j<sub>ν</sub>, κ<sub>abs</sub>, κ<sub>sct</sub> → RT solve → update J, ξ, T → check convergence<br>
+      5. Outer loop: parallel Cloudy cells (or serial with 1 worker) → gather j<sub>ν</sub>, κ<sub>abs</sub>, κ<sub>sct</sub> from all depths → line escape → RT solve → update J, ξ, T → check convergence<br>
       6. Save results to <code>results/&lt;hash&gt;/</code> each iteration
     </div>
     <div class="note-box" style="background:rgba(145,82,55,.06);border-left-color:var(--cyan);">
@@ -1927,8 +1984,8 @@ PLOTS_HTML = r"""
         <button id="feToggle" class="pill pill-fe" onclick="toggleFeLines()">Fe lines: ON</button>
       </h2>
       <div class="plot-area" id="plotEmergent"></div>
-      <div class="plot-caption">Incident corona shown as 2 I<sub>cor</sub>/μ<sub>inc</sub> (flux→intensity over two hemispheres);
-        disk seed shown as I<sub>disk</sub>/2, so seed and emergent beams are comparable.</div>
+      <div class="plot-caption">Incident corona shown as 2 J<sub>cor</sub>/μ<sub>inc</sub>;
+        disk seed shown as 2 J<sub>disk</sub>, the bottom boundary intensity.</div>
     </div>
     <div class="plot-card">
       <h2 style="justify-content:flex-start;gap:12px;">
@@ -2145,8 +2202,8 @@ function plotEmergent(em, mu_inc, fe_lines) {
     line: { color: DIM_HEX, width: 1.5, dash: 'dash' }
   });
   traces.push({
-    x: E_keV, y: E_eV.map((e, i) => e * em.I_disk[i] / 2.0),
-    name: 'E × I_disk/2', mode: 'lines',
+    x: E_keV, y: E_eV.map((e, i) => e * 2.0 * em.I_disk[i]),
+    name: 'E × 2J_disk', mode: 'lines',
     line: { color: FAINT_HEX, width: 1.5, dash: 'dot' }
   });
 
