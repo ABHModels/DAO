@@ -85,14 +85,9 @@ $(TARGET): $(OBJS)
 # Standalone tools (no Cloudy dependency)
 STANDALONE_FLAGS = -std=c++17 -O3 -Wall -pthread -Isource
 
-# Standalone NT interface/diagnostics; intentionally not linked into production.
-ntdisk: source/ntdisk_cli.cpp source/ntdisk.cpp source/ntdisk.h source/constants.h
-	$(CXX) $(STANDALONE_FLAGS) -o $@ $(filter %.cpp,$^)
-
 multiscat: source/multiscat.cpp source/rt_grids.cpp source/compton_kernel.cpp source/compton_cross_section.cpp
 	$(CXX) $(STANDALONE_FLAGS) -o $@ $^ -lm
 dump_kernel_slice: source/dump_kernel_slice.cpp source/compton_kernel.cpp source/compton_cross_section.cpp
 	$(CXX) $(STANDALONE_FLAGS) -o $@ $^ -lm
 clean:
-	rm -f ntdisk
 	rm -f $(OBJS) $(TARGET) multiscat dump_kernel_slice
