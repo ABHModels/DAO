@@ -63,6 +63,13 @@ ui_new.py
 # Paper Draft
 draft/
 
+# Paper figures and data are kept locally, not published with the code.
+/paper_data/
+
+# Local validation scripts and resolution notes.
+/tests/
+/resolution/README.md
+
 # Temporary SEDs for independent Cloudy workers
 /dao-cloudy-*-cell*.sed
 
