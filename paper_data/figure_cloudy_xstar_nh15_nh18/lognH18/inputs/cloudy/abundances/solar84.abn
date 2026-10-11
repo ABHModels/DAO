@@ -1,0 +1,46 @@
+#abundance set from pre-c96
+#solar abundances Grevesse and Anders 1989, Grevesse and Noel 1993
+HYDROGEN	1
+HELIUM		0.1
+LITHIUM		2.04E-09
+BERYLLIUM	2.63E-11
+BORON		7.59E-10
+CARBON		0.000355
+NITROGEN	0.0000933
+OXYGEN		0.000741
+FLUORINE	3.02E-08
+NEON		0.000117
+SODIUM		0.00000206
+MAGNESIUM	0.000038
+ALUMINIUM	0.00000295
+SILICON		0.0000355
+PHOSPHORUS	0.000000373
+SULPHUR		0.0000162
+CHLORINE	0.000000188
+ARGON		0.00000398
+POTASSIUM	0.000000135
+CALCIUM		0.00000229
+SCANDIUM	1.58E-09
+TITANIUM	0.00000011
+VANADIUM	1.05E-08
+CHROMIUM	0.000000484
+MANGANESE	0.000000342
+IRON		0.0000324
+COBALT		8.32E-08
+NICKEL		0.00000176
+COPPER		1.87E-08
+ZINC		4.52E-08
+****************************************
+
+The composition will be the solar used in versions
+84 - 94 of the code. These are defined in Table
+7.3 and were taken from the meteoritic abundances
+of Grevesse and Anders (1989) with extensions by
+Grevesse and Noels (1993). All three of the keywords
+old solar 84 must appear.
+
+N. Grevesse and E. Anders. Solar-system abundances of the elements - A new table. In C. J. Waddington,
+editor, Cosmic Abundances of Matter, volume 183 of American Institute of Physics Conference
+
+N. Grevesse and A. Noels. Cosmic abundances of the elements. In S. Kubono and T. Kajino, editors,
+Origin and Evolution of the Elements, pages 15-25, January 1993.

@@ -1,0 +1,50 @@
+{
+  "runs": [
+    {
+      "log_xi": 1,
+      "source_run": "9e14af6b",
+      "accepted_iteration": 63,
+      "power_per_area_erg_cm2_s": {
+        "all": 8387721523984.732,
+        "FeI_V": 7498661813265.512,
+        "FeXVII_XXII": 2745217.692810733
+      },
+      "slab_fraction_percent": {
+        "FeI_V": 89.40046223307544,
+        "FeXVII_XXII": 3.2729003758181156e-05
+      }
+    },
+    {
+      "log_xi": 2,
+      "source_run": "effac594",
+      "accepted_iteration": 35,
+      "power_per_area_erg_cm2_s": {
+        "all": 87440730666288.56,
+        "FeI_V": 3001328405814.897,
+        "FeXVII_XXII": 9567285804023.39
+      },
+      "slab_fraction_percent": {
+        "FeI_V": 3.4324146000898104,
+        "FeXVII_XXII": 10.94145226271755
+      }
+    }
+  ],
+  "line_styles": {
+    "log_xi_1": "solid",
+    "log_xi_2": "dashed"
+  },
+  "colors": {
+    "all": "#252525",
+    "FeI_V": "#8E44AD",
+    "FeXVII_XXII": "#008F83"
+  },
+  "upper_panel": "Absolute local all-direction K-alpha production, before transfer; no scaling or smoothing",
+  "lower_panel": "100 * epsilon_group / epsilon_all at the same depth and log xi",
+  "slab_fraction": "sum(epsilon_group * dz) / sum(epsilon_all * dz)",
+  "zero_handling": "True zeros masked only in the logarithmic upper panel",
+  "figure_size_inches": [
+    3.5,
+    4.35
+  ],
+  "png_dpi": 600
+}

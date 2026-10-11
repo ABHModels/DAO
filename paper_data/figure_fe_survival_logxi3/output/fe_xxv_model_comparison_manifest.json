@@ -1,0 +1,27 @@
+{
+  "curves": [
+    "XILLVER",
+    "DAO",
+    "DAO (P=1)"
+  ],
+  "P1_label_definition": "P_w=P_x=1 only; all other lines retain their original survival factors.",
+  "panels": 1,
+  "size_inches": [
+    3.5,
+    3.1
+  ],
+  "log_xi": 3,
+  "sampling": "Native energy samples; no smoothing or rebinning.",
+  "ordinate": "Full upper-face flux, with the existing 5/8 keV endpoint normalization; no continuum subtraction.",
+  "DAO_normalization_divisor_shared_by_both_curves": 481925209988068.9,
+  "XILLVER_source": "Existing paper XILLVER-CP reference, retaining its recorded normalization.",
+  "control": "In every depth cell, add epsilon_w*(1-P_w)/(4*pi*dE) and epsilon_x*(1-P_x)/(4*pi*dE) to the original material source, then solve full-slab transfer with the fixed converged atmosphere and original illumination.",
+  "thermal_structure_recomputed": false,
+  "full_spectral_peak_increase_percent": 4.985176181716966,
+  "input_sha256": {
+    "data/full_survival.dat": "5dc6782a4547d68cc397d1fdbd67fd22dcf82e32d374ca61af411d10ac4735a7",
+    "data/full_wx_P1.dat": "dd47a4e4b68f33c815fd67e5457689572acc8070500f012bb4b261aa9b99f325",
+    "data/logxi3_xillvercp.dat": "499a2bb2e134091d33fd174948946697b2eaf750f6fe0f156af653afcc659fd1",
+    "data/normalization.json": "0ecc83e9ad7fed572e5b850d861f67ae1573b258094688fd648e99c5b9ae5344"
+  }
+}

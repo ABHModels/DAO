@@ -1,27 +1,25 @@
 #ifndef COMPTON_RT_H
 #define COMPTON_RT_H
 
-// ============================================================
-// Compton scattering RT solver
-//
-// Second-order short characteristics formal solution with
-// Lambda iteration.
-//
-// References:
-//   Hubeny I., Mihalas D., 2015, Theory of Stellar Atmospheres,
-//     Princeton University Press (Section 12.4)
-//   Suleimanov V., Poutanen J., Werner K., 2012, A&A, 545, A120
-// ============================================================
-
 #include "radiation.h"
-#include "compton_kernel.h"
-#include "avg_compton_kernel.h"
 #include "params.h"
+#include "thermal_balance.h"
 
-// Templated on the kernel-cache type (KernelCache or avgKernelCache);
-// explicitly instantiated for both in compton_rt.cpp.
-template<class Cache>
-void compton_rt_solve(RadField& rad, const RTGrids& g,
-                      const ModelParams& par,
-                      const Cache& kcache, int maxiter);
+// The single full-slab RT solver for production and prescribed-temperature
+// benchmarks. Exact constant-cell transport returns volume-averaged intensities
+// and true slab-face intensities. The scattering source is iterated until the
+// maximum relative J (angle-mean) or I (directional) change is <1e-7 three times.
+// This solves radiation at fixed material properties; it does not update T.
+void compton_rt_solve(RadField&, const RTGrids&, const ModelParams&,
+                     const std::vector<dao_thermal::Scattering>&,
+                     std::vector<double>* cell_incoming=nullptr);
+
+// Build the same photon-conserving scattering operators for both paths and
+// copy their opacities into RadField. Density is always rad.n_e (Cloudy in
+// production, prescribed free-electron density in synthetic benchmarks).
+std::vector<dao_thermal::Scattering> make_scattering_column(
+    RadField&, const RTGrids&, const avgKernelCache&);
+std::vector<dao_thermal::Scattering> make_scattering_column(
+    RadField&, const RTGrids&, const KernelCache&);
+
 #endif // COMPTON_RT_H

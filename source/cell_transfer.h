@@ -44,7 +44,8 @@ inline void formal_solution_cells(
 	int ND, int NM, int NE, int i_inc, const double* mu,
 	const double* ill_top, const double* ill_bot,
 	const double* source, const CellWeights* weights,
-	double* cell_intensity, double* surface_top, double* surface_bottom)
+	double* cell_intensity, double* surface_top, double* surface_bottom,
+	double* cell_incoming = nullptr)
 {
 	for (int nm = 0; nm < NM; ++nm)
 	for (int ne = 0; ne < NE; ++ne) {
@@ -58,6 +59,7 @@ inline void formal_solution_cells(
 			const int nd = downward ? step : ND-1-step;
 			const long k = (long(nd)*NM + nm)*NE + ne;
 			const CellWeights& w = weights[k];
+			if (cell_incoming) cell_incoming[k] = incoming;
 			cell_intensity[k] = w.mean_incoming*incoming + w.mean_source*source[k];
 			incoming = w.attenuation*incoming + w.emission*source[k];
 		}

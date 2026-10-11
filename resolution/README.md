@@ -18,6 +18,30 @@ low and high energies.
 |-----------------------|-------------|
 | `make_smooth_hump.py` | Generator for `smooth_hump.ini`; also plots `R(E)` and `1/R(E)`. |
 | `smooth_hump.ini`     | Resolving-power table consumed by the RT code (Ryd vs. R). |
+| `make_log_resolution.py` | Generates `log_resolution.ini` with constant logarithmic spacing; no plot. |
+| `log_resolution.ini` | Constant-resolution alternative for Cloudy's continuum mesh. |
+
+## Simple logarithmic mesh
+
+From the DAO repository root:
+
+```bash
+python3 resolution/make_log_resolution.py --resolution 300
+```
+
+This writes only `resolution/log_resolution.ini`. Defaults are 1 eV to
+1000 keV; change them with `--emin-ev` and `--emax-kev`. Use `--output`
+to choose a different file. The default output is next to the script,
+regardless of the working directory.
+
+Cloudy uses a constant nominal `delta(ln E) = 1/R` in this interval,
+adjusting the bin count to fit its boundaries. Thus larger `R` gives finer
+spacing. Cloudy may also insert special atomic edges. Outside this interval,
+the file retains the existing low/high-energy settings (10 and 33.333333).
+DAO's ready-to-use mesh is supplied as `config/continuum_mesh.ini`.
+To generate a custom mesh there, use `--output config/continuum_mesh.ini`.
+Set `CLOUDY_DATA_PATH` as described in the main [README](../README.md);
+Cloudy's installed data files do not need to be replaced.
 
 ## Resolving-power formula
 

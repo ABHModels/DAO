@@ -15,6 +15,9 @@ constexpr double c       = 2.99792458e10;    // speed of light [cm s^-1]
 constexpr double k_B     = 1.380649e-16;     // Boltzmann constant [erg K^-1]
 constexpr double m_e     = 9.1093837015e-28; // electron mass [g]
 constexpr double sigma_T = 6.6524587321e-25; // Thomson cross section [cm^2]
+
+// Fixed reference density for the depth coordinate and fully ionized RT tests.
+// Production Compton extinction/redistribution instead use Cloudy's local n_e.
 constexpr double reference_electrons_per_hydrogen = 1.21;
 
 // Unit conversions

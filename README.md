@@ -1,421 +1,186 @@
 # DAO — X-ray Reflection Spectroscopy Model
 
-**Disk-corona Atmosphere with Opacity**
+**Version 1.0.0**
 
-DAO computes rest-frame X-ray reflection spectra from accretion-disc atmospheres in X-ray binaries and AGN. Its distinguishing feature is an **exact, angle- and energy-dependent Compton-redistribution kernel** — fully relativistic quantum-electrodynamic scattering, not the angle-averaged Gaussian or Fokker–Planck approximations used by other reflection codes. DAO couples **Cloudy** (C25) for atomic physics, a **custom Compton radiative-transfer solver** (cubic Bézier short-characteristics formal solution with Lambda iteration), and **HEASoft/Xspec** corona spectra.
+DAO computes rest-frame X-ray reflection spectra using Cloudy for atomic
+physics, the XSPEC model library for incident continua, and angle-dependent
+Compton radiative transfer. Gas temperatures are determined from radiative
+energy balance.
 
-**Author:** Yimin Huang (Fudan University; University of Bristol) · huangym23@m.fudan.edu.cn
-**Version:** 1.0.0 · MIT License
+**Author:** Yimin Huang · Fudan University; University of Bristol · yi-min.huang@bristol.ac.uk
 
----
+## 1. Install the dependencies
 
-## Table of Contents
+Use macOS or Linux with a C++17 compiler (`g++` or `clang++`), `make`, and Git.
+Install these two packages first:
 
-- [Quick Start](#quick-start)
-- [Dependencies & Environment Setup](#dependencies--environment-setup)
-- [Usage](#usage)
-- [Outputs](#outputs)
-- [Web UI](#web-ui)
-- [How It Works](#how-it-works)
-- [References, License & Acknowledgements](#references-license--acknowledgements)
+- **[Cloudy C25](https://gitlab.nublado.org/cloudy/cloudy):** download the source
+  and its required atomic data following the upstream instructions. Build it
+  in `source/`; DAO needs `libcloudy.a`, the headers, and `cloudyconfig.h`.
+- **[HEASoft / XSPEC](https://heasarc.gsfc.nasa.gov/docs/software/lheasoft/install.html):**
+  include XSPEC when installing. DAO links to its model library, `libXSFunctions`,
+  for `nthcomp` and `compTT`. The library is required to link the DAO executable.
 
----
-
-## Quick Start
-
-**1. Prerequisites** — install and build these first (details in [Dependencies & Environment Setup](#dependencies--environment-setup)):
-
-- [Cloudy C25](https://gitlab.nublado.org/cloudy/cloudy) built as a static library (`libcloudy.a`)
-- [HEASoft 6.33+](https://heasarc.gsfc.nasa.gov/docs/software/heasoft/) (provides Xspec model libraries)
-- `g++` with C++17
-
-**2. Edit the build paths in `Makefile`** — `CLOUDY_SRC` ships as a placeholder and `XSPEC_LIB` is hardcoded to the author's machine, so the build fails until you fix them (`CLOUDY_LIB` is auto-derived):
-
-```make
-CLOUDY_SRC = /path/to/cloudy/source
-CLOUDY_LIB = $(CLOUDY_SRC)            # auto-derived; leave as is
-XSPEC_LIB  = $(HEADAS)/lib            # set to your HEADAS (exported in step 4)
-```
-
-**3. Install the custom Cloudy continuum mesh** (required — see [resolution file](#resolution-file)):
+The commands below use bash/zsh. Replace the example paths with your own:
 
 ```bash
-cp /path/to/cloudy/data/continuum_mesh.ini /path/to/cloudy/data/continuum_mesh.ini.bak
-cp resolution/smooth_hump.ini /path/to/cloudy/data/continuum_mesh.ini
+export DAO_CLOUDY_ROOT=/absolute/path/to/cloudy
+export HEADAS=/absolute/path/to/heasoft/platform-directory
+source "$HEADAS/headas-init.sh"
+
+make -C "$DAO_CLOUDY_ROOT/source" -j4
 ```
 
-**4. Set up the runtime environment and build:**
+Use compatible C++ compilers for Cloudy and DAO. `HEADAS` is the installed
+platform directory containing `headas-init.sh` and `lib/`, not the top-level
+HEASoft source directory. Initialize HEASoft in every new terminal used for DAO.
+
+## 2. Download DAO
 
 ```bash
-export HEADAS=/path/to/heasoft-6.33.2/<arch>
-source $HEADAS/headas-init.sh        # must be sourced before every run
-make
+git clone https://github.com/ABHModels/DAO.git
+cd DAO
 ```
 
-**5. Run a smoke test** (a `nthcomp`-illuminated slab):
+Run the remaining commands from this directory.
+
+## 3. Configure Cloudy's runtime files — required
+
+DAO requires the supplied [`config/xray12.ini`](config/xray12.ini). It selects
+the 12 elements used by DAO: H, He, C, N, O, Ne, Mg, Si, S, Ar, Ca, and Fe.
+This file and the continuum mesh are supplied in `config/`; there is no need
+to copy them into Cloudy's installation.
+
+**DAO takes its production energy grid from Cloudy.** The supplied default,
+[`config/continuum_mesh.ini`](config/continuum_mesh.ini), uses logarithmic
+spacing over 1 eV–1000 keV. You can replace it with your own Cloudy-compatible
+mesh, keeping the filename **`continuum_mesh.ini`**. From the DAO directory, run:
 
 ```bash
-./maindaocl -corona nthcomp -Gamma 2.0 -kT_e 60 -kT_bb 0.1 -nh 15 -zeta 3
+export CLOUDY_DATA_PATH="$PWD/config:.:$DAO_CLOUDY_ROOT/data"
 ```
 
-Expected stdout (abridged) — when you see the parameter banner and a run hash, the run started correctly:
+Cloudy searches these directories in order: `config/` supplies DAO's mesh and
+initialization file, `.` lets it read the temporary incident spectra generated
+in the current directory, and its installed `data` directory supplies the
+remaining atomic data. The same configuration is used by DAO's parallel
+Cloudy workers. Keep `.` in the search path so those spectra can be read.
 
-```
-Corona:     nthcomp  Gamma=2.0000  kT_e=60.00 keV  kT_bb=0.1000 keV
-Parameters: nh=15.0000  zeta=3.0000 (xi=1.0000e+03)  frac=-1.0000  ...
-Run hash:   a1b2c3d4  →  results/a1b2c3d4/
-```
+The mesh must be named **`continuum_mesh.ini`** and its directory must come first
+in `CLOUDY_DATA_PATH`. To use a custom mesh, replace `config/continuum_mesh.ini`
+with your own before starting the model. The mesh is
+read at runtime; changing it does not require recompiling Cloudy.
 
-Output lands in `results/<hash>/` (see [Outputs](#outputs)). **The first run is slow** because it builds and disk-caches the Compton kernel; later runs load it instantly.
+Keep the initialization filename **`xray12.ini`**: DAO loads it with Cloudy's
+`init "xray12.ini"` command. This file is required even when using a custom mesh.
 
----
+Keep the selected configuration files unchanged during a run. The environment
+variable applies to programs started from this terminal; existing processes
+retain their own environment. In each new terminal, set `DAO_CLOUDY_ROOT`,
+initialize HEASoft, and export `CLOUDY_DATA_PATH` again from the DAO directory.
+See [resolution/README.md](resolution/README.md) for custom meshes.
 
-## Dependencies & Environment Setup
+## 4. Compile DAO
 
-| Software | Version | Purpose |
-|----------|---------|---------|
-| **Cloudy** | C25 | Atomic physics: emissivity, opacity, thermal & ionisation balance |
-| **HEASoft / Xspec** | 6.33+ | Corona model libraries (`nthcomp`, `comptt`) |
-| **g++** | C++17 | Compiler |
-| **Python** | 3.8+ | Web UI (optional) |
-| **Flask** | 2.0+ | Web UI server (optional: `pip install flask`) |
-
-### Cloudy
-
-Build Cloudy as a static library (`libcloudy.a`) and point `CLOUDY_SRC` / `CLOUDY_LIB` at its `source/` directory in the `Makefile`. DAO links against `gitlab.nublado.org/cloudy/cloudy` and calls it through its public API (`cdInit()` / `cdDrive()`).
-
-<a name="resolution-file"></a>
-**Continuum-mesh resolution file (required).** DAO ships a tailored Cloudy mesh at `resolution/smooth_hump.ini` that boosts the spectral resolving power around the iron-K region while staying modest elsewhere. Install it as Cloudy's `data/continuum_mesh.ini` (back up the original first, as in [Quick Start](#quick-start)). Without it, Cloudy's energy grid is too coarse to run the scattering kernel correctly. To choose a different resolution, edit the parameters at the top of `resolution/make_smooth_hump.py`, run it to regenerate `smooth_hump.ini`, then reinstall. See `resolution/README.md` for the parameters and file format.
-
-### HEASoft / Xspec
-
-Required for `nthcomp`, `comptt`, **and all production runs** (the executable links `-lXSFunctions`). Source it before every run, or dyld will fail to load the Xspec shared libraries:
+Override the paths supplied in the Makefile with your installation paths:
 
 ```bash
-export HEADAS=/path/to/heasoft-6.33.2/<arch>
-source $HEADAS/headas-init.sh
+make -j4 CLOUDY_SRC="$DAO_CLOUDY_ROOT/source" \
+         CLOUDY_LIB="$DAO_CLOUDY_ROOT/source" \
+         XSPEC_LIB="$HEADAS/lib"
 ```
 
-Set `XSPEC_LIB = $(HEADAS)/lib` in the `Makefile` so the link-time and run-time libraries stay consistent.
+This creates `./maindaocl`. If Cloudy was built with `clang++`, add
+`CXX=clang++` to this command. Alternatively, save these paths in the Makefile.
+After changing compilers or dependency installations, run `make clean` before
+rebuilding. A missing `libcloudy.a` means Cloudy has not been built at the given
+path; a missing XSPEC library usually means `HEADAS` or `XSPEC_LIB` is incorrect.
 
-### Compton kernel cache
-
-The Compton kernel is precomputed once and cached on disk. `COMPTON_CACHE_DIR` points directly to the existing directory containing the cache files (default: current working directory). No `kernel/` subdirectory is appended:
+## 5. Run a reflection model
 
 ```bash
-export COMPTON_CACHE_DIR=/path/to/shared/cache   # optional; kernels are large & parameter-independent
+DAO_CLOUDY_WORKERS=4 DAO_KERNEL_THREADS=4 DAO_RT_THREADS=4 \
+./maindaocl -corona nthcomp -Gamma 2.0 -kT_e 60 -kT_bb 0.01 \
+  -nh 15 -zeta 3 -frac -1 -incidence 0.7071 -angsca 1
 ```
 
-Files: `kernel_norm_NE{}_NI{}_NT{}.bin` (angle-dependent) and `avgkernel_norm_NE{}_NT{}.bin` (angle-mean, used by `-angsca false`). Grid dimensions are encoded in the filename so test and production grids coexist.
+This illuminates a constant-density slab with `nthcomp`, using
+nH = 10¹⁵ cm⁻³, log ξ = 3, and angle-dependent Compton scattering.
+The default slab has 48 logarithmic depth cells and reference Thomson depth 5.
+The first run builds a Compton-kernel cache and can take substantially longer
+than subsequent runs. These are full atmosphere calculations, not quick tests.
+Reduce the worker counts to `1` if memory is limited.
 
-### Build
+| Option | Meaning |
+|--------|---------|
+| `-nh 15` | log₁₀ hydrogen number density in cm⁻³, not column density |
+| `-zeta 3` | log₁₀ ionization parameter ξ |
+| `-Gamma 2` | Incident photon index |
+| `-kT_e 60`, `-kT_bb 0.01` | Coronal electron and seed-photon temperatures in keV |
+| `-frac -1` | Corona-only illumination; no lower-boundary disk component |
+| `-incidence 0.7071` | Incident cosine, mapped to the nearest angular-grid node |
+| `-incidence -2` | Isotropic illumination over the downward hemisphere |
+| `-angsca 1` / `0` | Angle-dependent / angle-averaged Compton scattering |
+| `-Afe 1` | Iron abundance relative to solar |
+| `-O 1 -Fe 1` | Save final oxygen and iron ion fractions |
+| `-verbose 1` | Also show detailed diagnostics in the terminal |
+
+For corona-only illumination, the flux integrated over the DAO energy grid is ξ nH / (4π).
+
+## 6. Find the results
+
+The startup message prints `results/<hash>/`. The terminal then shows one
+summary per completed outer iteration; detailed diagnostics go to `run.log`.
+
+| File | Contents |
+|------|----------|
+| `params.json`, `RUN.txt` | Input parameters and run information |
+| `thermal_status.json` | Run state; **`converged`** identifies a successful solution |
+| `emergent_iterNNN.dat` | Upper-surface spectra at the outgoing angular-grid nodes |
+| `profile_iterNNN.dat` | Depth profiles, including temperature and electron density |
+| `thermal_history.dat` | Convergence history and outgoing/incoming flux ratio |
+| `thermal_budget_iterN.dat` | Local and whole-slab energy budgets |
+| `O/ion_fractions.dat`, `Iron/ion_fractions.dat` | Optional ion fractions, saved after convergence |
+
+To save oxygen and iron ion fractions versus depth, append `-O 1 -Fe 1` to the
+model command. Either flag can be enabled independently; both default to off.
+**No additional environment variables or Cloudy output-path settings are needed.**
+DAO reads the ion populations directly from Cloudy and creates
+`results/<hash>/O/ion_fractions.dat` and
+`results/<hash>/Iron/ion_fractions.dat` only after convergence. The tables include
+all ion stages, from neutral to fully stripped, together with depth, temperature,
+and electron density.
+
+Intermediate spectra can exist even if a run fails to converge. Use the final
+iteration identified by `thermal_status.json`. Both slab faces are included in
+the reported energy balance. Repeating identical physical parameters reuses
+the same result directory and can overwrite its outputs.
+
+For a browser-based launcher and spectrum viewer, start this from the same
+initialized terminal:
 
 ```bash
-make           # build maindaocl
-make clean     # remove object files and binaries
+python3 -m pip install flask numpy matplotlib
+python3 ui.py
 ```
 
----
+Open **http://127.0.0.1:5200**. Python is optional for command-line model runs.
 
-## Usage
+## Further reading
 
-The `-corona` flag is **required**, and each model requires specific parameters (see [required parameters](#required-parameters-per-corona-model)).
+- [Paper figures, benchmark data, and plotting instructions](paper_data/README.md)
+- [Release notes](CHANGELOG.md)
 
-```bash
-# Cutoff power law
-./maindaocl -corona cutoffpl -Gamma 2.0 -Ecut 300 -nh 16 -zeta 4 -frac 0.5
+## Citation and license
 
-# Thermal Comptonisation (nthcomp)
-./maindaocl -corona nthcomp -Gamma 2.0 -kT_e 60 -kT_bb 0.1 -nh 15 -zeta 3
+Please cite the DAO paper and the underlying methods, particularly
+[Madej et al. (2017)](https://ui.adsabs.harvard.edu/abs/2017MNRAS.469.2032M),
+[Cloudy C25](https://doi.org/10.48550/arXiv.2508.01102), and
+[XSPEC](https://ui.adsabs.harvard.edu/abs/1996ASPC..101...17A).
+See [CITATION.cff](CITATION.cff) for citation metadata.
 
-# CompTT, with enhanced iron
-./maindaocl -corona comptt -kT_e 50 -kT_bb 0.05 -taup 1.0 -Afe 3.0
-
-# Test mode — compPS benchmark slab (see below)
-./maindaocl -test_rt compps -corona blackbody -kT_e 60 -kT_bb 0.1 -tau 0.5
-```
-
-### Parameter Reference
-
-All `kT_*` temperatures are in **keV**. Defaults are from `source/params.cpp`.
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `-corona` | **required** | Corona model: `powerlaw`, `cutoffpl`, `nthcomp`, `comptt`, `blackbody` |
-| `-Gamma` | unset | Photon index Γ (powerlaw, cutoffpl, nthcomp) |
-| `-Ecut` | unset | High-energy cutoff, keV (cutoffpl) |
-| `-E_low_cut` | 0.1 | Low-energy exponential cutoff, keV (powerlaw, cutoffpl) |
-| `-kT_e` | unset | Electron temperature, keV (nthcomp, comptt; also slab Tₑ in compps test mode) |
-| `-kT_bb` | unset | Seed-photon temperature, keV (nthcomp, comptt, blackbody) |
-| `-taup` | unset | Plasma optical depth (comptt) |
-| `-nh` | 15 | log₁₀ hydrogen density [cm⁻³] |
-| `-zeta` | 3.0 | Ionisation parameter: ξ = 10^zeta (see convention below) |
-| `-frac` | **−1** | Flux ratio F_corona / F_disk; **≤0 (default) → corona only, no disk component** |
-| `-incidence` | 0.7071 | cos θ of corona incidence (snapped to nearest Gauss–Legendre node); `-2` illuminates all downward angles isotropically at the same incident mean intensity |
-| `-kT_disk` | 0.35 | Disk blackbody temperature, keV (thermal component illuminating from below) |
-| `-Afe` | 1.0 | Iron abundance [solar] |
-| `-angsca` | true | `true`/`1`/`yes` → angle-dependent kernel; `false`/`0`/`no` → angle-mean kernel |
-| `-test_rt <mode>` | off | Test mode (skips Cloudy). Mode token **required**; only public mode is `compps` |
-| `-tau` | 0.5 | Slab vertical Thomson optical depth (compps test mode) |
-
-**Ionisation parameter convention.** DAO uses **ξ = (4π)² J / n_H**, i.e. the mean intensity is normalised as **J = ξ·n_H / (4π)²**, with `zeta = log₁₀ ξ`. (This is the convention implemented in `source/radiation.cpp`.)
-
-<a name="required-parameters-per-corona-model"></a>
-**Required parameters per corona model:**
-
-| Model | Requires |
-|-------|----------|
-| `powerlaw` | `-Gamma` |
-| `cutoffpl` | `-Gamma -Ecut` |
-| `nthcomp` | `-Gamma -kT_e -kT_bb` |
-| `comptt` | `-kT_e -kT_bb -taup` |
-| `blackbody` | `-kT_bb` |
-
-### Test mode: compPS benchmark
-
-`-test_rt compps` (the command in the [Usage examples](#usage) above) runs an **isothermal, pure-scattering** slab seeded by a **bottom blackbody**, benchmarked against Xspec's compPS (Poutanen & Svensson 1996). The slab temperature is `-kT_e` [keV] and its vertical Thomson depth is `-tau`. This mode skips Cloudy entirely and uses a double-Gauss angle grid; it is a validation benchmark, not a production reflection run.
-
-Both test-spectrum writers save the actual upper slab-face intensity, matching
-the production emergent-spectrum convention.
-
----
-
-## Outputs
-
-Results are written to `results/<hash>/`, where `<hash>` is an 8-character FNV-1a hash of the physics parameters. **The hash is deterministic** — identical parameters reuse (and overwrite) the same directory. Every run directory contains a `params.json` with the full parameter set.
-
-| File | When | Contents |
-|------|------|----------|
-| `params.json` | always | Full parameter set (JSON) |
-| `emergent_iter{NNN}.dat` | production | Emergent surface intensity: E, I_corona, I_disk, I(μ) per angle |
-| `moments_iter{NNN}.dat` | production | Angular moments J0, J2, J3 at all depths and energies |
-| `profile_iter{NNN}.dat` | production | Depth profile: τ, T, n_e, heating, cooling, log ξ |
-| `emergent_compps.dat` | compps test | Emergent spectrum (no `_iter` files) |
-| `line_escape_lines_iter{NNN}.dat` | final production iteration, when lines are present | Per-line escaped power, continuum-destroyed heat and escape probabilities |
-| `line_escape_selected_iter{NNN}.dat` | final production iteration, when lines are present | Depth profiles for representative lines |
-
-Line-escape diagnostics use an output-only pass after the final outer iteration;
-they do not add line emissivity or thermal feedback a second time. A final
-iteration can also be the iteration limit, so these files alone do not imply
-convergence.
-
-### Data units (per-eV throughout)
-
-| Quantity | Units |
-|----------|-------|
-| Energy E | eV |
-| j_ν (emissivity) | erg cm⁻³ s⁻¹ eV⁻¹ |
-| κ_abs, κ_sct (opacity) | cm⁻¹ |
-| I_ν (specific intensity) | erg cm⁻² s⁻¹ eV⁻¹ sr⁻¹ |
-| I_corona, I_disk | erg cm⁻² s⁻¹ eV⁻¹ |
-
----
-
-## Web UI
-
-A browser-based configurator and results viewer (requires `pip install flask`):
-
-```bash
-python3 ui.py        # serves http://127.0.0.1:5200
-```
-
-| Page | URL | Description |
-|------|-----|-------------|
-| Configurator | `/` | Parameter sliders, corona-model selector, command generator |
-| Results viewer | `/plots` | Emergent spectra, mean intensity, temperature profiles |
-| Convergence | `/convergence` | Temperature-convergence history across outer iterations |
-| Parameter reference | `/docs` | Full parameter documentation, references & license |
-
-The configurator generates commands to copy into your terminal; the results viewer reads `results/*/params.json` and the `.dat` files.
-
----
-
-## How It Works
-
-DAO solves the angle- and energy-dependent transfer equation in a plane-parallel disc atmosphere, illuminated by an X-ray corona from above and a thermal disc from below. At each depth point, **Cloudy** returns the emissivity, absorption opacity, and thermal/ionisation structure; the **RT solver** then propagates the radiation field through the slab using a **cubic Bézier short-characteristics formal solution with Lambda iteration**, including **exact, angle/energy-dependent Compton redistribution**. The two are iterated to convergence.
-
-### Execution flow
-
-```
-CLI arguments
-   │
-   ▼
-read_params()  →  ModelParams (validate corona model + required params)
-   │
-   ▼
-init_rt_grids()  →  angle (Gauss–Legendre), depth (Thomson τ), energy grids
-   │
-   ▼
-rad.illum.compute()  →  corona spectrum (dispatch) + disk blackbody, normalised by ξ
-   │
-   ▼
-Precompute Compton kernel  (load from disk cache or compute + save)
-   │
-   ▼
-Dispatch:
-   ├── test mode  →  run_test_rt()  (compps benchmark slab; synthetic
-   │                 1000-bin log grid 0.01–1000 keV, no Cloudy)
-   │
-   └── production →  Bootstrap Cloudy → adopt its energy mesh (~3300 RT bins)
-                     Outer loop:
-                       ├── Cloudy depth sweep → j_ν, κ_abs, κ_sct
-                       ├── RT solve (Bézier formal solution + Lambda iteration)
-                       ├── Compute moments J and ionisation parameter ξ
-                       ├── Check convergence (max |ΔT/T|, max |Δ log ξ|)
-                       └── Save results
-```
-
-The default slab has 100 depth cells. Its reference Thomson-depth edges are
-zero followed by 100 logarithmically spaced positive edges from 10^-4 to 5.
-The reference depth uses 1.21 n_H electrons per hydrogen atom, consistent
-with the scattering-opacity convention; Cloudy's local electron density may
-differ. The cubic Bézier short-characteristics solver integrates the boundary
-half cells and records the emergent intensity at the actual slab face.
-Depth-resolution convergence should be checked for each physical regime.
-
-### Corona-model dispatch
-
-| Model | Spectral shape | Interface |
-|-------|----------------|-----------|
-| `powerlaw` | E^(1−Γ)·exp(−E_lo/E) | analytic |
-| `cutoffpl` | E^(1−Γ)·exp(−E/E_cut)·exp(−E_lo/E) | analytic |
-| `nthcomp` | thermal Comptonisation | Xspec `donthcomp_()` |
-| `comptt` | Comptonisation | Xspec `C_compTT()` |
-| `blackbody` | Planck function | analytic |
-
-### Kernel construction and memory use
-
-Kernel construction uses independent CPU workers. The low-temperature kernel
-uses peak-resolved angular quadrature and averages narrow redistribution
-features over energy cells. The electron integral follows the local rule:
-2 Gauss-Laguerre points for inverse temperature at least 1000, 4 for inverse
-temperature from 5 to 1000, and 32 below 5, without a photon-energy restriction.
-Directional and angle-mean kernels are normalized to the Compton cross
-section with symmetric scaling that preserves detailed balance. The cache
-format is versioned, so older cache files are recomputed. The default is up to
-16 workers. Override it with
-`DAO_KERNEL_THREADS=4 ./maindaocl ...` (valid range: 1–256). This setting affects
-cache construction only, not the RT solver. More workers are not always faster.
-Independent normalization integrals use the same kernel worker setting, while
-each integral retains its original serial summation order.
-
-Already computed rows are retained in a temporary disk spool rather than
-computed a second time. Allow temporary disk space comparable to the retained
-kernel payload, in addition to the output cache. Existing caches are loaded
-using private memory mappings on POSIX systems, with a heap-read fallback.
-Mapping avoids an immediate full-size heap copy; resident memory still grows
-as the solver accesses pages. This does not reduce the cache's file size.
-Do not truncate a cache in use; DAO publishes new cache files by atomic rename.
-
-Cold construction normalizes one temperature at a time through a private
-mapping of the row spool. Each finished temperature is streamed to the output
-file, then its private pages are released. The completed cache is mapped before
-publication, so construction does not retain a full-size heap payload during
-RT. This bounds construction's touched payload to one temperature plus metadata
-and worker scratch; OS file caching and later RT access still affect total RAM.
-The numerical kernel values and binary cache version change. Construction
-requires working POSIX mappings; a mapping or output error aborts without
-publishing an incomplete cache.
-
-Run `make test_kernel_storage && ./test_kernel_storage` for the standalone
-storage/worker assertions (no Cloudy dependency). This is a storage test, not
-a physics-accuracy certification. No GPU or reduced-precision path is enabled.
-Run `make test_kernel_reference test_kernel_low_temp test_kernel_electron`,
-then `./test_kernel_reference`, `./test_kernel_low_temp` and
-`./test_kernel_electron --local-baseline`. These check angular quadrature,
-conservation, detailed balance, smooth sources and reproduction of frozen local
-electron profiles. The last command also reports differences from 32-point
-electron integration. Running `./test_kernel_electron` without the flag retains
-the strict `1e-5` accuracy check, which the restored local rule does not pass
-over the full sampled range. Caches from the replaced rule are invalidated.
-See [KERNEL_VALIDATION.md](KERNEL_VALIDATION.md) for measured differences and
-validation limits.
-
-The RT source-function calculation distributes independent depths across up to
-16 CPU workers (also capped by detected hardware threads and depth count).
-Set `DAO_RT_THREADS=1` for serial execution or choose 1–256
-workers. Each cell retains its angular summation order; energy integration uses
-full-grid trapezoid weights so a narrow kernel band is not integrated as an
-isolated subgrid. There is
-a barrier before the next iteration stage. Formal transport, convergence
-criteria, and iteration ordering are unchanged. RT timing reports wall time,
-including a formal-solution/mean-intensity versus source-function breakdown.
-For directional scattering, identical detailed-balance exponentials are reused
-across angular pairs within each depth/energy cell (no approximation or
-additional full-size kernel table).
-
-### Code structure
-
-```
-DAO/
-├── maindaocl.cpp          Main entry point
-├── Makefile               Build configuration
-├── ui.py                  Web UI (Flask)
-├── source/                C++ modules:
-│   ├── compton_kernel.*           Exact azimuth-integrated kernel (Madej+ 2017)
-│   ├── avg_compton_kernel.*       Angle-mean kernel (-angsca false)
-│   ├── compton_cross_section.*    Relativistic σ(E,T) (Poutanen & Svensson 1996)
-│   ├── compton_rt.*               RT solver (Bézier short characteristics + Λ iteration)
-│   ├── source.*                   Source function: thermal + Compton scattering
-│   ├── radiation.*                Radiation arrays, moments, convergence
-│   ├── corona_models.*            Corona spectrum dispatch
-│   ├── cloudy_interface_v2.cpp    Cloudy emissivity/opacity extraction
-│   ├── rt_grids.*                 Angle / depth / energy grids
-│   ├── params.*                   CLI parsing, validation, run hash
-│   ├── save_results.*             Output to results/<hash>/
-│   ├── production.*               Cloudy ↔ RT outer iteration
-│   └── test_rt.*                  compps benchmark mode
-├── resolution/            Custom Cloudy continuum-mesh files + generator
-├── paper_data/            Data for the DAO paper
-├── image/                 UI assets
-├── kernel/                Cached Compton kernels (binary, generated at runtime)
-└── results/              Run outputs: results/<hash>/
-```
-
----
-
-## References, License & Acknowledgements
-
-### References
-
-If you use DAO in published work, please cite the **DAO paper**, **Madej et al. (2017)** for the Compton kernel, and **Gunasekera et al. (2025)** for Cloudy. A [`CITATION.cff`](CITATION.cff) is provided.
-
-- **Atomic physics (Cloudy):** Gunasekera et al. 2025, arXiv:2508.01102 (Cloudy C25).
-- **Compton kernel:** Madej, Różańska, Majczyna & Należyta 2017, MNRAS 469, 2032; Nagirner & Poutanen 1993, A&A 275, 325.
-- **Cross section & A23 normalisation:** Poutanen & Svensson 1996, ApJ 470, 249.
-- **RT solver:** Auer 2003, ASP Conf. Ser. 288, 3; de la Cruz Rodríguez & Piskunov 2013, ApJ 764, 33; Hubeny & Mihalas 2015, *Theory of Stellar Atmospheres* §12.4; Suleimanov, Poutanen & Werner 2012, A&A 545, A120.
-- **Corona models:** Zdziarski, Johnson & Magdziarz 1996, MNRAS 283, 193 (nthcomp); Titarchuk 1994, ApJ 434, 570 (comptt); Arnaud 1996, ASP Conf. Ser. 101, 17 + HEASoft (XSPEC).
-- **Ionisation parameter:** Tarter, Tucker & Salpeter 1969, ApJ 156, 943.
-
-### License
-
-DAO's source code is released under the **MIT License** (see [`LICENSE`](LICENSE)). DAO links an **unmodified**, separately installed Cloudy through its public API and ships no Cloudy source. A few physics steps are reimplemented on DAO's own grid: per-line escape probabilities (calling Cloudy's `rt_escprob`), subtraction of Cloudy's bound-electron Compton-recoil opacity (reproducing `opacity_addtotal.cpp`), and inner-shell fluorescence (reproducing `prt_lines.cpp`).
-
-Third-party dependencies, obtained independently and each under its own license:
-
-| Component | License | Source |
-|-----------|---------|--------|
-| **Cloudy** (G. J. Ferland et al.) | [zlib](https://opensource.org/licenses/Zlib) | <https://gitlab.nublado.org/cloudy/cloudy> |
-| **HEASoft / XSPEC** (NASA HEASARC) | NASA open-source (HEASARC) | <https://heasarc.gsfc.nasa.gov/docs/software/heasoft/> |
-| **Compton redistribution kernel** | C++ port of J. Madej's public Fortran | <https://www.astrouw.edu.pl/~jm/software.html> |
-
-### Acknowledgements
-
-We gratefully acknowledge **Prof. Jerzy Madej** (University of Warsaw) for his publicly available Fortran implementation of the exact Compton redistribution function, on which our C++ port is based.
-
-For questions, suggestions, or collaboration, open an issue on GitHub or contact the author at huangym23@m.fudan.edu.cn.
-
-### Run labels and summaries
-
-Add optional custom text with `-label`, or use **Run label** in the configurator:
-
-```bash
-./maindaocl -corona cutoffpl -Gamma 2 -Ecut 300 -label "Iron abundance comparison"
-```
-
-Each invocation writes `results/<hash>/RUN.txt` containing the run summary,
-label (or `(none)`), timestamp, hash, and model parameters. `params.json` also
-stores the label, which the plots and convergence pages display. The summary
-is written at startup, so it is not a completion marker. Labels do not affect
-the physics hash: repeating the same parameters reuses the folder and replaces
-its metadata. Quote labels in shell commands; the UI quotes them automatically.
+DAO's original code uses the **MIT License**; see [LICENSE](LICENSE).
+Cloudy is used unmodified under its zlib license. The separately installed
+XSPEC model library retains its upstream terms. The C++ adaptations of
+Jerzy Madej's Compton routines are included with his permission as a co-author
+of the DAO paper. Neither the Cloudy nor XSPEC library is bundled with DAO.

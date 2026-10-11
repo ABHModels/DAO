@@ -1,0 +1,29 @@
+% Requires booktabs, graphicx, and xcolor; all table values are percentages.
+\begin{table}[t]
+\color{red}
+\centering
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{\textcolor{red}{Final values of the five outer-iteration
+convergence measures. All values and limits are in per cent;
+each measure must lie below its limit. The final iterations
+are 63, 35, and 33 for $\log\xi=1$, 2, and 3, respectively.
+All five criteria passed in the last three consecutive
+outer iterations of each run.}}
+\label{tab:benchmark_convergence}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+ & & \multicolumn{3}{c}{$\log\xi$} \\
+\cmidrule(l){3-5}
+Measure & Limit & 1 & 2 & 3 \\
+\midrule
+Temperature change & 0.6932 & 0.0462 & 0.0355 & 0.2897 \\
+Radiation-field change & 0.3 & 0.2001 & 0.1823 & 0.1704 \\
+Local balance & 0.3 & 0.0808 & 0.0972 & 0.1702 \\
+Integrated residual & 1.0 & 0.8555 & 0.2044 & 0.0718 \\
+Boundary flux mismatch & 1.0 & 0.8317 & 0.1559 & 0.0341 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

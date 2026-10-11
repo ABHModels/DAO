@@ -1,0 +1,150 @@
+--- original/source/cloudy_interface_v2.cpp
++++ experiment/source/cloudy_interface_v2.cpp
+@@ -501,75 +501,12 @@
+ LineProbabilities line_probabilities(const LineRec& r, const RadField& rad,
+                                     int id, double tau_in, double tau_out)
+ {
+-	// beta: two-sided line escape probability.
+-	double beta = 0.5 * (esc_oneside(r.redis, tau_in,  r.damp)
+-	                   + esc_oneside(r.redis, tau_out, r.damp));
+-
+-	// Pdest: continuum absorption after the photon is trapped in the line.
+-	// Direct continuum attenuation is handled later by the RT solver.
+-	double Pdest = 0.0;
+-	if (beta < 1.0 && r.kappaL > 0.0)
+-	{
+-		// Continuum true absorption at h*nu_ul.
+-		const double conopc = rad.kabs[id][r.bin];
+-		if (conopc > 0.0)
+-		{
+-			const double sqrt_pi = 1.7724538509055160273;
+-			// eps = continuum absorption / (line-center absorption + continuum).
+-			const double eps = conopc / (sqrt_pi * r.kappaL + conopc);
+-
+-			// Convert per-encounter eps into a trapping destruction probability.
+-			double dfit;
+-			if (r.redis == ipLY_A)
+-			{
+-				// H Lya: tau-dependent Hummer-Kunasz fit; remove Thomson
+-				// scattering because Pelec handles it as an escape channel.
+-				auto lya_side = [&](double tau) -> double
+-				{
+-					double taulog = (tau > 0.0) ?
+-						log10(std::min(1.0e8, sqrt_pi * tau)) : 0.0;
+-					double den = 0.30972 -
+-						std::min(0.28972, 0.03541667 * taulog);
+-					return eps / den;
+-				};
+-				dfit = 0.5 * (lya_side(tau_in) + lya_side(tau_out));
+-				const double ktot = conopc + rad.ksct[id][r.bin];
+-				if (ktot > 0.0)
+-					dfit *= conopc / ktot;
+-			}
+-			else
+-			{
+-				dfit = std::min(1.0e-3, 8.5 * eps);
+-				dfit /= 1.0 + dfit;
+-			}
+-
+-			// Only trapped photons can be destroyed by continuum absorption.
+-			Pdest = (1.0 - beta) * dfit;
+-			if (Pdest < 0.0) Pdest = 0.0;
+-			if (Pdest > 1.0 - beta) Pdest = 1.0 - beta;
+-		}
+-	}
+-
+-	// Pelec: electron scattering shifts a trapped photon out of the line core.
+-	double Pelec = 0.0;
+-	if (beta < 1.0 && r.kappaLo > 0.0)
+-	{
+-		const double kelec = rad.n_e[id] * SIGMA_THOMSON;
+-		Pelec = kelec / (kelec + r.kappaLo)
+-		      * std::max(0.0, 1.0 - beta - Pdest);
+-	}
+-
+-	// Final surviving fraction
+-	// a. normal escape probability (CRD,PRD,etc.);
+-	// b. line scattering escape probability;
+-	// c. collisional de-excitation
+-	// d. destruction in random walk.
+-	double denom = beta + Pelec + r.y + Pdest;
+-	double P = (denom > 0.0) ?
+-		(beta + Pelec) * (1.0 + r.y) / denom : 1.0;
+-	if (P < 0.0) P = 0.0;
+-	if (P > 1.0) P = 1.0;
+-    return {beta,Pelec,Pdest,denom,P};
++    // Experiment: every bound-bound line is injected with P=1 in both
++    // the local temperature search and the full-column transfer solve.
++    // No trapping-destruction power is generated in this artificial limit.
++    // Diagnostic beta/Pelec/Pdest below are imposed values, not opacity fits.
++    return {1.0, 0.0, 0.0, 1.0 + r.y, 1.0};
++
+ }
+ }
+ 
+--- original/source/params.cpp
++++ experiment/source/params.cpp
+@@ -7,6 +7,8 @@
+ #include <cmath>
+ #include <ctime>
+ #include <sys/stat.h>
++#include <filesystem>
++#include <stdexcept>
+ 
+ static const char* normalization_name(const ModelParams& p)
+ {
+@@ -345,6 +347,7 @@
+ 		if (!p.test_rt && RTGrids::NA!=8) hash_input += "|angles=" + std::to_string(RTGrids::NA);
+ 		if (!p.test_rt) hash_input += "|column_energy_tolerance=" + std::to_string(ModelParams::thermal_column_tolerance);
+ 		hash_input += "|depth_cells=" + std::to_string(RTGrids::ND_MID_DEFAULT);
++		hash_input += "|line_survival=all_P1_experiment_v1";
+ 		unsigned int h = 2166136261u;
+ 		for (unsigned char c : hash_input)
+ 		{
+@@ -368,6 +371,8 @@
+ 	// --- Create run directory and write params.json ---
+ 	{
+ 		mkdir("results", 0755);
++        if (std::filesystem::exists(p.run_dir))
++            throw std::runtime_error("Experiment refuses to overwrite an existing result directory");
+ 		mkdir(p.run_dir, 0755);
+ 		dao_log::open(std::string(p.run_dir)+"/run.log",p.verbose);
+ 		dao_log::detail("\n=== Run started %s ===\n",timestamp);
+@@ -387,6 +392,9 @@
+ 		{
+ 
+ 			fprintf(fp, "{\n");
++            fprintf(fp, "  \"line_survival\": \"all_P1_experiment_v1\",\n");
++            fprintf(fp, "  \"survival_factor_enabled\": false,\n");
++
+ 			fprintf(fp, "  \"hash\": \"%s\",\n", p.run_hash);
+ 			fprintf(fp, "  \"time\": \"%s\",\n", timestamp);
+ 			fprintf(fp, "  \"label\": \"%s\",\n", json_escape(p.label).c_str());
+--- original/maindaocl.cpp
++++ experiment/maindaocl.cpp
+@@ -29,6 +29,7 @@
+ #include "production.h"
+ #include "run_log.h"
+ #include <chrono>
++#include "verify_no_survival.h"
+ 
+ int main(int argc, char *argv[])
+ {
+@@ -38,11 +39,16 @@
+ 	DEBUG_ENTRY("main()");
+ 
+ 	try {
++        if (argc == 2 && std::string(argv[1]) == "--verify-no-survival") {
++            verify_no_survival();
++            return 0;
++        }
+ 		// --- 1. Read input ---
+ 		ModelParams par = read_params(argc, argv);
+ 
+ 		// --- 2. Energy grid: load from file, or bootstrap Cloudy ---
+-		static const char* EGRID_FILE = "cloudy_energy_grid.dat";
++        const std::string energy_path = std::string(par.run_dir) + "/cloudy_energy_grid.dat";
++        const char* EGRID_FILE = energy_path.c_str();
+ 		const bool is_test   = par.test_rt;
+ 		const bool is_angavg = par.angsca;
+ 		const bool is_compps = is_test && strcmp(par.test_mode, "compps") == 0;

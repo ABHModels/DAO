@@ -1,0 +1,46 @@
+{
+  "source_run": "effac594",
+  "log_xi": 2,
+  "accepted_iteration": 35,
+  "mean_intensity_from_iteration": 34,
+  "definition": "local K-alpha photon production before slab transfer, all directions; fluorescence indexed by absorbing parent ion",
+  "temperature_or_transfer_rerun": false,
+  "local_source_units": "erg cm^-3 s^-1",
+  "depth_integrated_source_units": "erg cm^-2 s^-1 (generated power per slab area, not emergent flux)",
+  "max_absolute_ion_fraction_replay_error": 6.320987855357174e-08,
+  "FeI_V_Kalpha_production_per_area": 3001328405814.897,
+  "all_Fe_Kalpha_production_per_area": 87440730666288.56,
+  "all_Fe_fluorescence_Kalpha_production_per_area": 87440696183786.81,
+  "all_Fe_bound_bound_Kalpha_production_per_area": 34482501.77125491,
+  "low_fraction_of_all_Kalpha": 0.03432414600089811,
+  "low_fraction_of_fluorescence_Kalpha": 0.034324159536728405,
+  "FeI_V_fluorescence_power_by_parent": [
+    0.0,
+    0.0,
+    11259.514144102412,
+    775269666.157166,
+    3000553124889.225
+  ],
+  "FeI_V_bound_bound_power_by_emitter": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "fluorescence_parent_groups_fraction_of_all_Kalpha": {
+    "Fe_1_5": 0.0343241460008981,
+    "Fe_6_16": 0.8562609370190716,
+    "Fe_17_22": 0.1094145226271755,
+    "Fe_23_27": 0.0
+  },
+  "fraction_low_produced_tau_gt_1": 0.9223226046852918,
+  "fraction_low_produced_tau_gt_3": 0.34041698538820014,
+  "max_local_low_fraction": 0.46164518090988177,
+  "peak_low_emissivity_depth": 41,
+  "peak_low_emissivity_tau": 1.12715356789371,
+  "injected_Kalpha_source_after_survival_per_area": 87418847577318.31,
+  "low_grid_fraction_of_injected_Kalpha": 0.03431806298948621,
+  "fluorescence_grid_vs_true_energy_relative_difference": -0.00025026206239298077,
+  "protected_files_verified": 363
+}

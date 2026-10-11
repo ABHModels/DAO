@@ -1,3 +1,4 @@
+#include "run_log.h"
 #include "compton_kernel.h"
 #include "compton_cross_section.h"
 #include "kernel_row_spool.h"
@@ -330,8 +331,8 @@ static double energy_cell_kernel(double x, double mu, double mu1,
 // KernelCache implementation — banded storage with symmetry reduction
 // + detailed balance (upper triangle only)
 //
-// Binary cache file format (version 13, restored local electron quadrature):
-//   magic          [8 bytes]  "CKERN13\0"
+// Binary cache file format (version 11):
+//   magic          [8 bytes]  "CKERN11\0"
 //   NT,NE,NA_full,n_indep  [4×4 bytes]
 //   data_size      [8 bytes]
 //   T_grid         [NT doubles]
@@ -344,7 +345,7 @@ static double energy_cell_kernel(double x, double mu, double mu1,
 //   ghi            [NT*NE ints]
 //   data           [data_size doubles]
 // ============================================================
-static const char CACHE_MAGIC[8] = "CKERN13";
+static const char CACHE_MAGIC[8] = "CKERN11";
 
 // ------------------------------------------------------------
 // build_canon — compute symmetry reduction tables from NA_full
@@ -387,7 +388,7 @@ void KernelCache::build_canon()
 		canon[nm1_r * NA + nm_r ] = ia; // transpose + reflection
 	}
 
-	fprintf(stdout, "  KernelCache: NA=%d  independent angle pairs = %d"
+	dao_log::detail("  KernelCache: NA=%d  independent angle pairs = %d"
 	        " (expected %d)\n", NA, n_indep, max_indep);
 }
 
@@ -420,7 +421,7 @@ void KernelCache::save(const char* filename) const
 	fwrite(data,     sizeof(double), data_size, fp);
 	output.commit();
 
-	fprintf(stdout, "  KernelCache: saved to %s (%.1f MB)\n",
+	dao_log::detail("  KernelCache: saved to %s (%.1f MB)\n",
 	        filename, data_size * 8.0 / (1024.0 * 1024.0));
 }
 
@@ -433,8 +434,7 @@ bool KernelCache::load(const char* filename, const double* expected_ene_eV)
 	char magic[8];
 	if (fread(magic, 1, 8, fp) != 8 || memcmp(magic, CACHE_MAGIC, 8) != 0)
 	{
-		fprintf(stderr,
-			"  WARNING: cache file %s has wrong magic (expected \"%s\", got \"%.7s\")\n"
+		dao_log::error("  WARNING: cache file %s has wrong magic (expected \"%s\", got \"%.7s\")\n"
 			"           File may be from an older format version. Will recompute.\n",
 			filename, CACHE_MAGIC, magic);
 		fclose(fp); return false;
@@ -447,8 +447,7 @@ bool KernelCache::load(const char* filename, const double* expected_ene_eV)
 	fread(&fNI, sizeof(int), 1, fp);
 	if (fNT != NT || fNE != NE || fNA != NA_full || fNI != n_indep)
 	{
-		fprintf(stderr,
-			"  WARNING: cache file %s has mismatched dimensions:\n"
+		dao_log::error("  WARNING: cache file %s has mismatched dimensions:\n"
 			"           file: NT=%d NE=%d NA=%d NI=%d\n"
 			"           need: NT=%d NE=%d NA=%d NI=%d\n"
 			"           Will recompute.\n",
@@ -468,8 +467,7 @@ bool KernelCache::load(const char* filename, const double* expected_ene_eV)
 	delete[] fT;
 	if (!match)
 	{
-		fprintf(stderr,
-			"  WARNING: cache file %s has mismatched T_grid. Will recompute.\n",
+		dao_log::error("  WARNING: cache file %s has mismatched T_grid. Will recompute.\n",
 			filename);
 		fclose(fp); return false;
 	}
@@ -509,7 +507,7 @@ bool KernelCache::load(const char* filename, const double* expected_ene_eV)
 	data = payload.map(fp,size_t(data_size));
 	if(data) {
 		fclose(fp);
-		fprintf(stdout,"  KernelCache: mapped %s (%.1f MB virtual payload, demand-paged)\n",
+		dao_log::detail("  KernelCache: mapped %s (%.1f MB virtual payload, demand-paged)\n",
 		        filename,data_size*8.0/(1024.0*1024.0));
 		return true;
 	}
@@ -520,7 +518,7 @@ bool KernelCache::load(const char* filename, const double* expected_ene_eV)
 	if ((long)nread != data_size) return false;
 
 	double fill = 100.0 * data_size / (double(NT) * NE * n_indep * NE);
-	fprintf(stdout, "  KernelCache: loaded from %s (%.1f MB, %.1f%% indep-dense fill)\n",
+	dao_log::detail("  KernelCache: loaded from %s (%.1f MB, %.1f%% indep-dense fill)\n",
 	        filename, data_size * 8.0 / (1024.0 * 1024.0), fill);
 	return true;
 }
@@ -571,20 +569,19 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 
 	if (load(norm_file,ene_eV))
 	{
-		fprintf(stderr, "\n Load normalized Compton scattering kernel");
+		dao_log::detail("Loaded normalized Compton scattering kernel\n");
 		return;
 	}
 	if (load(raw_file,ene_eV))
 	{
-		fprintf(stderr,
-			"\n  WARNING: Loaded un-normalized kernel %s\n"
+		dao_log::error("\n  WARNING: Loaded un-normalized kernel %s\n"
 			"           Normalized kernel %s not found.\n"
 			"           Please run: ./normalize_kernel\n",
 			raw_file, norm_file);
 		return;
 	}
 
-	fprintf(stdout, "  KernelCache: no valid cache, computing "
+	dao_log::detail("  KernelCache: no valid cache, computing "
 	        "(banded, symmetry-reduced, upper-triangle)...\n");
 
 	// Convert energy grid to dimensionless x = E/(m_e c²)
@@ -611,7 +608,7 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 	const double KMIN_REL = 1e-10;
 
 	// --- Pass 1: find band limits (upper triangle only: ne1 >= ne) ---
-	fprintf(stdout, "  KernelCache: pass 1 — finding band limits (upper triangle)...\n");
+	dao_log::detail("  KernelCache: pass 1 — finding band limits (upper triangle)...\n");
 
 	computed_rows.evaluate(size_t(n_rows),size_t(NE),[&](size_t index,double* row_buf,int& lo_ne1,int& hi_ne1) {
 		const long r=long(index);
@@ -740,11 +737,11 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 	}
 
 	double fill = 100.0 * data_size / (double(NT) * NE * n_indep * NE);
-	fprintf(stdout, "  KernelCache: data_size = %ld doubles (%.1f MB, %.1f%% indep-dense fill)\n",
+	dao_log::detail("  KernelCache: data_size = %ld doubles (%.1f MB, %.1f%% indep-dense fill)\n",
 	        data_size, data_size * 8.0 / (1024.0 * 1024.0), fill);
 
 	// Reuse the exact values evaluated during the band scan.
-	fprintf(stdout, "  KernelCache: normalizing retained rows one temperature at a time...\n");
+	dao_log::detail("  KernelCache: normalizing retained rows one temperature at a time...\n");
 	KernelCacheOutput output(norm_file);
 	write_header(output.file());
 	const off_t payload_offset=::ftello(output.file());
@@ -753,11 +750,11 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 	// --- Normalize via A23 sum rule (Poutanen & Svensson 1996, Eq. A23) ---
 	// K() accessor handles both triangles (direct + detailed balance),
 	// so the normalization sum covers the full energy range correctly.
-	fprintf(stdout, "  Normalizing kernel via A23 sum rule...\n");
+	dao_log::detail("  Normalizing kernel via A23 sum rule...\n");
 
 	for (int iT = 0; iT < NT; ++iT)
 	{
-		fprintf(stdout, "    T=%.2e K (%d/%d)...", T_grid[iT], iT + 1, NT);
+		dao_log::detail("    T=%.2e K (%d/%d)...", T_grid[iT], iT + 1, NT);
 		fflush(stdout);
 		data=computed_rows.view(payload,size_t(data_size));
 
@@ -812,7 +809,7 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 		for (int i=0;i<NE;++i) {
 			const double ratio=norm[i];
 			if (!(ratio>0) || !std::isfinite(ratio)) {
-				fprintf(stderr,"kernel normalization failed: T=%g E=%g eV index=%d ratio=%g\n",
+				dao_log::error("kernel normalization failed: T=%g E=%g eV index=%d ratio=%g\n",
 				        T_grid[iT],ene_eV[i],i,ratio);
 				throw std::runtime_error("kernel: zero or nonfinite scattering normalization");
 			}
@@ -840,13 +837,13 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 		const long end=(iT+1<NT)?band_off[long(iT+1)*NE*n_indep]:data_size;
 		if(end>begin && fwrite(data+begin,sizeof(double),size_t(end-begin),output.file())!=size_t(end-begin))
 			throw std::runtime_error("kernel: normalized temperature write failed");
-		fprintf(stdout, " done.\n");
+		dao_log::detail(" done.\n");
 	}
 
 	// Save normalized kernel
 	data=output.map_payload(payload,size_t(data_size),payload_offset);
 	output.commit();
-	fprintf(stdout, "  Saved normalized kernel to %s\n", norm_file);
+	dao_log::detail("  Saved normalized kernel to %s\n", norm_file);
 }
 
 void KernelCache::free_memory()

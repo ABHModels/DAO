@@ -1,3 +1,4 @@
+#include "run_log.h"
 #include "cloudy_interface.h"
 #include "constants.h"
 #include "cddefines.h"
@@ -330,7 +331,7 @@ static void write_line_escape_diagnostics(
 			        tab_safe(d.label).c_str(), tab_safe(d.comment).c_str());
 		}
 		fclose(fp);
-		fprintf(stdout, "  Saved: %s\n", fname);
+		dao_log::detail("  Saved: %s\n", fname);
 	}
 
 	std::vector<int> selected;
@@ -491,8 +492,85 @@ static void write_line_escape_diagnostics(
 			}
 		}
 		fclose(fp);
-		fprintf(stdout, "  Saved: %s\n", fname);
+		dao_log::detail("  Saved: %s\n", fname);
 	}
+}
+
+namespace {
+struct LineProbabilities { double beta, Pelec, Pdest, denom, P; };
+LineProbabilities line_probabilities(const LineRec& r, const RadField& rad,
+                                    int id, double tau_in, double tau_out)
+{
+	// beta: two-sided line escape probability.
+	double beta = 0.5 * (esc_oneside(r.redis, tau_in,  r.damp)
+	                   + esc_oneside(r.redis, tau_out, r.damp));
+
+	// Pdest: continuum absorption after the photon is trapped in the line.
+	// Direct continuum attenuation is handled later by the RT solver.
+	double Pdest = 0.0;
+	if (beta < 1.0 && r.kappaL > 0.0)
+	{
+		// Continuum true absorption at h*nu_ul.
+		const double conopc = rad.kabs[id][r.bin];
+		if (conopc > 0.0)
+		{
+			const double sqrt_pi = 1.7724538509055160273;
+			// eps = continuum absorption / (line-center absorption + continuum).
+			const double eps = conopc / (sqrt_pi * r.kappaL + conopc);
+
+			// Convert per-encounter eps into a trapping destruction probability.
+			double dfit;
+			if (r.redis == ipLY_A)
+			{
+				// H Lya: tau-dependent Hummer-Kunasz fit; remove Thomson
+				// scattering because Pelec handles it as an escape channel.
+				auto lya_side = [&](double tau) -> double
+				{
+					double taulog = (tau > 0.0) ?
+						log10(std::min(1.0e8, sqrt_pi * tau)) : 0.0;
+					double den = 0.30972 -
+						std::min(0.28972, 0.03541667 * taulog);
+					return eps / den;
+				};
+				dfit = 0.5 * (lya_side(tau_in) + lya_side(tau_out));
+				const double ktot = conopc + rad.ksct[id][r.bin];
+				if (ktot > 0.0)
+					dfit *= conopc / ktot;
+			}
+			else
+			{
+				dfit = std::min(1.0e-3, 8.5 * eps);
+				dfit /= 1.0 + dfit;
+			}
+
+			// Only trapped photons can be destroyed by continuum absorption.
+			Pdest = (1.0 - beta) * dfit;
+			if (Pdest < 0.0) Pdest = 0.0;
+			if (Pdest > 1.0 - beta) Pdest = 1.0 - beta;
+		}
+	}
+
+	// Pelec: electron scattering shifts a trapped photon out of the line core.
+	double Pelec = 0.0;
+	if (beta < 1.0 && r.kappaLo > 0.0)
+	{
+		const double kelec = rad.n_e[id] * SIGMA_THOMSON;
+		Pelec = kelec / (kelec + r.kappaLo)
+		      * std::max(0.0, 1.0 - beta - Pdest);
+	}
+
+	// Final surviving fraction
+	// a. normal escape probability (CRD,PRD,etc.);
+	// b. line scattering escape probability;
+	// c. collisional de-excitation
+	// d. destruction in random walk.
+	double denom = beta + Pelec + r.y + Pdest;
+	double P = (denom > 0.0) ?
+		(beta + Pelec) * (1.0 + r.y) / denom : 1.0;
+	if (P < 0.0) P = 0.0;
+	if (P > 1.0) P = 1.0;
+    return {beta,Pelec,Pdest,denom,P};
+}
 }
 
 // Second pass over the full slab: apply column-scale line escape.
@@ -508,7 +586,8 @@ static void write_line_escape_diagnostics(
 // H_Pdest   = emiss*(1+y)*Pdest/(beta + Pelec + y + Pdest)
 // P          = (beta + Pelec)*(1+y)/(beta + Pelec + y + Pdest)
 // j_line     = emiss * P / (dE * 4pi)
-// H_Pdest is accumulated in rad.line_heat for the next Cloudy thermal pass.
+// H_Pdest is a destruction-power diagnostic. Production clears rad.line_heat;
+// trapping losses reduce net line cooling, not an added Cloudy heat source.
 void apply_line_escape(RadField& rad, const RTGrids& g,
                        const std::vector<std::vector<LineRec>>& store,
                        const ModelParams& par, int iter,
@@ -600,74 +679,9 @@ void apply_line_escape(RadField& rad, const RTGrids& g,
 			if (tau_in  < 0.0) tau_in  = 0.0;
 			if (tau_out < 0.0) tau_out = 0.0;
 
-			// beta: two-sided line escape probability.
-			double beta = 0.5 * (esc_oneside(r.redis, tau_in,  r.damp)
-			                   + esc_oneside(r.redis, tau_out, r.damp));
-
-			// Pdest: continuum absorption after the photon is trapped in the line.
-			// Direct continuum attenuation is handled later by the RT solver.
-			double Pdest = 0.0;
-			if (beta < 1.0 && r.kappaL > 0.0)
-			{
-				// Continuum true absorption at h*nu_ul.
-				const double conopc = rad.kabs[id][r.bin];
-				if (conopc > 0.0)
-				{
-					const double sqrt_pi = 1.7724538509055160273;
-					// eps = continuum absorption / (line-center absorption + continuum).
-					const double eps = conopc / (sqrt_pi * r.kappaL + conopc);
-
-					// Convert per-encounter eps into a trapping destruction probability.
-					double dfit;
-					if (r.redis == ipLY_A)
-					{
-						// H Lya: tau-dependent Hummer-Kunasz fit; remove Thomson
-						// scattering because Pelec handles it as an escape channel.
-						auto lya_side = [&](double tau) -> double
-						{
-							double taulog = (tau > 0.0) ?
-								log10(std::min(1.0e8, sqrt_pi * tau)) : 0.0;
-							double den = 0.30972 -
-								std::min(0.28972, 0.03541667 * taulog);
-							return eps / den;
-						};
-						dfit = 0.5 * (lya_side(tau_in) + lya_side(tau_out));
-						const double ktot = conopc + rad.ksct[id][r.bin];
-						if (ktot > 0.0)
-							dfit *= conopc / ktot;
-					}
-					else
-					{
-						dfit = std::min(1.0e-3, 8.5 * eps);
-						dfit /= 1.0 + dfit;
-					}
-
-					// Only trapped photons can be destroyed by continuum absorption.
-					Pdest = (1.0 - beta) * dfit;
-					if (Pdest < 0.0) Pdest = 0.0;
-					if (Pdest > 1.0 - beta) Pdest = 1.0 - beta;
-				}
-			}
-
-			// Pelec: electron scattering shifts a trapped photon out of the line core.
-			double Pelec = 0.0;
-			if (beta < 1.0 && r.kappaLo > 0.0)
-			{
-				const double kelec = rad.n_e[id] * SIGMA_THOMSON;
-				Pelec = kelec / (kelec + r.kappaLo)
-				      * std::max(0.0, 1.0 - beta - Pdest);
-			}
-
-			// Final surviving fraction
-			// a. normal escape probability (CRD,PRD,etc.);
-			// b. line scattering escape probability;
-			// c. collisional de-excitation
-			// d. destruction in random walk.
-			double denom = beta + Pelec + r.y + Pdest;
-			double P = (denom > 0.0) ?
-				(beta + Pelec) * (1.0 + r.y) / denom : 1.0;
-			if (P < 0.0) P = 0.0;
-			if (P > 1.0) P = 1.0;
+			const auto probability = line_probabilities(r,rad,id,tau_in,tau_out);
+			const double beta=probability.beta, Pelec=probability.Pelec;
+			const double Pdest=probability.Pdest, denom=probability.denom, P=probability.P;
 
 			// Assume the line photons, which destroyed by continuum absorption, 
 			// are all contribute to the thermal source.
@@ -787,19 +801,14 @@ void CloudyInput::issue_depth(int id, const RadField& rad, const RTGrids& g,cons
 	snprintf(buf, sizeof(buf), "intensity %.8f range %.8f to %.8f",(rad.log_xi[id]-log10(phys::four_pi))+par.nh,E_loryd,E_hiryd);
 	cdRead(buf);
 
-	// Feed the previous RT pass's destroyed line power back into Cloudy's
-	// local thermal balance. HEXTRA expects log10(erg cm^-3 s^-1).
-	if (rad.line_heat[id] > 0.0 && std::isfinite(rad.line_heat[id]))
-	{
-		snprintf(buf, sizeof(buf), "hextra %.8f", log10(rad.line_heat[id]));
-		cdRead(buf);
-	}
+	// Internal trapping losses already reduce the emitted line source used by
+	// DAO's temperature residual. They are not imposed as external HEXTRA.
 }
 
 // Bootstrap Cloudy once to extract its energy grid.
 void bootstrap_cloudy_energy_grid(RTGrids& g, const char* save_file)
 {
-	fprintf(stdout, "Bootstrapping Cloudy for energy grid...\n");
+	dao_log::detail("Bootstrapping Cloudy for energy grid...\n");
 
 	cdInit();
 	cdTalk(false);
@@ -824,12 +833,12 @@ void bootstrap_cloudy_energy_grid(RTGrids& g, const char* save_file)
 	g.init_energy_from_cloudy(nf, anu.data(), widf.data());
 	g.save_energy(save_file);
 
-	fprintf(stdout, "  Energy grid: NE=%d  E=[%.3f, %.3f] eV\n",
+	dao_log::detail("  Energy grid: NE=%d  E=[%.3f, %.3f] eV\n",
 	        g.NE, g.ene[0], g.ene[g.NE - 1]);
 
 	char buf[256];
 	cdVersion(buf);
-	fprintf(stdout, "  Cloudy version: %s\n",buf);
+	dao_log::detail("  Cloudy version: %s\n",buf);
 }
 
 // Final post-convergence pass: same SED as issue_depth(), plus dump iron fractions.
@@ -865,4 +874,46 @@ void CloudyInput::issue_depth_lastest(int id, const RadField& rad, const RTGrids
 	snprintf(fname, sizeof(fname), "\"%s%i.iron\"", par.run_hash,id);
 	snprintf(buf, sizeof(buf), "save element iron %s", fname);
 	cdRead(buf);
+}
+
+// Freeze only OTHER cells' line optical depths during a local temperature solve.
+// The trial cell's opacity, destruction, quenching and emissivity are recomputed.
+FrozenLineColumn::FrozenLineColumn(const RTGrids& g,
+                                  const std::vector<std::vector<LineRec>>& store)
+{
+    for(int d=0;d<g.ND_MID;++d) for(const auto& r:store[d]) {
+        auto& v=depths[r.ip];
+        if(v.empty()) v.resize(g.ND_MID);
+        v[d][0]=r.kappaL*g.dr[d];
+    }
+    for(auto& item:depths) {
+        auto& v=item.second;
+        double prefix=0;
+        for(int d=0;d<g.ND_MID;++d) {
+            double cell=v[d][0]; v[d][0]=prefix; prefix+=cell; v[d][1]=cell;
+        }
+        // Reverse accumulation avoids subtracting nearly equal total/prefix.
+        double suffix=0;
+        for(int d=g.ND_MID-1;d>=0;--d) {
+            double cell=v[d][1]; v[d][1]=suffix; suffix+=cell;
+        }
+    }
+}
+
+void apply_frozen_line_escape(int id, RadField& rad, const RTGrids& g,
+                              const std::vector<LineRec>& lines,
+                              const FrozenLineColumn& column)
+{
+    for(const auto& r:lines) {
+        auto it=column.depths.find(r.ip);
+        const double left=it==column.depths.end() ? 0 : it->second[id][0];
+        const double right=it==column.depths.end() ? 0 : it->second[id][1];
+        const double own=0.5*r.kappaL*g.dr[id];
+        auto p=line_probabilities(r,rad,id,std::max(0.0,left+own),std::max(0.0,right+own));
+        rad.jnu_line[id][r.bin]+=r.emiss/(r.dE_eV*phys::four_pi)*p.P;
+    }
+    for(int e=0;e<g.NE;++e) rad.jnu[id][e]+=rad.jnu_line[id][e];
+    // Internal trapping losses are already included by the reduced source.
+    // They are not a separately imposed external heating term.
+    rad.line_heat[id]=0;
 }

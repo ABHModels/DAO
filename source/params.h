@@ -9,7 +9,7 @@ struct ModelParams
 	// --- Slab physical parameters ---
 	double nh;         // log hydrogen column density [cm^-3]
 	double zeta;       // ionization parameter exponent: xi = 10^zeta [erg cm s^-1]
-	double frac;       // flux ratio: F_corona / F_disk
+	double frac;       // ratio of corona/disk spectral normalizations; <=0: corona only
 	double incidence;  // cosine of incidence angle; -2 selects isotropic top illumination
 	int    i_incidence; // index into mu_gl[], or -1 for isotropic top illumination
 
@@ -26,6 +26,8 @@ struct ModelParams
 	double kT_disk;    // disk blackbody temperature [eV]
 
 	// --- RT solver ---
+	static constexpr double thermal_column_tolerance = 1e-2; // both-face energy closure and absolute volume residual
+	bool   log_depth = true; // true: log-uniform depth edges; false: tanh in log(tau)
 	double E_rt_lo;    // RT energy range lower bound [eV]
 	double E_rt_hi;    // RT energy range upper bound [eV]
 	int    maxiter;    // maximum Lambda iterations
@@ -45,6 +47,9 @@ struct ModelParams
 	char run_hash[12];   // 8-char hex hash of all physics params
 	char run_dir[256];   // "results/<hash>/"
 	std::string label;  // optional run description; excluded from the physics hash
+	bool verbose = false; // echo run.log diagnostics; excluded from the physics hash
+	bool save_oxygen = false; // -O: final converged ionic fractions; output only
+	bool save_iron = false;   // -Fe: final converged ionic fractions; output only
 
 	// --- kernel type ---
 	int ktype; // 0: approximation QED kernel 1: Exactly

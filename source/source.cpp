@@ -92,7 +92,7 @@ void compute_source_function(
 
 				S_sct = trapz * x * x;
 			}
-			source[sidx3(nd, nm, ne)] = S_th + 1.21 * n_h * phys::sigma_T / ktot * S_sct;
+			source[sidx3(nd, nm, ne)] = S_th + phys::reference_electrons_per_hydrogen * n_h * phys::sigma_T / ktot * S_sct;
 		}
 		}
 	});
@@ -164,7 +164,7 @@ void avgcompute_source_function(
 			}
 
 			// Source function is identical for every angle.
-			double S_val = S_th + 1.21 * n_h * phys::sigma_T / ktot * S_sct;
+			double S_val = S_th + phys::reference_electrons_per_hydrogen * n_h * phys::sigma_T / ktot * S_sct;
 			for (int nm = 0; nm < NM; ++nm)
 				source[sidx3(nd, nm, ne)] = S_val;
 		}

@@ -1,0 +1,77 @@
+{
+  "inputs": {
+    "DAO": {
+      "input": "input/DAO_standard.dat",
+      "sha256": "5cd10f0b8ccee69bd39b419775071b353dfd0eac39d7de7891722f7862812030",
+      "broadband_EF_E_divisor": 7.883779717296255e+18,
+      "soft_EF_E_divisor": 4.4074530694994657e+18,
+      "inset_native_EF_E_divisor": 1.1466244753505847e+19
+    },
+    "DAO (all P=1)": {
+      "input": "input/DAO_all_P1.dat",
+      "sha256": "5df638f3a5efeb1365574a6e38e200069ba4ceb5fc21d361b263f8bd65a27732",
+      "broadband_EF_E_divisor": 7.883779717296255e+18,
+      "soft_EF_E_divisor": 4.4074530694994657e+18,
+      "inset_native_EF_E_divisor": 1.1466244753505847e+19
+    },
+    "reflionx": {
+      "input": "input/reflionx_flux_cgs.dat",
+      "sha256": "5952bce59d5be09573f2a4768e3f4f05a69944fb55af6ac98768c80800978fab",
+      "broadband_EF_E_divisor": 9.034031290541736e+18,
+      "soft_EF_E_divisor": 5.46759248519094e+18,
+      "inset_native_EF_E_divisor": 1.7353352644662254e+19
+    },
+    "xillverCp": {
+      "input": "input/xillverCp_angle_average.dat",
+      "sha256": "2d26c762683ca5631be3734c24d0213c7e7ffea4d193420db701c462d529686d",
+      "broadband_EF_E_divisor": 9.477322399703008e-08,
+      "soft_EF_E_divisor": 4.392640742885796e-08,
+      "inset_native_EF_E_divisor": 8.880962906784713e-08
+    }
+  },
+  "reference": "https://academic.oup.com/mnras/article/543/3/2633/8268889",
+  "reference_figure": 10,
+  "left": {
+    "xlim_keV": [
+      0.1,
+      1000.0
+    ],
+    "ylim": [
+      0.01,
+      100.0
+    ],
+    "normalization": "Mean E F_E over 20--50 keV, integrated on the DAO grid"
+  },
+  "right": {
+    "xlim_keV": [
+      0.3,
+      2.3
+    ],
+    "ylim": [
+      0.8,
+      40.0
+    ],
+    "ordinate": "E F_E / [E F_E at 2.25 keV]",
+    "normalization": "Reference models and standard DAO aligned at 2.25 keV; P=1 DAO uses the standard DAO divisor"
+  },
+  "inset": {
+    "xlim_keV": [
+      0.525,
+      0.8
+    ],
+    "ylim": [
+      0.5,
+      12.0
+    ],
+    "normalization": "Native E F_E divided by mean at 0.55 and 0.75 keV; both DAO curves share the standard DAO divisor",
+    "endpoint_interpolation": "Linear interpolation to the two normalization energies only",
+    "sampling": "Native energy samples, connected by straight segments",
+    "smoothing": false
+  },
+  "all_axes": "Logarithmic energy and flux",
+  "main_sampling": "Native grids, no smoothing",
+  "model_runs": "DAO standard 5b7fe321; DAO all P=1 fe48cbde, with full thermal convergence; reference models from previous comparison",
+  "control_normalization": "Both DAO curves share the standard DAO divisors in every panel",
+  "continuum_subtraction": false,
+  "equivalent_width": false
+}

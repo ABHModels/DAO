@@ -1,0 +1,194 @@
+{
+  "run": "a518ab75",
+  "iteration": 33,
+  "geometry": "48 fixed cells; tau_ref,max=5; 8 GL angles; angle-mean scattering",
+  "experiment": "Only Fe XXV w (29773) and x (29767) survival factors are set to 1 in case B. Other lines, continuum, opacities, temperature, ion fractions and scattering stay fixed.",
+  "caveat": "Fixed-atmosphere response with original boundary illumination; no new temperature or ionization-structure solution.",
+  "flux_definition": "Upper-face outward flux 2*pi*sum(mu>0, w_mu*mu*I_top), matching paper; lower-face fluxes saved separately.",
+  "integration": "Piecewise-linear flux integration over exact requested band boundaries. No smoothing. Common reference bins use geometric edges of reflionx energy samples.",
+  "baseline_normalization_divisor": 481925209988068.9,
+  "validation": {
+    "baseline_relative_L1_all": 6.937238134977184e-08,
+    "baseline_relative_L1_Fe_K": 4.419538935629725e-08,
+    "baseline_max_relative_Fe_K": 2.0028930269866407e-07,
+    "max_energy_identity": 1.28474423725506e-08,
+    "max_photon_identity": 1.0095851980928741e-08
+  },
+  "case_budgets": {
+    "full_survival": {
+      "wall_seconds": 0.075901208,
+      "F_in": 7.957747154594736e+16,
+      "F_upper": 6.225398943142194e+16,
+      "F_lower": 1.73506147956414e+16,
+      "volume_emission": 7.18311875163288e+16,
+      "volume_R": -27133703482947.84,
+      "energy_identity": -1.28474423725506e-08,
+      "photon_identity": -1.0095851980928741e-08,
+      "source_iterations": 6,
+      "final_max_relative_change": 4.122516e-08
+    },
+    "full_wx_P1": {
+      "wall_seconds": 0.30051425,
+      "F_in": 7.957747154594736e+16,
+      "F_upper": 6.226248009222035e+16,
+      "F_lower": 1.735061577603685e+16,
+      "volume_emission": 7.184975337756733e+16,
+      "volume_R": -35624477364864.44,
+      "energy_identity": -1.948478902700151e-09,
+      "photon_identity": -1.0552280768620885e-09,
+      "source_iterations": 27,
+      "final_max_relative_change": 2.486153e-08
+    }
+  },
+  "bands": {
+    "narrow_core_6.60_6.73": {
+      "band_keV": [
+        6.6,
+        6.73
+      ],
+      "upper_powers_erg_cm2_s": {
+        "full_survival": 211913982277760.38,
+        "full_wx_P1": 216616044364209.0
+      },
+      "total_spectrum_increase_percent": 2.218854101040635
+    },
+    "Fe_K_6.2_7.1": {
+      "band_keV": [
+        6.2,
+        7.1
+      ],
+      "upper_powers_erg_cm2_s": {
+        "full_survival": 717388362681468.1,
+        "full_wx_P1": 725132271148959.6
+      },
+      "total_spectrum_increase_percent": 1.0794583339136077
+    },
+    "expanded_5_8": {
+      "band_keV": [
+        5.0,
+        8.0
+      ],
+      "upper_powers_erg_cm2_s": {
+        "full_survival": 1801748233296170.2,
+        "full_wx_P1": 1810236130669491.2
+      },
+      "total_spectrum_increase_percent": 0.47109231003894525
+    },
+    "broad_3_10": {
+      "band_keV": [
+        3.0,
+        10.0
+      ],
+      "upper_powers_erg_cm2_s": {
+        "full_survival": 3735391815060563.5,
+        "full_wx_P1": 3743882158984991.0
+      },
+      "total_spectrum_increase_percent": 0.2272946010695831
+    },
+    "all_energies": {
+      "band_keV": [
+        0.0010025113833645313,
+        997.5143831257409
+      ],
+      "upper_powers_erg_cm2_s": {
+        "full_survival": 6.225398943142163e+16,
+        "full_wx_P1": 6.226248009222031e+16
+      },
+      "total_spectrum_increase_percent": 0.013638741671373467
+    }
+  },
+  "peak": {
+    "energy_keV": 6.691698524822754,
+    "baseline_flux_erg_cm2_s_keV": 2350303842606858.5,
+    "P1_flux_erg_cm2_s_keV": 2467470629966474.5,
+    "total_peak_increase_percent": 4.985176181716988
+  },
+  "paper_comparison": {
+    "DAO, survival": {
+      "native_peak_Fhat": 4.876905781013294,
+      "common_bin_peak_Fhat": 3.4701672236965626,
+      "bands": {
+        "narrow_core_6.60_6.73": {
+          "normalized_total_integral_keV": 0.43972379507394266,
+          "approximate_continuum_subtracted_integral_keV": 0.31369395767881203
+        },
+        "Fe_K_6.2_7.1": {
+          "normalized_total_integral_keV": 1.4885885772591743,
+          "approximate_continuum_subtracted_integral_keV": 0.6146856917613638
+        },
+        "expanded_5_8": {
+          "normalized_total_integral_keV": 3.7386469849559774,
+          "approximate_continuum_subtracted_integral_keV": 0.7768787588920318
+        }
+      }
+    },
+    "DAO, w+x P=1": {
+      "native_peak_Fhat": 5.120028126413146,
+      "common_bin_peak_Fhat": 3.567283005517539,
+      "bands": {
+        "narrow_core_6.60_6.73": {
+          "normalized_total_integral_keV": 0.4494806245341924,
+          "approximate_continuum_subtracted_integral_keV": 0.32345078713906183
+        },
+        "Fe_K_6.2_7.1": {
+          "normalized_total_integral_keV": 1.504657270714084,
+          "approximate_continuum_subtracted_integral_keV": 0.6307543852162735
+        },
+        "expanded_5_8": {
+          "normalized_total_integral_keV": 3.756259463401608,
+          "approximate_continuum_subtracted_integral_keV": 0.7944912373376627
+        }
+      }
+    },
+    "reflionx": {
+      "native_peak_Fhat": 4.4180939813745965,
+      "common_bin_peak_Fhat": 4.027630389949527,
+      "bands": {
+        "narrow_core_6.60_6.73": {
+          "normalized_total_integral_keV": 0.5056682784929548,
+          "approximate_continuum_subtracted_integral_keV": 0.38161414710756686
+        },
+        "Fe_K_6.2_7.1": {
+          "normalized_total_integral_keV": 2.0360229163182146,
+          "approximate_continuum_subtracted_integral_keV": 1.1751930258624932
+        },
+        "expanded_5_8": {
+          "normalized_total_integral_keV": 4.309832288339578,
+          "approximate_continuum_subtracted_integral_keV": 1.3698933892805116
+        }
+      }
+    },
+    "xillvercp": {
+      "native_peak_Fhat": 7.018856803817795,
+      "common_bin_peak_Fhat": 4.260328997335626,
+      "bands": {
+        "narrow_core_6.60_6.73": {
+          "normalized_total_integral_keV": 0.5009102064769342,
+          "approximate_continuum_subtracted_integral_keV": 0.37569666661010004
+        },
+        "Fe_K_6.2_7.1": {
+          "normalized_total_integral_keV": 1.7739747551993659,
+          "approximate_continuum_subtracted_integral_keV": 0.90546825764869
+        },
+        "expanded_5_8": {
+          "normalized_total_integral_keV": 3.948892111990931,
+          "approximate_continuum_subtracted_integral_keV": 0.9959854154959893
+        }
+      }
+    }
+  },
+  "paper_comparison_caveat": "Endpoint-normalized complete spectra, with approximate 5-8 keV power-law continua.",
+  "completed": {
+    "state": "completed",
+    "cases": 2,
+    "thermal_iterations": 0,
+    "maxiter": 2000,
+    "RT_tolerance": 1e-07,
+    "consecutive_passes": 3,
+    "case_names": [
+      "full_survival",
+      "full_wx_P1"
+    ],
+    "scope": "Completion metadata retained for the two full-spectrum cases from the original run."
+  }
+}

@@ -1,13 +1,17 @@
 #include "test_rt.h"
 #include "rt_grids.h"
 #include "constants.h"
-#include "compton_cross_section.h"
 #include "compton_rt.h"
 #include "corona_models.h"   // blackbody()
 
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <algorithm>
+#include <fstream>
+#include <iomanip>
+#include <stdexcept>
+#include "run_log.h"
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -19,11 +23,9 @@ static void fill_test_data(RadField& rad, const RTGrids& g,
                            double nh, double T_slab)
 {
 	const double nH  = pow(10.0, nh);
-	const double n_e = 1.21 * nH;
+	const double n_e = phys::reference_electrons_per_hydrogen * nH;
 
-	// The opacity helper takes nH and applies n_e/nH=1.21 internally.
-	// Passing n_e here would apply that factor twice.
-	compute_compton_opacity(rad.ksct[0], g.NE, g.ene, T_slab, nH);
+	// The shared scattering operator supplies opacity when the slab is solved.
 
 	for (int id = 0; id < g.ND_MID; ++id)
 	{
@@ -36,9 +38,6 @@ static void fill_test_data(RadField& rad, const RTGrids& g,
 			rad.jnu[id][ie]  = 0.0;
 		}
 
-		// Copy ksct from depth 0
-		if (id > 0)
-			memcpy(rad.ksct[id], rad.ksct[0], g.NE * sizeof(double));
 
 		rad.heating[id] = 0.0;
 		rad.line_heat[id] = 0.0;
@@ -49,6 +48,46 @@ static void fill_test_data(RadField& rad, const RTGrids& g,
 	fprintf(stdout, "Test mode: pure scattering atmosphere\n");
 	fprintf(stdout, "  T=%.1e K  kT=%.2f eV  n_e=%.3e cm^-3\n",
 		T_slab, kb_eV * T_slab, n_e);
+}
+
+// Prescribed-temperature tests share production's RT and scattering operator.
+// Hot electrons exchange energy with photons, so Fout need not equal Fin.
+// Photon number and the signed boundary/volume energy identity must still hold.
+template<class Cache>
+static void solve_test_slab(RadField& rad,const RTGrids& g,
+                            const ModelParams& par,const Cache& cache)
+{
+    const auto ops=make_scattering_column(rad,g,cache);
+    compton_rt_solve(rad,g,par,ops);
+    const auto w=dao_thermal::energy_weights(g.NE,g.ene);
+    double fin=0,fout=0,nin=0,nout=0,volume=0;
+    for(int m=0;m<g.NA;++m) for(int e=0;e<g.NE;++e) {
+        const double weight=0.5*phys::four_pi*g.wt[m]*std::abs(g.mu[m])*w[e];
+        const double in=g.mu[m]<0 ? rad.Inu_top[m][e] : rad.Inu_bottom[m][e];
+        const double out=g.mu[m]<0 ? rad.Inu_bottom[m][e] : rad.Inu_top[m][e];
+        fin+=weight*in;fout+=weight*out;
+        nin+=weight*in/(g.ene[e]*phys::eV_to_erg);
+        nout+=weight*out/(g.ene[e]*phys::eV_to_erg);
+    }
+    std::vector<double> intensity(g.NA*g.NE);
+    for(int d=0;d<g.ND_MID;++d) {
+        for(int m=0;m<g.NA;++m)
+            std::copy(rad.Inu[d][m],rad.Inu[d][m]+g.NE,intensity.data()+m*g.NE);
+        volume+=dao_thermal::budget(g.NE,w.data(),rad.J0[d],rad.kabs[d],rad.jnu[d],ops[d],
+                                    par.angsca ? intensity.data() : nullptr).residual()*g.dr[d];
+    }
+    const double photons=nout/nin-1,identity=(fout-fin+volume)/fin;
+    if(!std::isfinite(photons) || !std::isfinite(identity) ||
+       std::abs(photons)>1e-6 || std::abs(identity)>1e-6)
+        throw std::runtime_error("RT benchmark: photon or boundary/volume energy conservation failed");
+    std::ofstream file(std::string(par.run_dir)+"/test_rt_budget.json");
+    if(!file) throw std::runtime_error("Cannot write RT benchmark budget");
+    file<<std::setprecision(16)<<"{\n  \"incoming_flux\": "<<fin
+        <<",\n  \"outgoing_flux\": "<<fout<<",\n  \"volume_residual\": "<<volume
+        <<",\n  \"incoming_photons\": "<<nin<<",\n  \"outgoing_photons\": "<<nout
+        <<",\n  \"relative_photon_error\": "<<photons
+        <<",\n  \"energy_identity_error\": "<<identity<<"\n}\n";
+    dao_log::info("RT check:   photon error %.3e | energy identity %.3e\n",photons,identity);
 }
 
 // ============================================================
@@ -87,7 +126,7 @@ static void save_emergent_compps(const RadField& rad, const RTGrids& g,
 	fprintf(fp, "# kTe=%.3f keV  kTbb=%.3f keV  tau_T=%.3f  geom=slab\n",
 	        Te_keV, par.kT_bb, par.tau_slab);
 	fprintf(fp, "# Col 1: E [eV]\n");
-	fprintf(fp, "# Col 2: I_corona (incident, =0 here)\n");
+	fprintf(fp, "# Col 2: F_corona (incident normal flux) [erg cm^-2 s^-1 eV^-1]\n");
 	fprintf(fp, "# Col 3: I_disk   (bottom blackbody seed, incident)\n");
 	for (int nm = 0; nm < g.NA; ++nm)
 		fprintf(fp, "# Col %d: I_emergent(mu=%.6f)\n", nm + 4, g.mu[nm]);
@@ -126,7 +165,7 @@ static void save_emergent_tavg(const RadField& rad, const RTGrids& g,
 	fprintf(fp, "# kTe=%.3f keV  kTbb=%.3f keV  tau_T=%.3f  geom=slab\n",
 	        Te_keV, par.kT_bb, par.tau_slab);
 	fprintf(fp, "# Col 1: E [eV]\n");
-	fprintf(fp, "# Col 2: I_corona (incident, =0 here)\n");
+	fprintf(fp, "# Col 2: F_corona (incident normal flux) [erg cm^-2 s^-1 eV^-1]\n");
 	fprintf(fp, "# Col 3: I_disk   (bottom blackbody seed, incident)\n");
 	for (int nm = 0; nm < g.NA; ++nm)
 		fprintf(fp, "# Col %d: I_emergent(mu=%.6f)\n", nm + 4, g.mu[nm]);
@@ -169,14 +208,13 @@ static void run_test_rt_compps(RadField& rad, const RTGrids& g,
 	fill_test_data(rad, g, par.nh, Te_K);
 
 	// Illumination: no top source; isotropic blackbody seed at kTbb
-	// enters from the bottom (compute_boundary_illumination uses
-	// ill_top = 2*I_corona/wt[i_inc], ill_bot = 2*I_disk).
+	// enters from the bottom with specific intensity ill_bot = 2*I_disk.
 	blackbody(rad.illum.I_disk, g, par.kT_bb * 1.0e3);
 	for (int ie = 0; ie < g.NE; ++ie)
 		rad.illum.I_corona[ie] = 0.0;
 
-	// Normalise the seed flux to Fx = xi*nH/(4pi)^2, exactly as
-	// IllumSpec::compute does in the main program (xi = (4pi)^2 J / nH).
+	// Prescribed bottom-seed mean intensity for the compPS shape benchmark.
+	// Retain its reference amplitude; this is not coronal illumination.
 	double raw_disk = 0.0;
 	for (int ie = 0; ie < g.NE - 1; ++ie)
 	{
@@ -186,14 +224,14 @@ static void run_test_rt_compps(RadField& rad, const RTGrids& g,
 	}
 	double xi = pow(10.0, par.zeta);
 	double nH = pow(10.0, par.nh);
-	double Fx = xi * nH / pow(phys::four_pi, 2);
-	double scale_disk = Fx / raw_disk;
+	double J_seed = xi * nH / pow(phys::four_pi, 2);
+	double scale_disk = J_seed / raw_disk;
 	for (int ie = 0; ie < g.NE; ++ie)
 		rad.illum.I_disk[ie] *= scale_disk;
 
-	fprintf(stdout, "  Seed normalised: Fx=%.4e  raw_disk=%.4e\n", Fx, raw_disk);
+	fprintf(stdout, "  Seed mean intensity: J_seed=%.4e  raw_disk=%.4e\n", J_seed, raw_disk);
 
-	compton_rt_solve(rad, g, par, kcache, par.maxiter);
+	solve_test_slab(rad, g, par, kcache);
 	rad.compute_moments();
 	save_emergent_compps(rad, g, par, par.kT_e);
 }
@@ -201,18 +239,9 @@ static void run_test_rt_compps(RadField& rad, const RTGrids& g,
 // ============================================================
 // test_avg mode
 //
-// Identical to the compps benchmark slab (isothermal, pure scattering,
-// same normalisation to Fx = xi*nH/(4pi)^2), EXCEPT the illumination.
-// Instead of an isotropic blackbody seed entering from the BOTTOM, the
-// incident spectrum is the PRODUCTION corona shape (cutoffpl, nthcomp,
-// ...) set via compute_corona_shape() exactly as in the main process,
-// entering as a pencil beam from the TOP at the incidence node i_inc.
-// There is no bottom source (I_disk = 0).
-//
-// In compute_boundary_illumination, I_corona enters as a pencil beam at
-// the i_inc angle node (ill_top[ne] = 2*I_corona/wt[i_inc]); I_disk
-// enters isotropically from the bottom (ill_bot = 2*I_disk). So a top
-// pencil beam means: seed -> I_corona, and I_disk = 0.
+// Isothermal, pure-scattering slab illuminated from the top by the production
+// corona spectrum. Uses the same fixed incident-flux normalization and boundary
+// conversion as production; no bottom source.
 // ============================================================
 template<class Cache>
 static void run_test_rt_avg(RadField& rad, const RTGrids& g,
@@ -235,33 +264,12 @@ static void run_test_rt_avg(RadField& rad, const RTGrids& g,
 	// Isothermal pure-scattering slab at Te (same as compps).
 	fill_test_data(rad, g, par.nh, Te_K);
 
-	// Illumination: production corona spectrum (set exactly as in the main
-	// process) entering as a pencil beam from the TOP (-> I_corona at the
-	// i_inc node); no bottom source (-> I_disk = 0).
-	compute_corona_shape(rad.illum.I_corona, g, par);
-	for (int ie = 0; ie < g.NE; ++ie)
-		rad.illum.I_disk[ie] = 0.0;
+	// Use the production illumination path, with the bottom source disabled.
+	ModelParams illumination = par;
+	illumination.frac = -1;
+	rad.illum.compute(illumination);
 
-	// Normalise the top corona flux to Fx = xi*nH/(4pi)^2 (matches the
-	// frac<=0, corona-only branch of IllumSpec::compute).
-	double raw_corona = 0.0;
-	for (int ie = 0; ie < g.NE - 1; ++ie)
-	{
-		double dE = g.ene[ie + 1] - g.ene[ie];
-		if (g.ene[ie] > g.E_IN_LO && g.ene[ie] < g.E_IN_HI)
-			raw_corona += 0.5 * (rad.illum.I_corona[ie] + rad.illum.I_corona[ie + 1]) * dE;
-	}
-	double xi = pow(10.0, par.zeta);
-	double nH = pow(10.0, par.nh);
-	double Fx = xi * nH / pow(phys::four_pi, 2);
-	double scale_corona = Fx / raw_corona;
-	for (int ie = 0; ie < g.NE; ++ie)
-		rad.illum.I_corona[ie] *= scale_corona;
-
-	fprintf(stdout, "  Seed normalised: Fx=%.4e  raw_corona=%.4e\n",
-	        Fx, raw_corona);
-
-	compton_rt_solve(rad, g, par, kcache, par.maxiter);
+	solve_test_slab(rad, g, par, kcache);
 	rad.compute_moments();
 	save_emergent_tavg(rad, g, par, par.kT_e);
 }

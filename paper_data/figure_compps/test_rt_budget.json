@@ -1,0 +1,9 @@
+{
+  "incoming_flux": 39788735772973.82,
+  "outgoing_flux": 82927759849366.5,
+  "volume_residual": -43139024077244.43,
+  "incoming_photons": 9.175590507758405e+22,
+  "outgoing_photons": 9.175590507757856e+22,
+  "relative_photon_error": -5.984102102729594e-14,
+  "energy_identity_error": -2.140681234156086e-11
+}

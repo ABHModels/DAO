@@ -7,7 +7,7 @@ through the slab) and emergent ray, with angles theta_inc and theta_view
 measured from the surface normal (the y-axis).
 """
 
-import os
+from pathlib import Path
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -209,15 +209,14 @@ def main():
 
     plt.tight_layout(pad=0.1)
 
-    plt.show()
-    out_dir = '/Users/ym.huang/cloudy_test/image'
-    os.makedirs(out_dir, exist_ok=True)
-    out_png = f'{out_dir}/incidence_geometry.png'
-    out_pdf = f'{out_dir}/incidence_geometry.pdf'
+    out_dir = Path(__file__).resolve().parent
+    out_png = out_dir / 'incidence_geometry.png'
+    out_pdf = out_dir / 'incidence_geometry.pdf'
     fig.savefig(out_png, dpi=600, bbox_inches='tight')
     fig.savefig(out_pdf, bbox_inches='tight')
     print(f'Saved: {out_png}')
     print(f'Saved: {out_pdf}')
+    plt.show()
 
 
 if __name__ == '__main__':

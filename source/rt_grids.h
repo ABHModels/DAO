@@ -9,11 +9,18 @@
 // allocated double arrays whose size equals ND_EDGE / ND_MID.
 // ============================================================
 
+// Optional build-time resolution for reference benchmarks. All builds use
+// the same transport implementation; production defaults to eight angles.
+#ifndef DAO_RT_ANGLES
+#define DAO_RT_ANGLES 8
+#endif
+
 struct RTGrids {
 
 	// --- Compile-time constants ---
-	static const int NA              = 8;
-	static const int ND_EDGE_DEFAULT = 101;
+	static const int NA              = DAO_RT_ANGLES;
+	static_assert(NA >= 2 && NA % 2 == 0, "RT requires an even angular grid");
+	static const int ND_EDGE_DEFAULT = 49;
 	static const int ND_MID_DEFAULT  = ND_EDGE_DEFAULT - 1;
 	static const int NE_DEFAULT      = 1000;
 
@@ -22,7 +29,7 @@ struct RTGrids {
 	static constexpr double E_IN_HI = 1000e3;
 
 	// --- Default grid bounds ---
-	static constexpr double TAU_MIN = 1e-4;   // Thomson optical depth
+	static constexpr double TAU_MIN = 1e-4;   // reference Thomson optical depth
 	static constexpr double TAU_MAX = 5.0;
 	static constexpr double E_LO    = 1;         // eV
 	static constexpr double E_HI    = 1000e3;    // eV
@@ -56,9 +63,13 @@ struct RTGrids {
 	// Requires NA even.
 	void init_angle_double_gauss();
 
-	// Log-spaced positive edges plus a surface edge at zero; re-sizes to
-	// the default ND_EDGE_DEFAULT.
-	void init_depth(double tau_min, double tau_max, double nh);
+	// Fixed reference depth: d tau_ref = 1.21*nH*sigma_T*dr.
+	// Matches the RT scattering prescription in the Thomson limit. The free-electron
+	// Thomson depth can differ as Cloudy n_e varies with ionization.
+	// Positive edges from tau_min to tau_max, plus the surface edge at zero.
+	// log_depth=true: log-uniform; false: tanh in log(tau), k=3.
+	// Re-sizes the depth arrays to the default ND_EDGE_DEFAULT.
+	void init_depth(double tau_min, double tau_max, double nh, bool log_depth = true);
 
 	// Adopt Cloudy's adaptive depth grid.  tau_mids_thomson[i]
 	// is the Thomson optical depth to the midpoint of zone i
@@ -78,7 +89,7 @@ struct RTGrids {
 	void save_energy(const char* path) const;
 	bool load_energy(const char* path);
 
-	void init_all(double nh);
+	void init_all(double nh, bool log_depth = true);
 
 private:
 	void free_depth();

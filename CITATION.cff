@@ -1,29 +1,39 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below, and cite the references listed in the README (in particular Madej et al. 2017 for the Compton kernel and Gunasekera et al. 2025 for Cloudy)."
-title: "DAO: A New and Public Non-Relativistic Reflection Model"
+title: "DAO — X-ray Reflection Spectroscopy Model"
 abstract: >-
-  We present DAO, a new and public reflection model that computes rest-frame
-  reflection spectra from accretion disks in X-ray binaries and active galactic
-  nuclei. The code is built on three pillars: (i) the photoionization code
-  Cloudy C25, which provides a comprehensive and up-to-date treatment of all
-  relevant atomic processes, including line emission via the escape-probability
-  formalism; (ii) the exact quantum-electrodynamic Compton redistribution
-  kernel, which fully accounts for angle- and energy-dependent scattering
-  rather than relying on the angle-averaged Gaussian or Fokker-Planck
-  approximations adopted by existing reflection codes; and (iii) cubic Bezier
-  interpolants for the formal solution of the radiative transfer equation, a
-  monotonicity-preserving short-characteristics scheme that avoids spurious
-  numerical oscillations. We investigate the spectral dependence on key
-  physical parameters and benchmark the results against the publicly available
-  table models of the widely used reflionx and xillver codes.
+  X-ray reflection spectra probe the inner accretion disks of black holes,
+  but differences in model predictions introduce uncertainties in their
+  interpretation. We present DAO, an open-source reflection model combining
+  Cloudy atomic physics with a fully angle- and energy-dependent Compton
+  redistribution kernel that retains the directional information lost in
+  angle-averaged treatments. DAO recovers the cold reflection continuum of
+  pexrav in the Compton-hump energy band and the inclination-dependent
+  Comptonized spectra of compPS. For illumination with Γ = 2,
+  E_cut = 300 keV, and μ_inc ≈ 0.8, the same calculation with an
+  angle-averaged kernel yields reflected intensities at 100 keV that are
+  14–16% higher than the angle-dependent solution at each of four viewing
+  angles. In a high-density, highly ionized atmosphere
+  (n_H = 10^18 cm^-3, log ξ = 3), the O VIII Lyα peak is closer to
+  reflionx than to xillverCp, whose peak is approximately 4.4 times higher
+  relative to the local continuum. Removing the escape-probability
+  suppression of line emission and recomputing the atmosphere raises the
+  DAO line peak by only 7.5%, so this suppression cannot account for the
+  factor-of-four difference. A direct comparison of Cloudy and XSTAR shows
+  much larger differences in O VIII emission and gas temperature at
+  n_H = 10^18 than at 10^15 cm^-3, suggesting that differences in
+  high-density atomic treatment may contribute to the discrepancy.
+  The code enables controlled tests of such physical differences and is
+  designed to be extended to polarized reflection and a self-consistent
+  vertical disk structure.
 type: software
 authors:
   - family-names: Huang
     given-names: Yimin
     affiliation: "Fudan University; University of Bristol"
-    email: huangym23@m.fudan.edu.cn
+    email: yi-min.huang@bristol.ac.uk
     orcid: "https://orcid.org/0009-0008-3299-9185"
-version: "1.1.1"
-date-released: "2026-07-18"
+version: "1.0.0"
+date-released: "2026-10-11"
 license: MIT
 repository-code: "https://github.com/ABHModels/DAO"

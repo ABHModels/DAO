@@ -22,29 +22,28 @@ SOFTWARE.
 
 ---
 
-This MIT license applies only to the original DAO source code in this
-repository. DAO depends on third-party software that carries its own separate
-license (DAO does not bundle their distributions):
+This MIT license applies to the original DAO source code. Third-party
+software and adapted routines retain their respective rights and terms:
 
   - Cloudy (Gary J. Ferland and collaborators) is licensed under the zlib
     license <https://opensource.org/licenses/Zlib> and must be obtained
-    separately from <https://gitlab.nublado.org/cloudy/cloudy>. Cloudy is used
-    unmodified, through its public API (headers, library functions, and data
-    structures); DAO does not modify, copy, or redistribute Cloudy's source.
-    Several blocks in source/cloudy_interface_v2.cpp reproduce, on DAO's own
-    slab and energy grids, calculations documented in Cloudy's source: the
-    bound-electron Compton-recoil opacity (opacity_addtotal.cpp), the
-    inner-shell fluorescence emission (prt_lines.cpp), and the line
-    escape-probability branching for continuum destruction and
-    electron-scattering escape (rt_escprob.cpp and related transition APIs).
-    These use Cloudy's public data structures and are cited in-line.
+    separately from <https://gitlab.nublado.org/cloudy/cloudy>. DAO links to
+    an unmodified Cloudy installation and extracts atomic data, emissivities,
+    and opacities through its interfaces for DAO's transfer calculation.
+    DAO does not distribute the Cloudy library or source distribution.
 
-  - HEASoft / XSPEC (NASA HEASARC) must be obtained separately from
+  - DAO links to the XSPEC model library (libXSFunctions) supplied with
+    HEASoft to evaluate the nthcomp and compTT incident continua. This library
+    is installed separately and retains its upstream terms; it is not
+    distributed with DAO. See
     <https://heasarc.gsfc.nasa.gov/docs/software/heasoft/>.
 
-  - The exact Compton redistribution function in source/compton_kernel.cpp is a
-    C++ port of the publicly available Fortran code by Jerzy Madej
-    <https://www.astrouw.edu.pl/~jm/software.html>. If you use it, please cite:
+  - The Compton redistribution and cross-section routines in
+    source/compton_kernel.cpp and source/compton_cross_section.cpp include
+    C++ ports of Fortran routines by Jerzy Madej, a co-author of the DAO
+    paper. These adaptations of his routines are included with his permission.
+    Original code: <https://www.astrouw.edu.pl/~jm/software.html>.
+    If you use these routines, please cite:
         Madej J., Rozanska A., Majczyna A., Nalezyta M., 2017,
         MNRAS, 469, 2032
         <https://ui.adsabs.harvard.edu/abs/2017MNRAS.469.2032M>.

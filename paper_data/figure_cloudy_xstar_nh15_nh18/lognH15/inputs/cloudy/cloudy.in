@@ -1,0 +1,24 @@
+title Native nthcomp DAO composition nH=1e15 NH=1e21 logxi=3
+abundances "solar84.abn"
+init "xray12.ini"
+hden 15
+constant density
+table SED "nthcomp.sed"
+xi 3
+radius 14.0000000000
+turbulence 200 km/s no pressure
+stop column density 21
+iterate convergence
+set temperature convergence 0.001
+save continuum "continuum.dat" units eV last
+save continuum bins "continuum_bins.dat" units eV last
+save continuum fine "fine_transmission.dat" range 0.1 20 units keV 1 last
+save optical depths "continuum_optical_depth.dat" units eV last
+save overview "overview.dat" last
+save physical conditions "physical_conditions.dat" last
+save heating "heating.dat" last
+save cooling "cooling.dat" last
+save element oxygen "oxygen_ions.dat" last
+save element iron "iron_ions.dat" last
+save continuum raw "raw.dat" units eV last
+save continuum reflected "reflected.dat" units eV last

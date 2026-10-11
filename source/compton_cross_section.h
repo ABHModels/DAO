@@ -31,8 +31,8 @@
 double compton_cross_section(double E_eV, double T_K);
 
 // Fill scattering opacity array for all energies at one temperature:
-//   ksct[ie] = n_e * σ(ene_eV[ie], T_K)
+//   ksct[ie] = n_e * σ(ene_eV[ie], T_K), with n_e in cm^-3.
 void compute_compton_opacity(double* ksct, int NE, const double* ene_eV,
-                             double T_K, double n_h);
+                             double T_K, double n_e);
 
 #endif // COMPTON_CROSS_SECTION_H

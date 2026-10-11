@@ -1,0 +1,35 @@
+{
+  "method": "Reuse the original compPS spectra with identical physical parameters and angular nodes.",
+  "references": [
+    {
+      "mu": 0.04691,
+      "source": "/Users/xe26734/Downloads/Models/DAO/.local_backups/compps-promote-20261009_185829/figure_compps/compps_8c3e57d7_mu0.0469.dat",
+      "sha256": "46ccda95433a7e73f1e3caaa3c3f0880d6406fc5b299401a1d73151911cb95e3",
+      "current_file": "compps_a67d34d8_mu0.0469.dat"
+    },
+    {
+      "mu": 0.230765,
+      "source": "/Users/xe26734/Downloads/Models/DAO/.local_backups/compps-promote-20261009_185829/figure_compps/compps_8c3e57d7_mu0.2308.dat",
+      "sha256": "ce7d6f1abdb3a4eecff0e067593efc1ac58a4f5010ba6d90634288312d997cd9",
+      "current_file": "compps_a67d34d8_mu0.2308.dat"
+    },
+    {
+      "mu": 0.5,
+      "source": "/Users/xe26734/Downloads/Models/DAO/.local_backups/compps-promote-20261009_185829/figure_compps/compps_8c3e57d7_mu0.5000.dat",
+      "sha256": "97bd1e8a3164a8f548136d64b16f3e7e855bd0cb830bce08d86c21f006bd0654",
+      "current_file": "compps_a67d34d8_mu0.5000.dat"
+    },
+    {
+      "mu": 0.769235,
+      "source": "/Users/xe26734/Downloads/Models/DAO/.local_backups/compps-promote-20261009_185829/figure_compps/compps_8c3e57d7_mu0.7692.dat",
+      "sha256": "b57cc3746c9089c6a075f39161e2fd05d533e6a1173b65c64d73253b052daa5a",
+      "current_file": "compps_a67d34d8_mu0.7692.dat"
+    },
+    {
+      "mu": 0.95309,
+      "source": "/Users/xe26734/Downloads/Models/DAO/.local_backups/compps-promote-20261009_185829/figure_compps/compps_8c3e57d7_mu0.9531.dat",
+      "sha256": "3f3527fe1ffac32c2a8da85c7178f08f1bea8815fdcc4676125fd5d46e81bb2a",
+      "current_file": "compps_a67d34d8_mu0.9531.dat"
+    }
+  ]
+}

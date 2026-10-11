@@ -1,0 +1,7 @@
+#!/bin/zsh
+set -eu
+cd -- "${0:A:h}"
+: "${HEADAS:?Initialize HEASoft before running}"
+mkdir -p pfiles
+export PFILES="$PWD/pfiles;$HEADAS/syspfiles"
+"${XSTAR_EXECUTABLE:-xstar}" cfrac=0 temperature=400 lcpres=0 pressure=0.03 density=1000000000000000.0 spectrum=file spectrum_file=incident_spectrum.dat spectun=0 trad=-1 rlrad38=100000000.0 column=1e+21 rlogxi=3 abundtbl=xdef modelname=nthcomp_DAO_nh15_xi3 nsteps=3 niter=10 lwrite=1 lprint=0 lstep=0 emult=0.5 taumax=5 xeemin=0.1 critf=1e-07 vturbi=200 radexp=0 ncn2=9999 loopcontrol=0 npass=1 mode=ql habund=1 heabund=1 liabund=0 beabund=0 babund=0 cabund=0.95945945945945954 nabund=0.84818181818181815 oabund=1.0897058823529411 fabund=0 neabund=4.1785714285714288 naabund=0 mgabund=1.0857142857142859 alabund=0 siabund=1.0142857142857145 pabund=0 sabund=1.0125000000000002 clabund=0 arabund=0.88444444444444448 kabund=0 caabund=1.0904761904761906 scabund=0 tiabund=0 vabund=0 crabund=0 mnabund=0 feabund=1.296 coabund=0 niabund=0 cuabund=0 znabund=0 > run.log 2>&1

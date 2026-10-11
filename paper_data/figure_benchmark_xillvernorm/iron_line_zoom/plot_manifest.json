@@ -1,0 +1,147 @@
+{
+  "reference": "https://arxiv.org/html/2509.13411v1#S3.F10",
+  "anchors_keV": [
+    5.0,
+    8.0
+  ],
+  "upper_axis_scale": "linear",
+  "normalization": "Fhat(E) = F_E(E) / ((F_E(E_low)+F_E(E_high))/2)",
+  "layout": "One row, three columns, with full-spectrum ratio insets.",
+  "continuum_subtracted": false,
+  "main_panels": "Native energy samples, joined linearly; no extra Gaussian smoothing.",
+  "ratio": "Fhat_model / Fhat_DAO, after flux-preserving averaging onto common bins; full spectra including continuum.",
+  "ratio_grid": "Geometric-midpoint bin edges around native reflionx energy samples.",
+  "ratio_limits_keV": [
+    6.15,
+    7.1
+  ],
+  "ratio_mask": "Bins with non-finite or non-positive averaged DAO flux are excluded.",
+  "runs": [
+    {
+      "log_xi": 1,
+      "DAO_hash": "9e14af6b",
+      "DAO_iteration": 63,
+      "models": {
+        "DAO": {
+          "endpoint_fluxes_input_units": [
+            758275603897.4089,
+            847105403995.1774
+          ],
+          "normalization_divisor": 802690503946.2932,
+          "normalized_anchor_mean": 1.0,
+          "rebin_integrated_flux_relative_error": 1.4808073468985544e-16
+        },
+        "reflionx": {
+          "endpoint_fluxes_input_units": [
+            6.119360355003889,
+            6.590360834265604
+          ],
+          "normalization_divisor": 6.354860594634746,
+          "normalized_anchor_mean": 1.0,
+          "rebin_integrated_flux_relative_error": 1.5399419632206158e-16
+        },
+        "xillvercp": {
+          "endpoint_fluxes_input_units": [
+            1.3218439363821628,
+            1.2446052558353689
+          ],
+          "normalization_divisor": 1.2832245961087658,
+          "normalized_anchor_mean": 1.0,
+          "rebin_integrated_flux_relative_error": 1.5154118047185673e-16
+        }
+      },
+      "source_sha256": {
+        "dao_9e14af6b.dat": "48e874b71bcbcc006da33a6da4fc73e06666dab4328281bd6be6a2a98dde0e0c",
+        "pa9e14af6b.json": "bc585301a3df643758209b2a9fa646b3670bfbfa978bd85ca302ac06c2579250",
+        "spectra_1e4178a5.dat": "3d8c43a6b76fcd95579176e6092c1f016308993110d6e90d60fdeaa452863910",
+        "xillver_1e4178a5.dat": "29c266404de69e4cf5446bdcef70bc15ad8c4395c482cda3f6b45203082d3403"
+      },
+      "ratio_valid_bins": 10,
+      "ratio_total_bins": 10
+    },
+    {
+      "log_xi": 2,
+      "DAO_hash": "effac594",
+      "DAO_iteration": 35,
+      "models": {
+        "DAO": {
+          "endpoint_fluxes_input_units": [
+            10892241855546.736,
+            9557746860889.17
+          ],
+          "normalization_divisor": 10224994358217.953,
+          "normalized_anchor_mean": 1.0,
+          "rebin_integrated_flux_relative_error": 0.0
+        },
+        "reflionx": {
+          "endpoint_fluxes_input_units": [
+            100.5524348171803,
+            79.59584716117226
+          ],
+          "normalization_divisor": 90.07414098917627,
+          "normalized_anchor_mean": 1.0,
+          "rebin_integrated_flux_relative_error": 0.0
+        },
+        "xillvercp": {
+          "endpoint_fluxes_input_units": [
+            1.7764437973122733,
+            1.4860291691019754
+          ],
+          "normalization_divisor": 1.6312364832071244,
+          "normalized_anchor_mean": 1.0,
+          "rebin_integrated_flux_relative_error": 0.0
+        }
+      },
+      "source_sha256": {
+        "dao_effac594.dat": "54a76f868d35b2565c7ca52ce89a3b7400c3cfb12de1c5e431b331c18666d6cd",
+        "paeffac594.json": "a65802c8824b0ddaa1b09cd7fea9c83f6f8cff3ce716ea88bccc20431882a271",
+        "spectra_603b2ef4.dat": "f9224b4b887d5d7a8fcb2cd8e4ef8776f2a2b942996693a73d1c2d0035521fa0",
+        "xillver_603b2ef4.dat": "2678463697d23cd14d7dc5289c844807acf312bcbc79ce4ad5592112e4754afa"
+      },
+      "ratio_valid_bins": 10,
+      "ratio_total_bins": 10
+    },
+    {
+      "log_xi": 3,
+      "DAO_hash": "a518ab75",
+      "DAO_iteration": 33,
+      "models": {
+        "DAO": {
+          "endpoint_fluxes_input_units": [
+            535363345584815.8,
+            428487074391321.94
+          ],
+          "normalization_divisor": 481925209988068.9,
+          "normalized_anchor_mean": 1.0,
+          "rebin_integrated_flux_relative_error": 0.0
+        },
+        "reflionx": {
+          "endpoint_fluxes_input_units": [
+            4193.562217995889,
+            3071.0655872387124
+          ],
+          "normalization_divisor": 3632.3139026173008,
+          "normalized_anchor_mean": 1.0,
+          "rebin_integrated_flux_relative_error": 0.0
+        },
+        "xillvercp": {
+          "endpoint_fluxes_input_units": [
+            6.684521554620898,
+            5.151261388507752
+          ],
+          "normalization_divisor": 5.9178914715643245,
+          "normalized_anchor_mean": 1.0,
+          "rebin_integrated_flux_relative_error": 1.160842632606562e-16
+        }
+      },
+      "source_sha256": {
+        "dao_a518ab75.dat": "bfe0d1a82a4a762d122a8d020a2e018fd133d4738587c042cb0655d07cd45cbf",
+        "paa518ab75.json": "4afddf999180a7ff884599588186f518d52b1ff11f60dcac5d6404bb3da7dcdf",
+        "spectra_feb16067.dat": "932e01c797e16a9197968d05dd1187e4f675d50d005a813652cf38e32e967061",
+        "xillver_feb16067.dat": "85fdc125e3fb478b223bfd50f227484b0eb8a3328022951747c05b388183bf58"
+      },
+      "ratio_valid_bins": 10,
+      "ratio_total_bins": 10
+    }
+  ]
+}

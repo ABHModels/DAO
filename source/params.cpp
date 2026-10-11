@@ -1,5 +1,6 @@
 #include "params.h"
 #include "rt_grids.h"
+#include "run_log.h"
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
@@ -33,9 +34,10 @@ static void build_run_summary(const ModelParams& p, char* out, size_t n)
 	else
 		snprintf(model, sizeof(model), "%s", p.corona);
 
-	snprintf(out, n, "%s | nh=%.4g zeta=%.4g frac=%.4g | %s",
+	snprintf(out, n, "%s | nh=%.4g zeta=%.4g frac=%.4g | %s | reflionx flux normalization | depth=%s",
 	         model, p.nh, p.zeta, p.frac,
-	         p.angsca ? "angle-dependent" : "angle-mean");
+	         p.angsca ? "angle-dependent" : "angle-mean",
+	         p.log_depth ? "log" : "tanh");
 }
 
 // Escape all JSON control characters as well as quotes and backslashes.
@@ -67,7 +69,7 @@ ModelParams read_params(int argc, char *argv[])
 	p.taup  = -1;    // unset
 	p.kT_disk = 0.35;
 	strncpy(p.corona, "", sizeof(p.corona));
-	p.frac      = -1;   // flux ratio: F_corona/F_disk. If frac <= 0, no I_disk (corona only, default)
+	p.frac      = -1;   // corona/disk amplitude ratio; <=0: corona only
 	p.incidence = 0.7071067811865476;  // cos(45 deg)
 	p.test_rt   = false;
 	strncpy(p.test_mode, "none", sizeof(p.test_mode));
@@ -100,6 +102,22 @@ ModelParams read_params(int argc, char *argv[])
 			p.frac = atof(argv[++i]);
 		else if (strcmp(argv[i], "-incidence") == 0 && i+1 < argc)
 			p.incidence = atof(argv[++i]);
+		else if (strcmp(argv[i], "-log_depth") == 0)
+		{
+			if (i+1 >= argc) {
+				fprintf(stderr, "Error: -log_depth requires 0/1, false/true, or no/yes.\n");
+				exit(1);
+			}
+			const char* value = argv[++i];
+			if (strcmp(value, "1") == 0 || strcmp(value, "true") == 0 || strcmp(value, "yes") == 0)
+				p.log_depth = true;
+			else if (strcmp(value, "0") == 0 || strcmp(value, "false") == 0 || strcmp(value, "no") == 0)
+				p.log_depth = false;
+			else {
+				fprintf(stderr, "Error: -log_depth requires 0/1, false/true, or no/yes.\n");
+				exit(1);
+			}
+		}
 		else if (strcmp(argv[i], "-test_rt") == 0)
 		{
 			p.test_rt = true;
@@ -121,22 +139,73 @@ ModelParams read_params(int argc, char *argv[])
 			p.taup = atof(argv[++i]);
 		else if (strcmp(argv[i], "-Afe") == 0 && i+1 < argc)
 			p.Afe = atof(argv[++i]);
+		else if (strcmp(argv[i], "-O") == 0 || strcmp(argv[i], "-Fe") == 0)
+		{
+			const char* flag = argv[i];
+			bool enabled = true;
+			if (i+1 < argc && argv[i+1][0] != '-') {
+				const char* value = argv[++i];
+				if (strcmp(value,"1")==0 || strcmp(value,"true")==0 || strcmp(value,"yes")==0)
+					enabled = true;
+				else if (strcmp(value,"0")==0 || strcmp(value,"false")==0 || strcmp(value,"no")==0)
+					enabled = false;
+				else {
+					fprintf(stderr,"Error: %s accepts an optional 0/1, false/true, or no/yes.\n",flag);
+					exit(1);
+				}
+			}
+			if (strcmp(flag,"-O")==0) p.save_oxygen = enabled;
+			else p.save_iron = enabled;
+		}
+		else if (strcmp(argv[i], "-verbose") == 0)
+		{
+			p.verbose = true;
+			if (i+1 < argc && argv[i+1][0] != '-') {
+				const char* value = argv[++i];
+				if (strcmp(value,"1")==0 || strcmp(value,"true")==0 || strcmp(value,"yes")==0)
+					p.verbose = true;
+				else if (strcmp(value,"0")==0 || strcmp(value,"false")==0 || strcmp(value,"no")==0)
+					p.verbose = false;
+				else {
+					fprintf(stderr,"Error: -verbose accepts an optional 0/1, false/true, or no/yes.\n");
+					exit(1);
+				}
+			}
+		}
 		else if (strcmp(argv[i], "-label") == 0)
 		{
 			if (i + 1 >= argc) { fprintf(stderr, "Error: -label requires text.\n"); exit(1); }
 			p.label = argv[++i];
 		}
-		else if (strcmp(argv[i], "-angsca") == 0 && i+1 < argc)
+		else if (strcmp(argv[i], "-angsca") == 0)
 		{
 			// Angular-scattering kernel selector:
 			//   1/true/yes → angle-dependent KernelCache
 			//   0/false/no → angle-mean   avgKernelCache
+			if (i+1 >= argc) {
+				fprintf(stderr, "Error: -angsca requires 0/1, false/true, or no/yes.\n"); exit(1);
+			}
 			const char* v = argv[++i];
-			p.angsca = (strcmp(v, "1") == 0 || strcmp(v, "true") == 0
-			         || strcmp(v, "yes") == 0);
+			if (strcmp(v, "1") == 0 || strcmp(v, "true") == 0 || strcmp(v, "yes") == 0)
+				p.angsca = true;
+			else if (strcmp(v, "0") == 0 || strcmp(v, "false") == 0 || strcmp(v, "no") == 0)
+				p.angsca = false;
+			else {
+				fprintf(stderr, "Error: -angsca requires 0/1, false/true, or no/yes.\n"); exit(1);
+			}
+		}
+		else {
+			fprintf(stderr, "Error: unknown or incomplete option '%s'.\n", argv[i]);
+			exit(1);
 		}
 	}
 
+    if(!p.test_rt) {
+        // Production actually selects Cloudy's mesh using RTGrids::E_LO/E_HI.
+        // Report that window for the new mode instead of the old test-grid label.
+        p.E_rt_lo=RTGrids::E_LO;
+        p.E_rt_hi=RTGrids::E_HI;
+    }
 	// --- Validate corona model and its required parameters ---
 	if (p.corona[0] == '\0')
 	{
@@ -153,37 +222,30 @@ ModelParams read_params(int argc, char *argv[])
 		if (p.Gamma < 0) {
 			fprintf(stderr, "Error: corona=powerlaw requires -Gamma\n"); exit(1);
 		}
-		printf("Corona:     powerlaw  Gamma=%.4f\n", p.Gamma);
 	}
 	else if (strcmp(p.corona, "cutoffpl") == 0)
 	{
 		if (p.Gamma < 0 || p.E_cut < 0) {
 			fprintf(stderr, "Error: corona=cutoffpl requires -Gamma -Ecut\n"); exit(1);
 		}
-		printf("Corona:     cutoffpl  Gamma=%.4f  E_cut=%.2f keV\n", p.Gamma, p.E_cut);
 	}
 	else if (strcmp(p.corona, "nthcomp") == 0)
 	{
 		if (p.Gamma < 0 || p.kT_e < 0 || p.kT_bb < 0) {
 			fprintf(stderr, "Error: corona=nthcomp requires -Gamma -kT_e -kT_bb\n"); exit(1);
 		}
-		printf("Corona:     nthcomp  Gamma=%.4f  kT_e=%.2f keV  kT_bb=%.4f keV\n",
-		       p.Gamma, p.kT_e, p.kT_bb);
 	}
 	else if (strcmp(p.corona, "comptt") == 0)
 	{
 		if (p.kT_e < 0 || p.kT_bb < 0 || p.taup < 0) {
 			fprintf(stderr, "Error: corona=comptt requires -kT_e -kT_bb -taup\n"); exit(1);
 		}
-		printf("Corona:     comptt  kT_e=%.2f keV  kT_bb=%.4f keV  taup=%.2f\n",
-		       p.kT_e, p.kT_bb, p.taup);
 	}
 	else if (strcmp(p.corona, "blackbody") == 0)
 	{
 		if (p.kT_bb < 0) {
 			fprintf(stderr, "Error: corona=blackbody requires -kT_bb\n"); exit(1);
 		}
-		printf("Corona:     blackbody  kT_bb=%.4f keV\n", p.kT_bb);
 	}
 	else
 	{
@@ -192,16 +254,13 @@ ModelParams read_params(int argc, char *argv[])
 		exit(1);
 	}
 
-	printf("Kernel:     %s\n",
-	       p.angsca ? "angle-dependent (KernelCache)"
-	                : "angle-mean (avgKernelCache)");
-
 	double xi = pow(10.0, p.zeta);
+	if (p.test_rt && (p.save_oxygen || p.save_iron)) {
+		fprintf(stderr,"Error: -O/-Fe require production mode; test_rt does not run Cloudy.\n");
+		exit(1);
+	}
 	double nH = pow(10.0, p.nh);
 	double Fx = xi * nH / 4.0 / M_PI ;
-	printf("Parameters: nh=%.4f  zeta=%.4f (xi=%.4e)  frac=%.4f  incidence=%.4f  Afe=%.2f\n",
-	       p.nh, p.zeta, xi, p.frac, p.incidence, p.Afe);
-	printf("Derived:    nH=%.4e  Fx=%.4e erg/cm^2/s\n", nH, Fx);
 
 	// --- Compute deterministic run hash from physics params ---
 	{
@@ -215,21 +274,35 @@ ModelParams read_params(int argc, char *argv[])
 			p.taup, p.kT_disk, (int)p.test_rt, p.tau_slab,
 			(int)p.angsca);
 		// FNV-1a 32-bit hash
+		// Separate depth resolutions as well as normalization and grid mappings.
+		std::string hash_input(buf);
+		// Preserve the identity of existing reflionx-normalized production runs.
+		hash_input += "|reflionx_norm=1";
+		if (!p.log_depth) hash_input += "|log_depth=0";
+		// The scattering prescription changes the physics and must not overwrite
+		// results made with the former fixed 1.21*nH density.
+		if (!p.test_rt) hash_input += "|rt_thermal_balance=v1|scattering_density=cloudy_ne|temperature_iteration=local_cell_response_v3|initialization=boundary_intensity_v1";
+		if (p.test_rt) hash_input += "|transfer=constant_cell_v1|scattering=conservative_v1|angles=" + std::to_string(RTGrids::NA);
+		if (p.test_rt && strcmp(p.test_mode,"test_avg")==0) hash_input += "|seed_normalization=flux_v1";
+		if (!p.test_rt && RTGrids::NA!=8) hash_input += "|angles=" + std::to_string(RTGrids::NA);
+		if (!p.test_rt) hash_input += "|column_energy_tolerance=" + std::to_string(ModelParams::thermal_column_tolerance);
+		hash_input += "|depth_cells=" + std::to_string(RTGrids::ND_MID_DEFAULT);
 		unsigned int h = 2166136261u;
-		for (const char* c = buf; *c; ++c)
+		for (unsigned char c : hash_input)
 		{
-			h ^= (unsigned char)*c;
+			h ^= c;
 			h *= 16777619u;
 		}
 		snprintf(p.run_hash, sizeof(p.run_hash), "%08x", h);
 		snprintf(p.run_dir, sizeof(p.run_dir), "results/%s", p.run_hash);
-		printf("Run hash:   %s  →  %s/\n", p.run_hash, p.run_dir);
 	}
 
 	char summary[256];
 	build_run_summary(p, summary, sizeof(summary));
-	printf("Run:        %s\n", summary);
-	if (!p.label.empty()) printf("Label:      %s\n", p.label.c_str());
+    if(!p.test_rt) {
+        std::string label=std::string(summary)+" | RT thermal balance";
+        snprintf(summary,sizeof(summary),"%s",label.c_str());
+    }
 	char timestamp[32];
 	time_t now = time(nullptr);
 	strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", localtime(&now));
@@ -238,6 +311,16 @@ ModelParams read_params(int argc, char *argv[])
 	{
 		mkdir("results", 0755);
 		mkdir(p.run_dir, 0755);
+		dao_log::open(std::string(p.run_dir)+"/run.log",p.verbose);
+		dao_log::detail("\n=== Run started %s ===\n",timestamp);
+		dao_log::info("Run hash:   %s  →  %s/\n",p.run_hash,p.run_dir);
+		dao_log::info("Run:        %s\n",summary);
+		if(!p.label.empty()) dao_log::info("Label:      %s\n",p.label.c_str());
+		dao_log::info("Normalization: %s | Afe=%.4g\n","reflionx flux",p.Afe);
+		dao_log::info("Log:        %s/run.log%s\n",p.run_dir,p.verbose ? " (verbose)" : " (use -verbose for details)");
+		dao_log::detail("Parameters: nh=%.4f zeta=%.4f (xi=%.4e) frac=%.4f incidence=%.6f\n",
+		                p.nh,p.zeta,xi,p.frac,p.incidence);
+		dao_log::detail("Derived: nH=%.4e illumination normalization=%.4e erg/cm^2/s\n",nH,Fx);
 
 		char pjson[512];
 		snprintf(pjson, sizeof(pjson), "%s/params.json", p.run_dir);
@@ -249,11 +332,29 @@ ModelParams read_params(int argc, char *argv[])
 			fprintf(fp, "  \"hash\": \"%s\",\n", p.run_hash);
 			fprintf(fp, "  \"time\": \"%s\",\n", timestamp);
 			fprintf(fp, "  \"label\": \"%s\",\n", json_escape(p.label).c_str());
+			fprintf(fp, "  \"verbose\": %s,\n", p.verbose ? "true" : "false");
+			fprintf(fp, "  \"save_oxygen\": %s,\n", p.save_oxygen ? "true" : "false");
+			fprintf(fp, "  \"save_iron\": %s,\n", p.save_iron ? "true" : "false");
 			fprintf(fp, "  \"corona\": \"%s\",\n", p.corona);
 			fprintf(fp, "  \"nh\": %.6g,\n", p.nh);
 			fprintf(fp, "  \"zeta\": %.6g,\n", p.zeta);
 			fprintf(fp, "  \"frac\": %.6g,\n", p.frac);
 			fprintf(fp, "  \"incidence\": %.6g,\n", p.incidence);
+			fprintf(fp, "  \"illumination_normalization\": \"reflionx\",\n");
+			fprintf(fp, "  \"log_depth\": %s,\n", p.log_depth ? "true" : "false");
+			fprintf(fp, "  \"depth_cells\": %d,\n", RTGrids::ND_MID_DEFAULT);
+            fprintf(fp, "  \"transfer_solver\": \"constant_cell_v1\",\n");
+            fprintf(fp, "  \"angular_points\": %d,\n", RTGrids::NA);
+            fprintf(fp, "  \"intensity_location\": \"cell-volume-average\",\n");
+            // Read-only metadata for old result readers, not a solver switch.
+            fprintf(fp, "  \"rt_thermal_balance\": %s,\n", !p.test_rt ? "true" : "false");
+            if(!p.test_rt) {
+                fprintf(fp, "  \"solver\": \"rt_energy_balance_v1\",\n");
+                fprintf(fp, "  \"scattering_density\": \"cloudy_free_electrons\",\n");
+                fprintf(fp, "  \"temperature_iteration\": \"local_cell_response_v3\",\n");
+                fprintf(fp, "  \"column_energy_tolerance\": %.9g,\n", ModelParams::thermal_column_tolerance);
+                fprintf(fp, "  \"initialization\": \"boundary_intensity_v1\",\n");
+            }
 			fprintf(fp, "  \"Afe\": %.6g,\n", p.Afe);
 			fprintf(fp, "  \"Gamma\": %.6g,\n", p.Gamma);
 			fprintf(fp, "  \"E_cut\": %.6g,\n", p.E_cut);
@@ -283,6 +384,8 @@ ModelParams read_params(int argc, char *argv[])
 			fprintf(rf, "Label:   %s\n", !p.label.empty() ? p.label.c_str() : "(none)");
 			fprintf(rf, "Time:    %s\n", timestamp);
 			fprintf(rf, "Hash:    %s\n", p.run_hash);
+			fprintf(rf, "Final ion fractions: O=%s Fe=%s\n",
+			        p.save_oxygen ? "on" : "off", p.save_iron ? "on" : "off");
 
 			if (p.test_rt)
 				fprintf(rf, "Mode:    %s test  tau_slab=%.4g\n",
@@ -303,8 +406,11 @@ ModelParams read_params(int argc, char *argv[])
 
 			fprintf(rf, "Slab:    nh=%.4f  zeta=%.4f (xi=%.4e)  frac=%.4f  Afe=%.2f\n",
 			        p.nh, p.zeta, xi, p.frac, p.Afe);
-			fprintf(rf, "Derived: nH=%.4e  Jx=%.4e  4piJ=%.4e erg/cm^2/s\n",
-			        nH, xi * nH / pow(4.0 * M_PI, 2), Fx);
+			fprintf(rf, "Derived: nH=%.4e  incident_corona_flux=%.4e erg/cm^2/s\n",
+			        nH, Fx * (p.frac > 0 ? p.frac / (1.0 + p.frac) : 1.0));
+			fprintf(rf, "Normalization: %s\n", "reflionx flux");
+			fprintf(rf, "Depth grid: %s, %d cells\n", p.log_depth ? "log" : "tanh (k=3)",
+			        RTGrids::ND_MID_DEFAULT);
 			fprintf(rf, "Kernel:  %s\n",
 			        p.angsca ? "angle-dependent (KernelCache)"
 			                 : "angle-mean (avgKernelCache)");
@@ -321,7 +427,7 @@ void snap_incidence(ModelParams& par, const RTGrids& g)
 	if (par.incidence == -2.0)
 	{
 		par.i_incidence = -1;
-		printf("Incidence: isotropic over all downward angles (mu < 0)\n");
+		dao_log::info("Incidence: isotropic over all downward angles (mu < 0)\n");
 		return;
 	}
 
@@ -337,5 +443,5 @@ void snap_incidence(ModelParams& par, const RTGrids& g)
 	par.incidence   = g.mu[i_mu];
 	par.i_incidence = i_mu;
 
-	printf("Incidence:  cos(theta)=%.6f  (g.mu[%d])\n", par.incidence, par.i_incidence);
+	dao_log::info("Incidence:  cos(theta)=%.6f  (g.mu[%d])\n", par.incidence, par.i_incidence);
 }

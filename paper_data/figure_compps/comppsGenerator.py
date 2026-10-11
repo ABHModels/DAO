@@ -10,7 +10,8 @@ Workflow:
      double-Gauss angle grid (init_angle_double_gauss), so with NA=10 these
      nodes coincide exactly with compPS's internal quadrature abscissas
      {0.0469, 0.2308, 0.5, 0.7692, 0.9531} -- requesting cosIncl at them makes
-     compPS's angular interpolation exact (no interpolation error).
+     compPS's angular interpolation exact at the interior nodes. The current
+     NA=8 grid has four nodes per hemisphere: compPS interpolates to them.
   3. Build the Xspec compPS (Poutanen & Svensson 1996) model for the SAME
      isothermal pure-scattering slab the RT test mode solved, taking
        kTe     <- kT_e        (electron temperature [keV])
@@ -25,8 +26,8 @@ Workflow:
      emergent-direction inclination, i.e. each outgoing mu node from the RT file.
      NOTE 2: compPS's cosIncl has a hard range [0.05, 0.95], so the two extreme
      double-Gauss nodes (mu=0.0469 and 0.9531) fall just outside and are clamped
-     -- the only nodes where compPS's interpolation is not exact. Clamped nodes
-     are flagged on stdout.
+     in the legacy NA=10 run. The current NA=8 nodes are within the hard range
+     and need interpolation but no clamping. Clamped nodes are flagged on stdout.
   4. Overlay compPS against the RT emergent output, one curve per inclination.
 
 Figure (journal style), two panels:
@@ -37,11 +38,10 @@ Figure (journal style), two panels:
 
 Energy grid is 0.01-1000 keV with 1000 log bins to match the RT grid.
 
-Self-contained: the fixed run's emergent_compps.dat + params.json sit next to
-this script, and the figure is written into the same folder. No arguments.
-Requires HEASoft/PyXspec for the compPS model:
-  export HEADAS=/path/to/heasoft/arch && source $HEADAS/headas-init.sh
-  python comppsGenerator.py
+The default dataset is run a67d34d8 in this directory, made with the shared
+production RT solver. Superseded datasets are kept outside the active folder.
+Use --data-dir for another saved run, --reuse-reference to plot without PyXspec,
+and --show for an interactive preview. Model parameters come from params.json.
 
 Author:      Yimin Huang
 Affiliation: Fudan University; University of Bristol
@@ -49,17 +49,16 @@ Email:       huangym23@m.fudan.edu.cn
 """
 
 import os
+import argparse
 import json
 import numpy as np
 import matplotlib.pyplot as plt
-import xspec
 
 # Self-contained: the RT data and the output figure live in this script's own
-# folder, so paths resolve from any cwd. The run is fixed (no CLI argument);
-# its emergent_compps.dat and params.json are distributed alongside the script.
+# folder, so paths resolve from any cwd; CLI paths can select another run.
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = SCRIPT_DIR
-RUN_HASH = "8c3e57d7"
+
 
 PLOT_TYPE = "emodel"   # our model saves emodel (E * photons)
 # compPS cosIncl hard range; nodes outside are clamped (interpolation not exact
@@ -76,6 +75,7 @@ COSINCL_MAX = 0.95
 def write_data(path, plot_type=PLOT_TYPE):
     # QDP's `wd` truncates long path arguments, so write to a short basename in
     # the cwd first and then move it to the (possibly long) destination path.
+    import xspec
     tmp = "_compps_qdp_tmp.dat"
     for p in (path, tmp):
         if os.path.exists(p):
@@ -92,8 +92,8 @@ def write_data(path, plot_type=PLOT_TYPE):
     os.replace(tmp, path)
 
 
-def load_params():
-    pjson = os.path.join(PROJECT_ROOT, "params.json")
+def load_params(data_dir):
+    pjson = os.path.join(data_dir, "params.json")
     with open(pjson) as f:
         par = json.load(f)
     print(f"Loaded {pjson}")
@@ -104,6 +104,7 @@ def generate_compps(par, cos_incl, out_path):
     """Build compPS for a single observer inclination (cos_incl) and save its
     emodel spectrum. cos_incl is an emergent-direction cosine, NOT the corona
     incidence angle."""
+    import xspec
     kTe  = float(par["kT_e"])
     kTbb = float(par["kT_bb"])
     tau  = float(par["tau_slab"])
@@ -208,11 +209,12 @@ def total_flux(E, Y):
     m = np.isfinite(E) & np.isfinite(Y) & (Y > 0)
     if m.sum() < 2:
         return 1.0
-    return np.trapz(Y[m], E[m])
+    integrate = getattr(np, "trapezoid", None) or np.trapz
+    return integrate(Y[m], E[m])
 
 
 def plot_compare(run_hash, par, Er, incl_mus, I_by_mu, compps_by_mu,
-                 clamped_mus=()):
+                 clamped_mus=(), output_dir=None, show=False):
     """Two-panel journal figure.
 
     Left:  2x2 sub-panels, one per inclination; RT vs compPS each normalised
@@ -358,33 +360,60 @@ def plot_compare(run_hash, par, Er, incl_mus, I_by_mu, compps_by_mu,
     fig.text(xR - 0.01 * W, yrow, "face-on (centre)", ha="right", va="center",
              fontsize=8, fontweight="bold", color=TXT_C)
 
-    plt.show()
-    out_base = os.path.join(PROJECT_ROOT, f"compps_compare_{run_hash}")
+    output_dir = output_dir or PROJECT_ROOT
+    os.makedirs(output_dir, exist_ok=True)
+    out_base = os.path.join(output_dir, f"compps_compare_{run_hash}")
     fig.savefig(f"{out_base}.png", dpi=200)
-    fig.savefig(f"{out_base}.pdf", dpi=300)
-    print(f"Saved plot: {out_base}.png and {out_base}.pdf")
+    pdf = os.path.join(output_dir, f"compps_compare_{run_hash}.pdf")
+    fig.savefig(pdf, dpi=300)
+    print(f"Saved plot: {out_base}.png and {pdf}")
+    if show:
+        plt.show()
+    plt.close(fig)
 
 
 def main():
-    par = load_params()
-
-    rt_path = os.path.join(PROJECT_ROOT, "emergent_compps.dat")
-    Er, incl_mus, I_by_mu = read_rt_emergent(rt_path)
-
-    # One compPS evaluation per inclination node (cosIncl = the RT node, which
-    # with the double-Gauss grid is a compPS native abscissa). Track which nodes
-    # had to be clamped to compPS's cosIncl hard max (requires HEASoft/PyXspec).
+    parser = argparse.ArgumentParser(description="Reproduce the DAO/compPS slab comparison")
+    default = SCRIPT_DIR
+    parser.add_argument("--data-dir", default=default)
+    parser.add_argument("--output-dir", default=None)
+    parser.add_argument("--reuse-reference", action="store_true",
+                        help="Use previously generated compPS spectra at these exact angles")
+    parser.add_argument("--show", action="store_true")
+    args = parser.parse_args()
+    data_dir = os.path.abspath(args.data_dir)
+    output_dir = os.path.abspath(args.output_dir or data_dir)
+    os.makedirs(output_dir, exist_ok=True)
+    par = load_params(data_dir)
+    run_hash = par["hash"]
+    Er, incl_mus, I_by_mu = read_rt_emergent(os.path.join(data_dir, "emergent_compps.dat"))
     compps_by_mu = {}
     clamped_mus = []
     for mu in incl_mus:
-        out_path = os.path.join(PROJECT_ROOT,
-                                f"compps_{RUN_HASH}_mu{mu:.4f}.dat")
-        cos_used = generate_compps(par, mu, out_path)
+        out_path = os.path.join(output_dir, f"compps_{run_hash}_mu{mu:.4f}.dat")
+        if args.reuse_reference:
+            cos_used = min(max(mu, COSINCL_MIN), COSINCL_MAX)
+        else:
+            cos_used = generate_compps(par, mu, out_path)
         compps_by_mu[mu] = read_qdp(out_path)
         if abs(cos_used - mu) > 1e-9:
-            clamped_mus.append(mu)
-
-    plot_compare(RUN_HASH, par, Er, incl_mus, I_by_mu, compps_by_mu, clamped_mus)
+            clamped_mus.append(float(mu))
+    plot_compare(run_hash, par, Er, incl_mus, I_by_mu, compps_by_mu,
+                 clamped_mus, output_dir, args.show)
+    metrics = {"run_hash": run_hash, "transfer_solver": par.get("transfer_solver", "legacy"),
+               "clamped_mus": clamped_mus, "angles": []}
+    rt_flux = np.array([total_flux(Er, I) for I in I_by_mu])
+    cp_flux = np.array([total_flux(*compps_by_mu[mu]) for mu in incl_mus])
+    for i, mu in enumerate(incl_mus):
+        Ec, Fc = compps_by_mu[mu]
+        rt = I_by_mu[i]/rt_flux[i]
+        cp = np.interp(Er, Ec, Fc/cp_flux[i])
+        metrics["angles"].append({"mu": float(mu),
+            "shape_L1": float(total_flux(Er, np.abs(rt-cp))),
+            "limb_DAO": float(rt_flux[i]/rt_flux[-1]),
+            "limb_compPS": float(cp_flux[i]/cp_flux[-1])})
+    with open(os.path.join(output_dir, "comparison_metrics.json"), "w") as f:
+        json.dump(metrics, f, indent=2); f.write("\n")
 
 
 if __name__ == "__main__":

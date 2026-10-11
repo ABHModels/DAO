@@ -1,0 +1,5 @@
+# Preserve Matplotlib output and archived experiment inputs byte-for-byte.
+paper_data/**/*.svg whitespace=-blank-at-eol
+paper_data/**/*.dat whitespace=-blank-at-eol
+paper_data/figure_all_survival_off_lognH18/experiment/** whitespace=-blank-at-eol,-blank-at-eof
+paper_data/**/*.patch whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab

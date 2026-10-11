@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <stdexcept>
 
 // ============================================================
 // Modified Bessel function K_2(x) * exp(x)
@@ -208,7 +209,7 @@ double compton_cross_section(double E_eV, double T_K)
 
 // ============================================================
 // Compute Compton scattering opacity for all energies at one
-// temperature and electron density:
+// temperature and free-electron density:
 //
 //   ksct[ie] = n_e × σ_compton(E[ie], T)   [cm^-1]
 //
@@ -219,11 +220,10 @@ double compton_cross_section(double E_eV, double T_K)
 //   based on Poutanen & Svensson (1996)
 // ============================================================
 void compute_compton_opacity(double* ksct, int NE, const double* ene_eV,
-                             double T_K, double n_h)
+                             double T_K, double n_e)
 {
+	if (!std::isfinite(n_e) || n_e < 0)
+		throw std::runtime_error("Compton opacity: invalid free-electron density");
 	for (int ie = 0; ie < NE; ++ie)
-		ksct[ie] = 1.21 * n_h * compton_cross_section(ene_eV[ie], T_K);
+		ksct[ie] = n_e * compton_cross_section(ene_eV[ie], T_K);
 }
-
-
-

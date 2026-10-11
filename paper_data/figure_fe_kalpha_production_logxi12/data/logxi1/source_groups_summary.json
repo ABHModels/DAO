@@ -1,0 +1,50 @@
+{
+  "regions": [
+    {
+      "tau_min": 0,
+      "tau_max": 0.1,
+      "DAO_Kalpha_production_per_area": 1216797483326.1846,
+      "FeI_V_production_per_area": 481519460755.71484,
+      "FeI_V_fraction": 0.3957268710315329,
+      "FeVI_XVI_production_per_area": 735275277352.7771,
+      "FeVI_XVI_fraction": 0.6042708728677353,
+      "FeXVII_XXII_production_per_area": 2745217.692810733,
+      "FeXVII_XXII_fraction": 2.25610073198584e-06
+    },
+    {
+      "tau_min": 0.1,
+      "tau_max": 1,
+      "DAO_Kalpha_production_per_area": 4880637624511.8,
+      "FeI_V_production_per_area": 4727873041214.266,
+      "FeI_V_fraction": 0.9686998718097177,
+      "FeVI_XVI_production_per_area": 152764583297.53326,
+      "FeVI_XVI_fraction": 0.031300128190282106,
+      "FeXVII_XXII_production_per_area": 0.0,
+      "FeXVII_XXII_fraction": 0.0
+    },
+    {
+      "tau_min": 1,
+      "tau_max": 5,
+      "DAO_Kalpha_production_per_area": 2290286416146.748,
+      "FeI_V_production_per_area": 2289269311295.5312,
+      "FeI_V_fraction": 0.9995559049540502,
+      "FeVI_XVI_production_per_area": 1017104851.216255,
+      "FeVI_XVI_fraction": 0.00044409504594952146,
+      "FeXVII_XXII_production_per_area": 0.0,
+      "FeXVII_XXII_fraction": 0.0
+    },
+    {
+      "tau_min": 0,
+      "tau_max": 5,
+      "DAO_Kalpha_production_per_area": 8387721523984.732,
+      "FeI_V_production_per_area": 7498661813265.512,
+      "FeI_V_fraction": 0.8940046223307545,
+      "FeVI_XVI_production_per_area": 889056965501.5266,
+      "FeVI_XVI_fraction": 0.10599505037920771,
+      "FeXVII_XXII_production_per_area": 2745217.692810733,
+      "FeXVII_XXII_fraction": 3.2729003758181157e-07
+    }
+  ],
+  "region_definition": "Select cells by midpoint reference Thomson depth; weight by actual cell width.",
+  "warning": "Generated power per slab area, before transfer; not emergent flux."
+}

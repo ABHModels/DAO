@@ -1,0 +1,32 @@
+{
+  "dao_run": "a67d34d8",
+  "solver": "constant_cell_v1",
+  "wall_seconds": 26.5,
+  "default_production_angles": 8,
+  "benchmark_angles": 10,
+  "source_sha256": {
+    "source/compton_rt.cpp": "7adc0b02b9ca0bc8444a37832bee8ce7af1fff4f3abfae5b15c2bbe306e46781",
+    "source/compton_rt.h": "e2e4abb1c51abfb11da7c67e660184ec59c8fd9a28b38fda1269460b78eb0df7",
+    "source/cell_transfer.h": "43f37b0e8406658fe9c53bb06369ea4d1a413d3ed79f34cb745107d3633ca7a3",
+    "source/thermal_balance.cpp": "cfd8f8c46ec87e56262be3dc975d68a56bf5fc8e1111edd0c1c631754e72121d",
+    "source/test_rt.cpp": "91686ca776af50dc8bc4ced0ebc11864280bde3886cfc228229dd068f938daa7",
+    "source/rt_grids.h": "f9dee58d16b905932cd59e40750a6f4fbca32c99b28b6b1c7fa069a146566ecd",
+    "source/params.cpp": "8662d0db0304dba021b9c6c5ee3766d89739eb4174948a2e8730efe83cadeec8"
+  },
+  "files_sha256": {
+    "comppsGenerator.py": "25f3ca92c7e096b4af62411f72d95c1c4e50e3bdd280225f7dd97cb39a3023b8",
+    "compps_a67d34d8_mu0.7692.dat": "b57cc3746c9089c6a075f39161e2fd05d533e6a1173b65c64d73253b052daa5a",
+    "comparison_metrics.json": "91feb5909f575cb94fe6255dfd857b3690f0f8bd04af0d94bbeba27ccfbd2d09",
+    "compps_a67d34d8_mu0.9531.dat": "3f3527fe1ffac32c2a8da85c7178f08f1bea8815fdcc4676125fd5d46e81bb2a",
+    "reference_provenance.json": "a44e7117c884715e95229d9fcc3880823b49bd3b850a3781c22011e514a2af9f",
+    "params.json": "b1497232172a27ea886bfc8fd1cebbc3ee4e3bbb8d10c92e66a91d30a0ee1f74",
+    "test_rt_budget.json": "c8c9568ca1b07bf680d34504660570709ec6ac5947fb59d4d8f64734509601a0",
+    "Readme.md": "30684d2e34c0b3524a1437f96050d4c134830e5387300cd28b7a5c062f8034e8",
+    "compps_a67d34d8_mu0.5000.dat": "97bd1e8a3164a8f548136d64b16f3e7e855bd0cb830bce08d86c21f006bd0654",
+    "compps_a67d34d8_mu0.2308.dat": "ce7d6f1abdb3a4eecff0e067593efc1ac58a4f5010ba6d90634288312d997cd9",
+    "compps_compare_a67d34d8.pdf": "d57f2da9507f55d2fec9e86b5a97977859b51aac6dd207ccd7d6486749499b9b",
+    "emergent_compps.dat": "4c538d4386f3973ff681770671c49a60bad599ab78f4f1e5a10002e80b293c2c",
+    "compps_a67d34d8_mu0.0469.dat": "46ccda95433a7e73f1e3caaa3c3f0880d6406fc5b299401a1d73151911cb95e3",
+    "compps_compare_a67d34d8.png": "b4614d12d5f6effff5873378bfcfcf52be99e566189d5a83781e74010140337f"
+  }
+}

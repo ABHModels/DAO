@@ -1,0 +1,21 @@
+{
+  "README.md": "13d4eceea3c4c8f79904ee13fd7bfe465ea9426e5a5045695092f8785d9013d7",
+  "caption.tex": "123013cfd37da8565abece8f74620f03cb773c93c395f8c2558657c28fa8c103",
+  "data/case_budgets.dat": "965f4a9dca79d0afe086b58225c0b4748db45c05181d478064464e281de06c13",
+  "data/completed.json": "dff3a997c16c5839b5664d29ff4e1e59c94ee567e894399690a715b71d18069c",
+  "data/control_analysis.json": "493514ae67dc3d964fd60b85ce012f4b4d1a4658affea7539bf66c90c42aede7",
+  "data/full_survival.dat": "5dc6782a4547d68cc397d1fdbd67fd22dcf82e32d374ca61af411d10ac4735a7",
+  "data/full_wx_P1.dat": "dd47a4e4b68f33c815fd67e5457689572acc8070500f012bb4b261aa9b99f325",
+  "data/logxi3_DAO.dat": "fda90f6f30be012e22c0da60b53d94e0606d6b03a37bffb7ebfb8517fe545d8d",
+  "data/logxi3_reflionx.dat": "856144e7d3e80d72695be95fd1e249fd3da880eebb4687dae61dd862f6f4adac",
+  "data/logxi3_xillvercp.dat": "499a2bb2e134091d33fd174948946697b2eaf750f6fe0f156af653afcc659fd1",
+  "data/normalization.json": "0ecc83e9ad7fed572e5b850d861f67ae1573b258094688fd648e99c5b9ae5344",
+  "data/target_sources.dat": "409ad7832fc6b3b23e3a51c3681d126c6ee83e11142a5f7640dda9466d85c5f4",
+  "experiment/diagnostic.mk": "00bfbee3f4464493dd27b60ff51a0e73f631db300c9e47e65629b3a03e9992c7",
+  "experiment/transfer_control.cpp": "496a90526d5a7c07392f96f463645d218916f2f640d90174c9f74304d3ccc13b",
+  "output/fe_xxv_model_comparison.png": "aaf8afa0da98cda110d23dab662a08fc935a3f98fad1ae44231e72bb5a5186e4",
+  "output/fe_xxv_model_comparison_manifest.json": "9d3368952a4c09b55cf6b5f2a61864a6659db9cd65bd7a3211370249b952820f",
+  "output/pdf/fe_xxv_model_comparison.pdf": "3a9495fae6233b796fd173de25dbe9c51019fc1ce1aefa06253a27c04614e71e",
+  "plot_survival_comparison.py": "aa2b336d76e1b4bfcd0ca8e278e8e6b93b29418293560e278aef43b5063809e2",
+  "source_snapshot.json": "8a2aecac843aa0242be93c5ac76e049c4341c8de22dab1245635a393a00bbbf8"
+}
