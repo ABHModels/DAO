@@ -91,22 +91,6 @@ test_compton_transfer: source/test_compton_transfer.o source/compton_rt.o source
 test_kernel_storage: source/test_kernel_storage.cpp source/kernel_payload.h source/kernel_row_spool.h source/rt_parallel.h
 	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $<
 
-# Local-only tests are available when their ignored sources are present.
-ifneq ($(wildcard source/test_incidence_boundary.cpp),)
-test_incidence_boundary: source/test_incidence_boundary.cpp source/params.cpp source/rt_grids.cpp source/radiation.cpp source/corona_models.cpp source/incidence_boundary.h
-	$(CXX) $(CXXFLAGS) -o $@ $(filter %.cpp,$^) $(LDFLAGS)
-endif
-
-ifneq ($(wildcard source/test_cloudy_depth.cpp),)
-test_cloudy_depth: source/test_cloudy_depth.o source/save_results.o source/cloudy_depth.o source/cloudy_interface_v2.o source/compton_cross_section.o source/rt_grids.o source/radiation.o source/corona_models.o
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
-endif
-
-ifneq ($(wildcard source/test_ion_fractions.cpp),)
-test_ion_fractions: source/test_ion_fractions.o source/save_results.o source/cloudy_depth.o source/cloudy_interface_v2.o source/compton_cross_section.o source/rt_grids.o source/radiation.o source/corona_models.o
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
-endif
-
 test_scattering_density: source/test_scattering_density.cpp source/source.cpp source/rt_grids.cpp source/compton_kernel.cpp source/avg_compton_kernel.cpp source/compton_cross_section.cpp $(HDRS)
 	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $(filter %.cpp,$^) -lm
 
@@ -117,19 +101,8 @@ multiscat: source/multiscat.cpp source/rt_grids.cpp source/compton_kernel.cpp so
 dump_kernel_slice: source/dump_kernel_slice.cpp source/compton_kernel.cpp source/compton_cross_section.cpp
 	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $^ -lm
 clean:
-	rm -f test_ion_fractions source/test_ion_fractions.o
-	rm -f $(OBJS) $(TARGET) test_compton_transfer source/test_compton_transfer.o test_incidence_boundary test_kernel_low_temp test_kernel_storage test_scattering_density test_cloudy_depth source/test_cloudy_depth.o test_thermal_balance test_thermal_directional test_thermal_cloudy source/test_thermal_cloudy.o multiscat dump_kernel_slice
+	rm -f $(OBJS) $(TARGET) test_compton_transfer source/test_compton_transfer.o test_kernel_low_temp test_kernel_storage test_scattering_density test_thermal_balance multiscat dump_kernel_slice
 
 # Thermal closure regression: conservation, detailed balance, root failures.
 test_thermal_balance: source/test_thermal_balance.cpp source/thermal_balance.cpp source/avg_compton_kernel.cpp source/compton_kernel.cpp source/compton_cross_section.cpp source/rt_grids.cpp source/test_local_response.h $(HDRS)
 	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $(filter %.cpp,$^) -lm
-
-ifneq ($(wildcard source/test_thermal_directional.cpp),)
-test_thermal_directional: source/test_thermal_directional.cpp source/thermal_balance.cpp source/avg_compton_kernel.cpp source/compton_kernel.cpp source/compton_cross_section.cpp source/rt_grids.cpp source/test_local_response.h $(HDRS)
-	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $(filter %.cpp,$^) -lm
-endif
-
-ifneq ($(wildcard source/test_thermal_cloudy.cpp),)
-test_thermal_cloudy: source/test_thermal_cloudy.o source/compton_rt.o source/production.o source/thermal_production.o source/thermal_balance.o source/save_results.o source/cloudy_depth.o source/cloudy_interface_v2.o source/compton_cross_section.o source/avg_compton_kernel.o source/compton_kernel.o source/rt_grids.o source/radiation.o source/corona_models.o
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
-endif
