@@ -1,0 +1,49 @@
+{
+  "runs": [
+    {
+      "log_xi": 1,
+      "source_run": "9e14af6b",
+      "accepted_iteration": 63,
+      "files": {
+        "data/logxi1/depth_power.dat": {
+          "source": "results/fe_lowion_emissivity_9e14af6b_20261010/depth_power.dat",
+          "sha256": "b92576da7b13ea70b365cbc41285dab0fedcd5d31e3d314105ffd1a4cb8fb3d3"
+        },
+        "data/logxi1/FeXVII_XXII_Kalpha_records.dat": {
+          "sha256": "f1bc45d046cdf9fa7cb28d626d8b3f498061deebbef5ba88b2d1bc62a20a7392",
+          "derived_from": "results/fe_lowion_emissivity_9e14af6b_20261010/fluorescence_records.dat",
+          "source_table_sha256": "9742fa188307cf532cb13eb7058adf48d4677aee8ba03a777e6ccf842a49770b",
+          "selection": "K shell (column 9 = 0), K-alpha line IDs (column 18 = 1 or 2), parent stages (column 7 = 17..22); retain columns 0,7,9,18,10,12,13,14,16 (zero-based)."
+        },
+        "data/logxi1/analysis.json": {
+          "source": "results/fe_lowion_emissivity_9e14af6b_20261010/analysis.json",
+          "sha256": "e72f23d17af5c26586799492c4af807cc2ba242cf657a2c5510b631c42f77875"
+        }
+      },
+      "raw_extraction_directory": "results/fe_lowion_emissivity_9e14af6b_20261010"
+    },
+    {
+      "log_xi": 2,
+      "source_run": "effac594",
+      "accepted_iteration": 35,
+      "files": {
+        "data/logxi2/depth_power.dat": {
+          "source": "results/fe_lowion_emissivity_effac594_20261009/depth_power.dat",
+          "sha256": "a62dfd88e41ab0edae7cf01aedb0683cddbf7da6b6176d159a0484690f5bb07e"
+        },
+        "data/logxi2/FeXVII_XXII_Kalpha_records.dat": {
+          "sha256": "216fd17ee2bcc8c661b4555b802aeb903356d07459fe05b0002377fb81e9be61",
+          "derived_from": "results/fe_lowion_emissivity_effac594_20261009/fluorescence_records.dat",
+          "source_table_sha256": "76c8541e473563d97bde5d7517ecf784fb7f2a9b49b4909f4cd6c1d19220b2de",
+          "selection": "K shell (column 9 = 0), K-alpha line IDs (column 18 = 1 or 2), parent stages (column 7 = 17..22); retain columns 0,7,9,18,10,12,13,14,16 (zero-based)."
+        },
+        "data/logxi2/analysis.json": {
+          "source": "results/fe_lowion_emissivity_effac594_20261009/analysis.json",
+          "sha256": "aab41e2bd3ec1e33801214c8b392fe8878fc3a001a8cd22abc787db68b164222"
+        }
+      },
+      "raw_extraction_directory": "results/fe_lowion_emissivity_effac594_20261009"
+    }
+  ],
+  "package_note": "Supersedes the removed standalone logxi1 and logxi2 figure packages. Their extraction code and supporting scientific data are consolidated here; old plots, plotting scripts and standalone captions are removed."
+}

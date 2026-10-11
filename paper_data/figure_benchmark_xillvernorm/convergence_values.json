@@ -1,0 +1,204 @@
+{
+  "units": "percent",
+  "temperature_conversion": "100 * (10**max_dlogT - 1); denominator min(T_new,T_old)",
+  "radiation_measure": "maximum cell-wise energy-integrated relative L1 change in J",
+  "local_balance": "max_d abs(R_d)/(absorption + emission + abs(net Compton exchange))",
+  "integrated_balance": "sum_d abs(R_d)*dr_d / Fin",
+  "boundary_flux": "abs(Fout/Fin - 1); both slab faces included",
+  "energy_diagnostics_stage": "after damping and the full-slab transfer solve",
+  "strict_upper_limits_percent": {
+    "temperature": 0.6931668851804171,
+    "radiation": 0.3,
+    "local_balance": 0.3,
+    "integrated_balance": 1.0,
+    "boundary_flux": 1.0
+  },
+  "runs": [
+    {
+      "log_xi": 1,
+      "DAO_hash": "9e14af6b",
+      "final_iteration": 63,
+      "values_percent": {
+        "temperature": 0.046181433946324096,
+        "radiation": 0.20013878116063402,
+        "local_balance": 0.08075081357402099,
+        "integrated_balance": 0.85549846080191,
+        "boundary_flux": 0.8316556040810053
+      },
+      "last_three_iterations": [
+        61,
+        62,
+        63
+      ],
+      "last_three_history_rows": [
+        [
+          61.0,
+          0.000222955225156333,
+          0.00223669960891668,
+          0.000811425574744891,
+          0.0095623468044217,
+          1.00932117900447,
+          -5.25609116734748e-10
+        ],
+        [
+          62.0,
+          0.000211596259615477,
+          0.00211522023678492,
+          0.000809550275115192,
+          0.00904636280894417,
+          1.00880651781701,
+          -4.94841833361415e-10
+        ],
+        [
+          63.0,
+          0.000200517122014463,
+          0.00200138781160634,
+          0.00080750813574021,
+          0.0085549846080191,
+          1.00831655604081,
+          -4.73234945746467e-10
+        ]
+      ],
+      "last_three_all_five_pass": true,
+      "history_columns": [
+        "iteration",
+        "max_dlogT",
+        "max_relative_L1_dJ",
+        "max_local_R",
+        "abs_volume_R/Fin",
+        "Fout/Fin",
+        "identity_error"
+      ],
+      "source_sha256": {
+        "results/9e14af6b/thermal_history.dat": "cecfb0d9ab4429a54102b00cc4aeb01868e02af3a0cbd2e5417652db5cfdac30",
+        "results/9e14af6b/thermal_status.json": "d5c78c8562cff2320ec656fbc4a8656ba71a29683eb2d493197f256035ef0db4",
+        "results/9e14af6b/thermal_budget_iter63.dat": "76fd1f0c0f534ea5d403632738c1f6b7bcfe8c79f9a518651e5f761c5e27d9f0",
+        "results/9e14af6b/emergent_iter063.dat": "48e874b71bcbcc006da33a6da4fc73e06666dab4328281bd6be6a2a98dde0e0c"
+      }
+    },
+    {
+      "log_xi": 2,
+      "DAO_hash": "effac594",
+      "final_iteration": 35,
+      "values_percent": {
+        "temperature": 0.03549514265495327,
+        "radiation": 0.182333747978605,
+        "local_balance": 0.097247776222888,
+        "integrated_balance": 0.204356721194595,
+        "boundary_flux": 0.15585063102299124
+      },
+      "last_three_iterations": [
+        33,
+        34,
+        35
+      ],
+      "last_three_history_rows": [
+        [
+          33.0,
+          0.000228330104441674,
+          0.00271239611147685,
+          0.000973249622547568,
+          0.00290092911831223,
+          1.00238997890055,
+          3.16252426391417e-08
+        ],
+        [
+          34.0,
+          0.000187663871206424,
+          0.00222367471135071,
+          0.000973093248634763,
+          0.00243862510357499,
+          1.00193868710134,
+          3.32489800066396e-08
+        ],
+        [
+          35.0,
+          0.00015412609387362,
+          0.00182333747978605,
+          0.00097247776222888,
+          0.00204356721194595,
+          1.00155850631023,
+          3.53406368896765e-08
+        ]
+      ],
+      "last_three_all_five_pass": true,
+      "history_columns": [
+        "iteration",
+        "max_dlogT",
+        "max_relative_L1_dJ",
+        "max_local_R",
+        "abs_volume_R/Fin",
+        "Fout/Fin",
+        "identity_error"
+      ],
+      "source_sha256": {
+        "results/effac594/thermal_history.dat": "7d9e9cd3d1aecf7d5c9ab49473108908dc42ad14c318a538d84ed90674a6dc01",
+        "results/effac594/thermal_status.json": "a4401e2d4ad010603614c696d737587f60429c8c2e683a7f471996856545ee92",
+        "results/effac594/thermal_budget_iter35.dat": "3fe5a772aeb6b7c6de7aaf5f4234a9574b0e3d8ea3d9569c7b519a6f6ceaecff",
+        "results/effac594/emergent_iter035.dat": "54a76f868d35b2565c7ca52ce89a3b7400c3cfb12de1c5e431b331c18666d6cd"
+      }
+    },
+    {
+      "log_xi": 3,
+      "DAO_hash": "a518ab75",
+      "final_iteration": 33,
+      "values_percent": {
+        "temperature": 0.2896546626887294,
+        "radiation": 0.17040344771536,
+        "local_balance": 0.170187534503741,
+        "integrated_balance": 0.0717568990054312,
+        "boundary_flux": 0.03409475181099797
+      },
+      "last_three_iterations": [
+        31,
+        32,
+        33
+      ],
+      "last_three_history_rows": [
+        [
+          31.0,
+          0.00173854393817121,
+          0.00238344346697936,
+          0.00238759744618974,
+          0.000816384788627061,
+          1.00040749841943,
+          -6.17663016584859e-08
+        ],
+        [
+          32.0,
+          0.00148948392952527,
+          0.00197046629573849,
+          0.00202177775342187,
+          0.000763717756122932,
+          1.00037397229533,
+          -4.66001184660457e-08
+        ],
+        [
+          33.0,
+          0.00125613586555735,
+          0.0017040344771536,
+          0.00170187534503741,
+          0.000717568990054312,
+          1.00034094751811,
+          -2.36372323764674e-08
+        ]
+      ],
+      "last_three_all_five_pass": true,
+      "history_columns": [
+        "iteration",
+        "max_dlogT",
+        "max_relative_L1_dJ",
+        "max_local_R",
+        "abs_volume_R/Fin",
+        "Fout/Fin",
+        "identity_error"
+      ],
+      "source_sha256": {
+        "results/a518ab75/thermal_history.dat": "94add2c5d991a3ec93f1b8f9f376b7218106403fee45c612ac60b20cb8e26544",
+        "results/a518ab75/thermal_status.json": "c211154cbb4c7565adf20bc44fb2f079f1eb1ac2da6cbd59b87128ae1c78e56f",
+        "results/a518ab75/thermal_budget_iter33.dat": "9f6acc8598ce69a35e28891700047732dbfedef174c6fa730464a22658646550",
+        "results/a518ab75/emergent_iter033.dat": "bfe0d1a82a4a762d122a8d020a2e018fd133d4738587c042cb0655d07cd45cbf"
+      }
+    }
+  ]
+}

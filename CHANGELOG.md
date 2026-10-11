@@ -2,8 +2,31 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) - [SemVer](https://semver.org/).
 
-## [1.1.1] - 2026-07-18
-- **Line-escape and thermal-feedback update for the DAO v1.0 model series.**
+## [1.0.0] - 2026-10-11
+
+**First stable release of DAO.**
+
+### Changed
+- Use one conservative cell-averaged transfer solver for production and benchmarks, supporting both angle-dependent and angle-averaged Compton scattering.
+- Determine gas temperatures from DAO's radiative energy balance, with Cloudy supplying atomic properties at each trial temperature. Check local thermal balance and energy conservation across both slab faces.
+- Parallelize Cloudy depth calculations, accelerate Compton-kernel construction and radiative transfer, and reduce kernel-construction memory use.
+- Use REFLIONX-compatible incident-flux normalization exclusively, with consistent directional and isotropic boundary intensities. Remove `-reflionx_norm`, `-xillver_norm`, `-rt_thermal_balance`, and `-sc`.
+- Default to 48 logarithmically spaced depth cells, with an optional tanh grid. Synchronize the UI with current parameters and convergence status, and simplify console output.
+- Refresh benchmark data and figures, and clarify third-party attribution and permissions.
+
+### Added
+- Local and column energy-budget diagnostics, temperature-search traces, and explicit convergence status.
+- Optional oxygen and iron ion-fraction outputs from the final converged atmosphere.
+
+### Fixed
+- Resolve low-temperature Compton-kernel oscillations and use Cloudy's local free-electron density for Compton scattering.
+- Replace the previous extra line-destruction heating feedback with a thermal residual consistent with the transfer calculation.
+
+Earlier entries below are numbered as pre-1.0 development versions in this
+changelog. Existing published Git tags retain their original identifiers.
+
+## [0.3.1] - 2026-07-18
+- **Line-escape and thermal-feedback development update.**
 
 ### Added
 - `source/cloudy_interface.h`, `source/cloudy_interface_v2.cpp` - Add per-transition line records so bound-bound line power and opacity can be stored over the full slab before applying escape.
@@ -19,16 +42,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) - [SemVer](http
 - `source/production.cpp` - Store line records for every depth cell during the Cloudy loop, call `apply_line_escape()` after the full column is available, and increase the outer-iteration cap from 50 to 100.
 
 ### Fixed
-- Improve the physical treatment of bound-bound line escape. Previous versions attenuated line photons only with the redistribution-dependent escape probability `beta`. In v1.1.1, DAO uses the full escape-probability branching on the slab optical-depth grid: photons may escape through the line channel, be shifted out of the resonance core by electron scattering, be collisionally quenched, or be destroyed by continuum absorption. Only the continuum-destroyed line power is returned to Cloudy as an extra local heating term. Collisional quenching is not added as a separate DAO heating source because it is already part of Cloudy's local atomic and thermal balance; adding it again would double count that energy exchange.
+- Improve the physical treatment of bound-bound line escape. Previous versions attenuated line photons only with the redistribution-dependent escape probability `beta`. In this development version, DAO uses the full escape-probability branching on the slab optical-depth grid: photons may escape through the line channel, be shifted out of the resonance core by electron scattering, be collisionally quenched, or be destroyed by continuum absorption. Only the continuum-destroyed line power is returned to Cloudy as an extra local heating term. Collisional quenching is not added as a separate DAO heating source because it is already part of Cloudy's local atomic and thermal balance; adding it again would double count that energy exchange.
 
-## [1.1.0] - 2026-06-30
+## [0.3.0] - 2026-06-30
 
 ### Changed
-- Update citation metadata for the first formal DAO release.
+- Update citation metadata for the development release.
 - Ignore the local paper-draft directory in Git.
 
-## [1.0.0] - 2026-06-26
-- **The first formal version of DAO**
+## [0.2.0] - 2026-06-26
+- **Early development release of DAO.**
 
 ### Changed
 - `source/radiation.cpp:141` - Revert to our original definition $$\xi = (4\pi)^2 J / n_h$$, which follows [Tarter et al. 1969](https://ui.adsabs.harvard.edu/abs/1969ApJ...156..943T/abstract).

@@ -1,35 +1,26 @@
-# Figure — Line escape in DAO: escape-probability branching
+# Line escape probability figure
 
-**Author:** Yimin Huang · Fudan University; University of Bristol · huangym23@m.fudan.edu.cn
+This figure uses the final outer iteration (011) of run `64e9e118`. Its input is
+`line_escape_selected_64e9e118_iter011.dat`; the run settings are saved in
+`params_64e9e118.json`. The four selected transitions are He II lines at
+303.8, 243.0, 256.3, and 1640.4 Å. They illustrate the bound–bound escape
+calculation; this dataset does not test Fe K fluorescence.
 
-Two-row small-multiple figure. Four columns = four representative lines chosen
-by DAO's `write_line_escape_diagnostics()`, one per escape-physics regime:
-(a) O VIII Lyα 18.97 Å (strong escape), (b) O VIII 16.01 Å (continuum
-destruction), (c) Ne VIII 770.4 Å (strong trapping), (d) O VII 21.81 Å (weak
-attenuation).
+Generate the PDF and PNG in this folder and copy both to `../../Figure/`, where
+`../../draft.tex` reads the PDF:
 
-- **Top row** — WHAT it does: local line power vs Thomson depth τ_T, comparing
-  the optically-thin emissivity with the power that actually escapes; the shaded
-  band is the power removed by trapping/destruction.
-- **Bottom row** — HOW it is done: the survival factor
-  `P = (β + P_el)(1 + y) / (β + P_el + y + P_dest)` decomposed into its four
-  competing channels — line (Sobolev) escape β, electron-scattering escape
-  P_el, continuum destruction P_dest, and collisional quenching y = C_ul/A_ul.
-
-Data are from DAO model `603b2ef4`, latest iteration (025).
-
-## Files
-- `line_escape_lines_603b2ef4.dat` — per-line slab summary (rank, ip, energy,
-  slab-integrated thin/escaped power, mean channel ratios, label).
-- `line_escape_selected_603b2ef4.dat` — per-depth channel profiles for the four
-  selected representative lines.
-- `plot_escape_probability.py` — reads the two `.dat` files above; all paths are
-  local to this folder.
-- `escape_probability.{pdf,png}` — the figure.
-- `escape_probability_caption.tex` — LaTeX caption.
-
-## Run
 ```bash
-python plot_escape_probability.py
+python3 paper_data/figure_escape_probability/plot_escape_probability.py
 ```
-No arguments needed; all paths are local to this folder.
+
+To generate fresh diagnostic data, rebuild `maindaocl` and run the desired
+model. The final outer iteration automatically writes
+`results/<run_hash>/line_escape_lines_iterNNN.dat` and
+`results/<run_hash>/line_escape_selected_iterNNN.dat`, including with parallel
+Cloudy workers. Copy its `line_escape_selected_iterNNN.dat` into this folder,
+and update `SELECTED_FILE` in the plotting script. The per-line summary is not
+needed to reproduce this figure.
+
+The plotted mean survival fraction uses the local thin line power times each
+cell's physical width. The lower panels split the survival fraction into line
+escape and electron-scattering contributions; their sum is the black curve.

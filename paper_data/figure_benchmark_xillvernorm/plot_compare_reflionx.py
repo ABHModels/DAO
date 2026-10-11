@@ -5,12 +5,21 @@ Affiliation: Fudan University; University of Bristol
 Email:       huangym23@m.fudan.edu.cn
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib as mpl
+import argparse
+import hashlib
 import re
 import json
 import os
+import sys
+import tempfile
+from pathlib import Path
+
+os.environ.setdefault('MPLCONFIGDIR', str(Path(tempfile.gettempdir()) / 'dao-benchmark-matplotlib'))
+import numpy as np
+import matplotlib as mpl
+if '--show' not in sys.argv:
+    mpl.use('Agg')
+import matplotlib.pyplot as plt
 
 # ── Nature-style rcParams ────────────────────────────────────────────────────
 mpl.rcParams.update({
@@ -42,22 +51,9 @@ mpl.rcParams.update({
     'ps.fonttype':        42,
 })
 
-# ── Gauss–Legendre weights for emergent flux integration ─────────────────────
-def gl_weights(nodes):
-    n = len(nodes)
-    w = np.zeros(n)
-    for i, x in enumerate(nodes):
-        p0, p1 = 1.0, x
-        for j in range(2, n + 1):
-            p2 = ((2*j - 1) * x * p1 - (j - 1) * p0) / j
-            p0, p1 = p1, p2
-        dp = n * (x * p1 - p0) / (x * x - 1.0)
-        w[i] = 2.0 / ((1.0 - x * x) * dp * dp)
-    return w
-
-
+# ── Upper-face outward normal flux ─────────────────────────────────────────
 def load_emergent_flux(em_file):
-    """Return (E [eV], F_up [erg/cm^2/s/eV]) integrated over outgoing mu>0."""
+    """Return E [eV], 2*pi*sum(w*mu*I) [erg/cm^2/s/eV], and |mu_inc|."""
     mu_v = []
     with open(em_file) as f:
         for line in f:
@@ -68,38 +64,47 @@ def load_emergent_flux(em_file):
                 mu_v.append(float(m.group(1)))
     data = np.loadtxt(em_file, comments='#')
     E = data[:, 0]
-    mu_a = np.array(mu_v)
-    wt_a = gl_weights(mu_a)
-    F = np.zeros_like(E)
-    for i in range(len(mu_a)):
-        if mu_a[i] > 0:
-            F += wt_a[i] * data[:, 3 + i]
-    F *= 0.5
-    return E, F
+    mu_a, wt_a = np.polynomial.legendre.leggauss(len(mu_v))
+    assert data.shape[1] == len(mu_a) + 3
+    assert np.allclose(mu_a, mu_v, rtol=0, atol=5e-7)
+    assert np.all(np.isfinite(data)) and np.all(np.diff(E) > 0)
+    outgoing = mu_a > 0
+    F = 2 * np.pi * np.sum(data[:, 3:][:, outgoing] *
+                          (wt_a[outgoing] * mu_a[outgoing]), axis=1)
+    assert np.all(F >= 0)
+    incoming = np.flatnonzero(mu_a < 0)
+    illuminated = incoming[np.argmax(np.sum(data[:, 3:][:, incoming], axis=0))]
+    return E, F, abs(mu_a[illuminated])
 
 
 # Self-contained: every input file sits next to this script.
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
-def load_run(hash_):
+def load_run(record):
     """Load DAO emergent spectrum, reflionx, xillver, params — all local."""
-    em_file = os.path.join(HERE, f'dao_{hash_}.dat')
-    print(f'[{hash_}] using {os.path.basename(em_file)}')
-    E_eV, F_up = load_emergent_flux(em_file)
+    hash_ = record['DAO_hash']
+    em_file = os.path.join(HERE, record['DAO_file'])
+    print(f'[{hash_}] final iteration {record["DAO_iteration"]}: {os.path.basename(em_file)}')
+    E_eV, F_up, mu_inc = load_emergent_flux(em_file)
 
-    with open(os.path.join(HERE, f'pa{hash_}.json')) as f:
+    with open(os.path.join(HERE, record['DAO_params'])) as f:
         par = json.load(f)
 
-    xv = np.loadtxt(os.path.join(HERE, f'xillver_{hash_}.dat'))
+    reference = record['reference_parameters']
+    for key in ('zeta', 'corona', 'nh', 'Gamma', 'kT_e', 'kT_bb', 'Afe'):
+        assert par[key] == reference[key], (hash_, key)
+    assert par['zeta'] == record['log_xi'] and record['DAO_state'] == 'converged'
+
+    xv = np.loadtxt(os.path.join(HERE, record['xillver_file']))
     E_xv = xv[:, 0] * 1e3                    # keV -> eV
     EFE_xv = xv[:, 2] / E_xv                 # column 2 is E·F_E → divide for F_E
 
-    rf = np.loadtxt(os.path.join(HERE, f'spectra_{hash_}.dat'))
+    rf = np.loadtxt(os.path.join(HERE, record['reflionx_file']))
     E_rf = rf[:, 0] * 1e3
     EFE_rf = rf[:, 1] / E_rf
 
-    return dict(par=par, E=E_eV, F=F_up,
+    return dict(par=par, E=E_eV, F=F_up, mu_inc=mu_inc, record=record,
                 E_xv=E_xv, F_xv=EFE_xv,
                 E_rf=E_rf, F_rf=EFE_rf)
 
@@ -111,14 +116,17 @@ def interp_log(E_target, E_src, F_src):
 
 
 # ── Runs to plot, ordered by increasing log ξ ────────────────────────────────
-HASHES = ['1e4178a5', '603b2ef4', 'feb16067']
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--show', action='store_true', help='Open an interactive zoom/pan window')
+args = parser.parse_args()
+with open(os.path.join(HERE, 'benchmark_inputs.json')) as f:
+    records = json.load(f)['runs']
+records = sorted(records, key=lambda r: r['log_xi'])
+assert [r['log_xi'] for r in records] == [1, 2, 3]
 PANEL_LABELS = ['a', 'b', 'c']
-runs = [load_run(h) for h in HASHES]
-
-# Sort by log xi to guarantee monotonic ordering
-order = np.argsort([r['par']['zeta'] for r in runs])
-runs = [runs[i] for i in order]
-HASHES = [HASHES[i] for i in order]
+runs = [load_run(r) for r in records]
+trapz = getattr(np, 'trapezoid', None) or np.trapz
+plot_records = []
 
 # Normalisation band: 20–50 keV continuum (Compton-hump, line-free).
 # Each model is scaled so that ⟨F_E⟩ over this band equals 1, isolating
@@ -143,13 +151,22 @@ for ax, run, label in zip(axes, runs, PANEL_LABELS):
     band = (E >= E_LO) & (E <= E_HI)
     dE_band = E_HI - E_LO
     # Mean F_E over the 20–50 keV continuum band
-    mean_dao = np.trapz(F[band],    E[band]) / dE_band
-    mean_xv  = np.trapz(F_xv[band], E[band]) / dE_band
-    mean_rf  = np.trapz(F_rf[band], E[band]) / dE_band
+    mean_dao = trapz(F[band],    E[band]) / dE_band
+    mean_xv  = trapz(F_xv[band], E[band]) / dE_band
+    mean_rf  = trapz(F_rf[band], E[band]) / dE_band
+    assert all(np.isfinite(v) and v > 0 for v in (mean_dao, mean_xv, mean_rf))
 
     F_n     = F    / mean_dao
     F_xv_n  = F_xv / mean_xv
     F_rf_n  = F_rf / mean_rf
+    assert all(np.all(np.isfinite(v)) for v in (F_n, F_xv_n, F_rf_n))
+    files = [run['record'][key] for key in
+             ('DAO_file', 'DAO_params', 'reflionx_file', 'xillver_file')]
+    plot_records.append({**run['record'], 'mu_inc_actual': float(run['mu_inc']),
+                         'band_means': {'DAO': float(mean_dao), 'reflionx': float(mean_rf),
+                                        'xillvercp': float(mean_xv)},
+                         'input_sha256': {name: hashlib.sha256(Path(HERE, name).read_bytes()).hexdigest()
+                                          for name in files}})
 
     # Shade the normalisation band
     ax.axvspan(E_LO, E_HI, color='0.85', alpha=0.5, lw=0, zorder=0)
@@ -162,7 +179,8 @@ for ax, run, label in zip(axes, runs, PANEL_LABELS):
               label='xillvercp',  zorder=5)
 
     ax.set_xlim(1e2, 1e6)
-    ax.set_ylim(1e-5, 1e3)
+    # Include the new soft-energy peaks without clipping them at 10^3.
+    ax.set_ylim(1e-5, 1e4)
     ax.set_xlabel(r'Energy (eV)')
 
     # Panel label (top-left)
@@ -179,12 +197,12 @@ for ax, run, label in zip(axes, runs, PANEL_LABELS):
 axes[0].set_ylabel(r'$\hat{F}_E$ (normalised)')
 axes[0].legend(loc='lower left', fontsize=6.5, borderpad=0.3)
 
-# In-figure normalisation note (bottom-right of last panel, always visible)
+# Normalisation note in the empty lower-left region of the last panel.
 axes[-1].text(
-    0.97, 0.05,
+    0.03, 0.05,
     r'$\hat{F}_E = F_E \, / \, \langle F_E\rangle_{20-50\,\mathrm{keV}}$',
     transform=axes[-1].transAxes,
-    ha='right', va='bottom', fontsize=6.5,
+    ha='left', va='bottom', fontsize=6.5,
     bbox=dict(boxstyle='round,pad=0.25', fc='white', ec='0.7', lw=0.4))
 
 # Incident-spectrum parameters as in-figure text (panel a, bottom-left)
@@ -195,7 +213,7 @@ incident_txt = (
     rf'$kT_e = {par0["kT_e"]}\,$keV' + '\n'
     rf'$kT_{{\rm bb}} = {par0["kT_bb"]}\,$keV' + '\n'
     rf'$n_{{\rm H}} = 10^{{{par0["nh"]}}}\,$cm$^{{-3}}$' + '\n'
-    rf'$\mu_{{\rm inc}} = {{\rm cos45}}^{{\circ}}$'
+    rf'$|\mu_{{\rm inc}}| = {runs[0]["mu_inc"]:.4f}$'
 )
 axes[1].text(
     0.03, 0.05, incident_txt,
@@ -203,12 +221,18 @@ axes[1].text(
     ha='left', va='bottom', fontsize=6.5,
     bbox=dict(boxstyle='round,pad=0.3', fc='white', ec='0.7', lw=0.4))
 
-plt.subplots_adjust(left=0.07, right=0.99, bottom=0.14, top=0.96, wspace=0.06)
+plt.subplots_adjust(left=0.07, right=0.99, bottom=0.14, top=0.96, wspace=0.12)
 
-plt.show()
 out_png = os.path.join(HERE, 'compare_reflionx_xi_scan.png')
 out_pdf = os.path.join(HERE, 'compare_reflionx_xi_scan.pdf')
 fig.savefig(out_png, dpi=600, bbox_inches='tight')
 fig.savefig(out_pdf,            bbox_inches='tight')
+with open(os.path.join(HERE, 'plot_inputs.json'), 'w') as f:
+    json.dump({'DAO_quantity': 'upper-face outward normal flux 2*pi*sum(w*mu*I), mu>0',
+               'normalization': 'Each curve divided by its own mean F_E over 20-50 keV, on the DAO grid.',
+               'runs': plot_records}, f, indent=2)
+    f.write('\n')
 print(f'Saved: {out_png}')
 print(f'Saved: {out_pdf}')
+if args.show:
+    plt.show()

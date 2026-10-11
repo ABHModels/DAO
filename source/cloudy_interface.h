@@ -6,6 +6,8 @@
 #include "radiation.h"
 #include <string>
 #include <vector>
+#include <array>
+#include <map>
 
 // One bound-bound transition in one depth cell.
 // Cloudy supplies the local atomic rates; apply_line_escape() later uses the
@@ -66,6 +68,13 @@ void apply_line_escape(RadField& rad, const RTGrids& g,
                        const std::vector<std::vector<LineRec>>& store,
                        const ModelParams& par, int iter,
                        bool diagnostics_only = false);
+
+struct FrozenLineColumn {
+    std::map<long,std::vector<std::array<double,2>>> depths;
+    FrozenLineColumn(const RTGrids&, const std::vector<std::vector<LineRec>>&);
+};
+void apply_frozen_line_escape(int id, RadField&, const RTGrids&,
+                             const std::vector<LineRec>&, const FrozenLineColumn&);
 
 
 #endif // CLOUDY_INTERFACE_H

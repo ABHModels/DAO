@@ -1,0 +1,5 @@
+{
+  "DAO_normalization_divisor_shared_by_both_curves": 481925209988068.9,
+  "definition": "Mean of the original DAO upper-face F_E at 5 and 8 keV; XILLVER keeps its own endpoint normalization.",
+  "P1_label_definition": "P_w=P_x=1 only; all other lines retain their original survival factors."
+}

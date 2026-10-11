@@ -1,0 +1,63 @@
+{
+  "data/full_survival.dat": {
+    "original_file": "results/fe_k_survival_a518ab75/transfer_control_20261009/full_survival.dat",
+    "original_sha256": "45f4e52dae79a5f272b2248798033578437270c9a29dcb3e60f7515047e3ef6d",
+    "sha256": "5dc6782a4547d68cc397d1fdbd67fd22dcf82e32d374ca61af411d10ac4735a7",
+    "conversion": "Retain original energy and upper-face flux; eV to keV and flux per eV to per keV; other diagnostic columns omitted."
+  },
+  "data/full_wx_P1.dat": {
+    "original_file": "results/fe_k_survival_a518ab75/transfer_control_20261009/full_wx_P1.dat",
+    "original_sha256": "1f0a1df44d157d49a376ecb63f8cbe8098f3c50374bbd29796bccbea8ad73370",
+    "sha256": "dd47a4e4b68f33c815fd67e5457689572acc8070500f012bb4b261aa9b99f325",
+    "conversion": "Retain original energy and upper-face flux; eV to keV and flux per eV to per keV; other diagnostic columns omitted."
+  },
+  "data/logxi3_DAO.dat": {
+    "original_file": "paper_data/figure_benchmark_xillvernorm/iron_line_zoom/data/logxi3_DAO.dat",
+    "original_sha256": "fda90f6f30be012e22c0da60b53d94e0606d6b03a37bffb7ebfb8517fe545d8d",
+    "sha256": "fda90f6f30be012e22c0da60b53d94e0606d6b03a37bffb7ebfb8517fe545d8d"
+  },
+  "data/logxi3_reflionx.dat": {
+    "original_file": "paper_data/figure_benchmark_xillvernorm/iron_line_zoom/data/logxi3_reflionx.dat",
+    "original_sha256": "856144e7d3e80d72695be95fd1e249fd3da880eebb4687dae61dd862f6f4adac",
+    "sha256": "856144e7d3e80d72695be95fd1e249fd3da880eebb4687dae61dd862f6f4adac"
+  },
+  "data/logxi3_xillvercp.dat": {
+    "original_file": "paper_data/figure_benchmark_xillvernorm/iron_line_zoom/data/logxi3_xillvercp.dat",
+    "original_sha256": "499a2bb2e134091d33fd174948946697b2eaf750f6fe0f156af653afcc659fd1",
+    "sha256": "499a2bb2e134091d33fd174948946697b2eaf750f6fe0f156af653afcc659fd1"
+  },
+  "data/control_analysis.json": {
+    "original_file": "results/fe_k_survival_a518ab75/transfer_control_20261009/analysis.json",
+    "original_sha256": "493514ae67dc3d964fd60b85ce012f4b4d1a4658affea7539bf66c90c42aede7",
+    "sha256": "493514ae67dc3d964fd60b85ce012f4b4d1a4658affea7539bf66c90c42aede7",
+    "curation_note": "Restricted to the retained full-spectrum comparison at user request."
+  },
+  "data/completed.json": {
+    "original_file": "results/fe_k_survival_a518ab75/transfer_control_20261009/completed.json",
+    "original_sha256": "dff3a997c16c5839b5664d29ff4e1e59c94ee567e894399690a715b71d18069c",
+    "sha256": "dff3a997c16c5839b5664d29ff4e1e59c94ee567e894399690a715b71d18069c",
+    "curation_note": "Restricted to the retained full-spectrum comparison at user request."
+  },
+  "data/case_budgets.dat": {
+    "original_file": "results/fe_k_survival_a518ab75/transfer_control_20261009/case_budgets.dat",
+    "original_sha256": "965f4a9dca79d0afe086b58225c0b4748db45c05181d478064464e281de06c13",
+    "sha256": "965f4a9dca79d0afe086b58225c0b4748db45c05181d478064464e281de06c13",
+    "curation_note": "Restricted to the retained full-spectrum comparison at user request."
+  },
+  "data/target_sources.dat": {
+    "original_file": "results/fe_k_survival_a518ab75/transfer_control_20261009/target_sources.dat",
+    "original_sha256": "409ad7832fc6b3b23e3a51c3681d126c6ee83e11142a5f7640dda9466d85c5f4",
+    "sha256": "409ad7832fc6b3b23e3a51c3681d126c6ee83e11142a5f7640dda9466d85c5f4"
+  },
+  "experiment/transfer_control.cpp": {
+    "original_file": "results/fe_k_survival_a518ab75/transfer_control_20261009/transfer_control.cpp",
+    "original_sha256": "496a90526d5a7c07392f96f463645d218916f2f640d90174c9f74304d3ccc13b",
+    "sha256": "496a90526d5a7c07392f96f463645d218916f2f640d90174c9f74304d3ccc13b",
+    "curation_note": "Restricted to the retained full-spectrum comparison at user request."
+  },
+  "experiment/diagnostic.mk": {
+    "original_file": "results/fe_k_survival_a518ab75/transfer_control_20261009/diagnostic.mk",
+    "original_sha256": "00bfbee3f4464493dd27b60ff51a0e73f631db300c9e47e65629b3a03e9992c7",
+    "sha256": "00bfbee3f4464493dd27b60ff51a0e73f631db300c9e47e65629b3a03e9992c7"
+  }
+}

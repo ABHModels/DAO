@@ -14,4 +14,6 @@ transfer inside the slab it emerges at viewing angle θ_view. The emergent
 ```bash
 python incidence_geometry.py
 ```
-No arguments needed.
+No arguments needed. The script saves `incidence_geometry.png` and
+`incidence_geometry.pdf` beside itself, regardless of the working directory,
+then displays the figure.

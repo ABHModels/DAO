@@ -1,0 +1,43 @@
+{
+  "regions": [
+    {
+      "tau_min": 0,
+      "tau_max": 0.1,
+      "DAO_Kalpha_production_per_area": 13158455574064.152,
+      "FeI_V_fraction": 0.0,
+      "FeVI_XVI_fraction": 0.27787447208144894,
+      "FeXVII_XXII_fraction": 0.7221229073601142,
+      "REF_recipe_on_DAO_state_over_DAO_source": 0.2687737923120746
+    },
+    {
+      "tau_min": 0.1,
+      "tau_max": 1,
+      "DAO_Kalpha_production_per_area": 50990365902842.75,
+      "FeI_V_fraction": 0.00457214552042956,
+      "FeVI_XVI_fraction": 0.994147934099402,
+      "FeXVII_XXII_fraction": 0.0012799203801682536,
+      "REF_recipe_on_DAO_state_over_DAO_source": 1.0932512556707383
+    },
+    {
+      "tau_min": 1,
+      "tau_max": 5,
+      "DAO_Kalpha_production_per_area": 23291909189381.668,
+      "FeI_V_fraction": 0.11884783725797436,
+      "FeVI_XVI_fraction": 0.8811521627420257,
+      "FeXVII_XXII_fraction": 0.0,
+      "REF_recipe_on_DAO_state_over_DAO_source": 0.9813796525748651
+    },
+    {
+      "tau_min": 0,
+      "tau_max": 5,
+      "DAO_Kalpha_production_per_area": 87440730666288.58,
+      "FeI_V_fraction": 0.0343241460008981,
+      "FeVI_XVI_fraction": 0.8562609370190712,
+      "FeXVII_XXII_fraction": 0.10941452262717548,
+      "REF_recipe_on_DAO_state_over_DAO_source": 0.9393807059729082
+    }
+  ],
+  "yield_replacement_only_ratio_VI_XVI": 1.0970729427914865,
+  "FeXVII_XXII_power_fraction_formed_tau_lt_0p1": 0.9931784614938713,
+  "warning": "All fractions describe local generated power, not escaping flux. REFLIONX recipe is evaluated on DAO populations and rates, not a recalculated REFLIONX atmosphere."
+}

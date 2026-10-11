@@ -1,3 +1,4 @@
+#include "run_log.h"
 #include "avg_compton_kernel.h"
 #include "compton_kernel.h"          // profil_exact / profil_exact_ap
 #include "compton_cross_section.h"
@@ -91,8 +92,8 @@ static double angle_mean_energy_cell(double x,double lo,double hi,double T_K,int
 // avgKernelCache implementation — banded storage, detailed balance
 // (upper triangle ne1 >= ne only)
 //
-// Binary cache file format (version 09, restored local electron quadrature):
-//   magic       [8 bytes]  "AVKRN09\0"
+// Binary cache file format (version 07):
+//   magic       [8 bytes]  "AVKRN07\0"
 //   NT, NE      [2×4 bytes]
 //   data_size   [8 bytes]
 //   T_grid      [NT doubles]
@@ -105,7 +106,7 @@ static double angle_mean_energy_cell(double x,double lo,double hi,double T_K,int
 //   ghi         [NT*NE ints]
 //   data        [data_size doubles]
 // ============================================================
-static const char CACHE_MAGIC[8] = "AVKRN09";
+static const char CACHE_MAGIC[8] = "AVKRN07";
 
 void avgKernelCache::write_header(FILE* fp) const
 {
@@ -133,7 +134,7 @@ void avgKernelCache::save(const char* filename) const
 	fwrite(data,     sizeof(double), data_size, fp);
 	output.commit();
 
-	fprintf(stdout, "  avgKernelCache: saved to %s (%.1f MB)\n",
+	dao_log::detail("  avgKernelCache: saved to %s (%.1f MB)\n",
 	        filename, data_size * 8.0 / (1024.0 * 1024.0));
 }
 
@@ -146,8 +147,7 @@ bool avgKernelCache::load(const char* filename, const double* expected_ene_eV)
 	char magic[8];
 	if (fread(magic, 1, 8, fp) != 8 || memcmp(magic, CACHE_MAGIC, 8) != 0)
 	{
-		fprintf(stderr,
-			"  WARNING: cache file %s has wrong magic (expected \"%s\", got \"%.7s\")\n"
+		dao_log::error("  WARNING: cache file %s has wrong magic (expected \"%s\", got \"%.7s\")\n"
 			"           File may be from an older format version. Will recompute.\n",
 			filename, CACHE_MAGIC, magic);
 		fclose(fp); return false;
@@ -158,8 +158,7 @@ bool avgKernelCache::load(const char* filename, const double* expected_ene_eV)
 	fread(&fNE, sizeof(int), 1, fp);
 	if (fNT != NT || fNE != NE)
 	{
-		fprintf(stderr,
-			"  WARNING: cache file %s has mismatched dimensions:\n"
+		dao_log::error("  WARNING: cache file %s has mismatched dimensions:\n"
 			"           file: NT=%d NE=%d\n"
 			"           need: NT=%d NE=%d\n"
 			"           Will recompute.\n",
@@ -179,8 +178,7 @@ bool avgKernelCache::load(const char* filename, const double* expected_ene_eV)
 	delete[] fT;
 	if (!match)
 	{
-		fprintf(stderr,
-			"  WARNING: cache file %s has mismatched T_grid. Will recompute.\n",
+		dao_log::error("  WARNING: cache file %s has mismatched T_grid. Will recompute.\n",
 			filename);
 		fclose(fp); return false;
 	}
@@ -219,7 +217,7 @@ bool avgKernelCache::load(const char* filename, const double* expected_ene_eV)
 	data = payload.map(fp,size_t(data_size));
 	if(data) {
 		fclose(fp);
-		fprintf(stdout,"  avgKernelCache: mapped %s (%.1f MB virtual payload, demand-paged)\n",
+		dao_log::detail("  avgKernelCache: mapped %s (%.1f MB virtual payload, demand-paged)\n",
 		        filename,data_size*8.0/(1024.0*1024.0));
 		return true;
 	}
@@ -230,7 +228,7 @@ bool avgKernelCache::load(const char* filename, const double* expected_ene_eV)
 	if ((long)nread != data_size) return false;
 
 	double fill = 100.0 * data_size / (double(NT) * NE * NE);
-	fprintf(stdout, "  avgKernelCache: loaded from %s (%.1f MB, %.1f%% dense fill)\n",
+	dao_log::detail("  avgKernelCache: loaded from %s (%.1f MB, %.1f%% dense fill)\n",
 	        filename, data_size * 8.0 / (1024.0 * 1024.0), fill);
 	return true;
 }
@@ -277,19 +275,18 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 
 	if (load(norm_file,ene_eV))
 	{
-		fprintf(stderr, "\n Load normalized angle-mean Compton kernel");
+		dao_log::detail("Loaded normalized angle-mean Compton kernel\n");
 		return;
 	}
 	if (load(raw_file,ene_eV))
 	{
-		fprintf(stderr,
-			"\n  WARNING: Loaded un-normalized angle-mean kernel %s\n"
+		dao_log::error("\n  WARNING: Loaded un-normalized angle-mean kernel %s\n"
 			"           Normalized kernel %s not found.\n",
 			raw_file, norm_file);
 		return;
 	}
 
-	fprintf(stdout, "  avgKernelCache: no valid cache, computing "
+	dao_log::detail("  avgKernelCache: no valid cache, computing "
 	        "(banded, upper-triangle, detailed balance)...\n");
 
 	// Convert energy grid to dimensionless x = E/(m_e c²)
@@ -316,7 +313,7 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 	const double KMIN_REL = 1e-10;
 
 	// --- Pass 1: find band limits (upper triangle only: ne1 >= ne) ---
-	fprintf(stdout, "  avgKernelCache: pass 1 — finding band limits (upper triangle)...\n");
+	dao_log::detail("  avgKernelCache: pass 1 — finding band limits (upper triangle)...\n");
 
 	computed_rows.evaluate(size_t(n_ge),size_t(NE),[&](size_t index,double* row_buf,int& lo_ne1,int& hi_ne1) {
 		const long r=long(index);
@@ -420,11 +417,11 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 	}
 
 	double fill = 100.0 * data_size / (double(NT) * NE * NE);
-	fprintf(stdout, "  avgKernelCache: data_size = %ld doubles (%.1f MB, %.1f%% dense fill)\n",
+	dao_log::detail("  avgKernelCache: data_size = %ld doubles (%.1f MB, %.1f%% dense fill)\n",
 	        data_size, data_size * 8.0 / (1024.0 * 1024.0), fill);
 
 	// Reuse the exact values evaluated during the band scan.
-	fprintf(stdout, "  avgKernelCache: normalizing retained rows one temperature at a time...\n");
+	dao_log::detail("  avgKernelCache: normalizing retained rows one temperature at a time...\n");
 	KernelCacheOutput output(norm_file);
 	write_header(output.file());
 	const off_t payload_offset=::ftello(output.file());
@@ -438,11 +435,11 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 	//
 	// The K() accessor spans both triangles (direct + detailed balance),
 	// so the integral covers the full energy range correctly.
-	fprintf(stdout, "  Normalizing angle-mean kernel via A23 sum rule...\n");
+	dao_log::detail("  Normalizing angle-mean kernel via A23 sum rule...\n");
 
 	for (int iT = 0; iT < NT; ++iT)
 	{
-		fprintf(stdout, "    T=%.2e K (%d/%d)...", T_grid[iT], iT + 1, NT);
+		dao_log::detail("    T=%.2e K (%d/%d)...", T_grid[iT], iT + 1, NT);
 		fflush(stdout);
 		data=computed_rows.view(payload,size_t(data_size));
 
@@ -493,13 +490,13 @@ void avgKernelCache::init(int n_ene, const double* ene_eV,
 		const long end=(iT+1<NT)?band_off[long(iT+1)*NE]:data_size;
 		if(end>begin && fwrite(data+begin,sizeof(double),size_t(end-begin),output.file())!=size_t(end-begin))
 			throw std::runtime_error("kernel: normalized temperature write failed");
-		fprintf(stdout, " done.\n");
+		dao_log::detail(" done.\n");
 	}
 
 	// Save normalized kernel
 	data=output.map_payload(payload,size_t(data_size),payload_offset);
 	output.commit();
-	fprintf(stdout, "  Saved normalized angle-mean kernel to %s\n", norm_file);
+	dao_log::detail("  Saved normalized angle-mean kernel to %s\n", norm_file);
 }
 
 void avgKernelCache::free_memory()

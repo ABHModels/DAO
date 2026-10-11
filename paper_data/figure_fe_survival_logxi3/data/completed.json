@@ -1,0 +1,13 @@
+{
+  "state": "completed",
+  "cases": 2,
+  "thermal_iterations": 0,
+  "maxiter": 2000,
+  "RT_tolerance": 1e-07,
+  "consecutive_passes": 3,
+  "case_names": [
+    "full_survival",
+    "full_wx_P1"
+  ],
+  "scope": "Completion metadata retained for the two full-spectrum cases from the original run."
+}

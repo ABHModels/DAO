@@ -27,10 +27,13 @@
 #include "compton_rt.h"
 #include "test_rt.h"
 #include "production.h"
+#include "run_log.h"
+#include <chrono>
 
 int main(int argc, char *argv[])
 {
 	exit_type exit_status = ES_SUCCESS;
+	const auto start = std::chrono::steady_clock::now();
 
 	DEBUG_ENTRY("main()");
 
@@ -55,7 +58,7 @@ int main(int argc, char *argv[])
 		// compps benchmark mode: total Thomson depth set by -tau so it matches
 		// the compps "tau" parameter; otherwise use the default slab depth.
 		const double tau_max = is_compps ? par.tau_slab : RTGrids::TAU_MAX;
-		g.init_depth(RTGrids::TAU_MIN, tau_max, par.nh);
+		g.init_depth(RTGrids::TAU_MIN, tau_max, par.nh, par.log_depth);
 
 		// Energy grid: test mode uses a synthetic 1000-bin log grid spanning
 		// 0.01-1000 keV (no Cloudy needed); production adopts Cloudy's mesh.
@@ -63,6 +66,8 @@ int main(int argc, char *argv[])
 			g.init_energy(10.0, 1.0e6, 1000);   // 0.01-1000 keV in eV
 		else
 			bootstrap_cloudy_energy_grid(g, EGRID_FILE);
+		dao_log::info("Grid:       %d depth cells (%s), %d energies, %d angles; tau_ref=%.4g\n",
+		              g.ND_MID,par.log_depth ? "log" : "tanh",g.NE,g.NA,tau_max);
 		snap_incidence(par, g);
 
 		// --- 4. Calculate initial radiation field ---
@@ -74,6 +79,7 @@ int main(int argc, char *argv[])
 		// In test mode the slab is isothermal, so the redistribution kernel
 		// only needs the single slab temperature (NT=1) rather than the full
 		// N_T_CACHE grid used in production.
+		dao_log::info("Kernel:     preparing %s Compton cache...\n",par.angsca ? "angle-dependent" : "angle-mean");
 		if (is_angavg)
 		{
 			// Angle-resolved (directional) Compton kernel.
@@ -123,6 +129,8 @@ int main(int argc, char *argv[])
 	}
 	CLOUDY_CATCH_ALL(exit_status);
 
+	dao_log::info("Finished: %s | total time %.1fs\n",exit_status == ES_SUCCESS ? "success" : "failed",
+	              std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count());
 	cdPrepareExit(exit_status);
 	return exit_status;
 }

@@ -8,5 +8,7 @@
 // Call only from the main thread after all kernel/RT workers have joined.
 void run_cloudy_depths(RadField& rad, const RTGrids& g, const ModelParams& par,
                       int iteration, std::vector<std::vector<LineRec>>& lines,
-                      unsigned workers = 0);
+                      unsigned workers = 0,
+                      const double* fixed_temperatures = nullptr,
+                      const unsigned char* active = nullptr);
 #endif

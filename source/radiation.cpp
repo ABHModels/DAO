@@ -1,3 +1,4 @@
+#include "run_log.h"
 #include "radiation.h"
 #include "corona_models.h"
 #include "constants.h"
@@ -99,7 +100,7 @@ void RadField::deallocate()
 	free_2d(kabs,      g.ND_MID);
 	free_2d(ksct,      g.ND_MID);
 	free_3d(Inu,       g.ND_MID, g.NA);
-	free_2d(Inu_top, g.NA);
+	free_2d(Inu_top,    g.NA);
 	free_2d(Inu_bottom, g.NA);
 	free_2d(J0,        g.ND_MID);
 	free_2d(J2,        g.ND_MID);
@@ -123,11 +124,12 @@ void RadField::deallocate()
 // ============================================================
 void IllumSpec::compute(const ModelParams& par)
 {
-	// I_corona, I_disk: spectral mean intensity [erg cm^-2 s^-1 eV^-1]
+	// I_corona stores incident normal flux density F_E [erg cm^-2 s^-1 eV^-1].
+	// I_disk retains the lower-hemisphere mean-intensity convention.
 	compute_corona_shape(I_corona, g, par);
 	blackbody(I_disk, g, par.kT_disk * 1.0e3);
 
-	// Integrate spectral flux over energy to get total flux [erg cm^-2 s^-1]
+	// Integrate the unnormalized spectral shapes over energy.
 	double raw_corona = 0.0, raw_disk = 0.0;
 	for (int i = 0; i < g.NE - 1; ++i)
 	{
@@ -138,16 +140,13 @@ void IllumSpec::compute(const ModelParams& par)
 		}
 	}
 
-	// Target flux from ionisation parameter
-	// xi = (4pi)^2 J / nh
-	// J = 1/2 (I)
-	// This function return J; 
+	// Sole normalization: F = xi*nH/(4*pi). Convert F_E to specific
+	// intensity with 2*pi*w*abs(mu) at the top boundary.
 	double xi = pow(10.0, par.zeta);
 	double nH = pow(10.0, par.nh);
-	double Fx = xi * nH / pow(phys::four_pi,2);
-	// double Fx = xi * nH / phys::four_pi;
+	double Fx = xi * nH / phys::four_pi;
 
-	// Rescale so that corona + disk = Fx, split by frac = F_corona / F_disk
+	// Retain the existing corona/disk amplitude split when frac > 0.
 	if (par.frac > 0) {
 		double target_corona = par.frac / (1.0 + par.frac) * Fx;
 		double target_disk   = 1.0      / (1.0 + par.frac) * Fx;
@@ -167,7 +166,7 @@ void IllumSpec::compute(const ModelParams& par)
 		}
 	}
 
-	printf("IllumSpec: Fx=%.4e  raw_corona=%.4e  raw_disk=%.4e\n",
+	dao_log::detail("IllumSpec: Fx=%.4e  raw_corona=%.4e  raw_disk=%.4e\n",
 		Fx, raw_corona, raw_disk);
 }
 

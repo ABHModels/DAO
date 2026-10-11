@@ -1,3 +1,4 @@
+#include "run_log.h"
 #include "rt_grids.h"
 #include "constants.h"
 #include <cmath>
@@ -37,10 +38,10 @@ void RTGrids::free_depth()
 	delete[] dr;        dr       = nullptr;
 }
 
-void RTGrids::init_all(double nh)
+void RTGrids::init_all(double nh, bool log_depth)
 {
 	init_angle();
-	init_depth(TAU_MIN, TAU_MAX, nh);
+	init_depth(TAU_MIN, TAU_MAX, nh, log_depth);
 	init_energy(E_LO, E_HI);
 }
 
@@ -149,7 +150,7 @@ void RTGrids::init_angle_double_gauss()
 // ============================================================
 // Depth grid
 // ============================================================
-void RTGrids::init_depth(double tau_min, double tau_max, double nh)
+void RTGrids::init_depth(double tau_min, double tau_max, double nh, bool log_depth)
 {
 	// Ensure arrays have the default size (in case they were
 	// previously resized by init_depth_from_zones()).
@@ -158,15 +159,30 @@ void RTGrids::init_depth(double tau_min, double tau_max, double nh)
 
 	tau_edge[0] = 0.0;
 
-	// Keep a thin surface cell [0, tau_min], then use logarithmically
-	// spaced positive edges through tau_max.
+	// The first cell spans [0, tau_min] in both modes.
+	const int N = ND_EDGE - 1;
 	const double log_tmin = log10(tau_min);
 	const double log_tmax = log10(tau_max);
-	const int N = ND_EDGE - 1;   // tau_edge[1]..tau_edge[N]
-	for (int i = 1; i < ND_EDGE; ++i)
+	if (log_depth)
 	{
-		double fraction = static_cast<double>(i - 1) / (N - 1);
-		tau_edge[i] = pow(10.0, log_tmin + fraction * (log_tmax - log_tmin));
+		for (int i = 1; i < ND_EDGE; ++i)
+		{
+			double fraction = static_cast<double>(i - 1) / (N - 1);
+			tau_edge[i] = pow(10.0, log_tmin + fraction * (log_tmax - log_tmin));
+		}
+	}
+	else
+	{
+		// Original tanh mapping in log(tau), refined near both endpoints.
+		const double k        = 3.0;
+		const double log_tmid = 0.5 * (log_tmin + log_tmax);
+		const double A        = (log_tmax - log_tmid) / tanh(k / 2.0);
+		for (int i = 1; i < ND_EDGE; ++i)
+		{
+			double u = static_cast<double>(i - 1) / (N - 1) - 0.5;
+			double log_tau = log_tmid + A * tanh(k * u);
+			tau_edge[i] = pow(10.0, log_tau);
+		}
 	}
 	tau_edge[1] = tau_min;
 	tau_edge[N] = tau_max;
@@ -174,6 +190,7 @@ void RTGrids::init_depth(double tau_min, double tau_max, double nh)
 	for (int i = 0; i < ND_MID; ++i)
 		tau_mid[i] = 0.5 * (tau_edge[i] + tau_edge[i + 1]);
 
+	// Reference coordinate uses the same 1.21*nH scattering prescription as RT.
 	const double n_e = phys::reference_electrons_per_hydrogen * pow(10.0, nh);
 	const double factor = 1.0 / (n_e * phys::sigma_T);
 
@@ -255,7 +272,7 @@ void RTGrids::init_energy(double E_lo, double E_hi, int n_bins)
 		wid[i] = e_hi - e_lo;
 	}
 
-	fprintf(stdout, "Energy grid (log-spaced): NE=%d  E=[%.3f, %.3f] eV\n",
+	dao_log::detail("Energy grid (log-spaced): NE=%d  E=[%.3f, %.3f] eV\n",
 	        NE, ene[0], ene[NE - 1]);
 }
 
@@ -293,7 +310,7 @@ void RTGrids::init_energy_from_cloudy(int nflux, const double* anu_ryd,
 		}
 	}
 
-	fprintf(stdout, "Energy grid (from Cloudy): NE=%d  E=[%.3f, %.3f] eV\n",
+	dao_log::detail("Energy grid (from Cloudy): NE=%d  E=[%.3f, %.3f] eV\n",
 	        NE, ene[0], ene[NE - 1]);
 }
 
@@ -313,7 +330,7 @@ void RTGrids::save_energy(const char* path) const
 	for (int i = 0; i < NE; ++i)
 		fprintf(fp, "%.15e  %.15e\n", ene[i], wid[i]);
 	fclose(fp);
-	fprintf(stdout, "Energy grid saved to %s (%d bins)\n", path, NE);
+	dao_log::detail("Energy grid saved to %s (%d bins)\n", path, NE);
 }
 
 // ============================================================
@@ -348,7 +365,7 @@ bool RTGrids::load_energy(const char* path)
 	}
 	fclose(fp);
 
-	fprintf(stdout, "Energy grid (from file): NE=%d  E=[%.3f, %.3f] eV  (%s)\n",
+	dao_log::detail("Energy grid (from file): NE=%d  E=[%.3f, %.3f] eV  (%s)\n",
 	        NE, ene[0], ene[NE - 1], path);
 	return true;
 }

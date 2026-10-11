@@ -3,6 +3,16 @@
 
 #include "rt_grids.h"
 #include "params.h"
+#include <array>
+#include <vector>
+
+// Read-only snapshot of one Cloudy cell. Stage 0 is neutral; the last is bare.
+// Fractions are relative to the gas-phase elemental abundance, as in Cloudy.
+template<std::size_t Stages> struct IonFractions {
+	int iteration = -1;
+	double gas_density = 0;
+	std::array<double,Stages> fraction{};
+};
 
 // ============================================================
 // IllumSpec — incident spectra (corona + disk)
@@ -10,8 +20,8 @@
 struct IllumSpec
 {
 	const RTGrids& g;
-	double* I_corona;
-	double* I_disk;
+	double* I_corona; // incident normal flux F_E [erg cm^-2 s^-1 eV^-1]
+	double* I_disk;   // lower-hemisphere mean intensity J_E [erg cm^-2 s^-1 eV^-1 sr^-1]
 
 	IllumSpec(const RTGrids& gr)
 		: g(gr), I_corona(nullptr), I_disk(nullptr) {}
@@ -33,10 +43,10 @@ struct RadField
 	double** jnu;    // [ND_MID][NE]
 	double** kabs;   // [ND_MID][NE]
 	double** ksct;   // [ND_MID][NE]
-	double*** Inu;   // [ND_MID][NA][NE]
-	double** Inu_top; // [NA][NE], upper slab face
-	double** Inu_bottom; // [NA][NE], lower slab face
-	double** J0;     // [ND_MID][NE]
+	double*** Inu;   // [ND_MID][NA][NE], production: cell-volume-average intensity
+	double** Inu_top;    // [NA][NE], actual upper-face intensity (both hemispheres)
+	double** Inu_bottom; // [NA][NE], actual lower-face intensity (both hemispheres)
+	double** J0;     // [ND_MID][NE], angular mean of Inu (same spatial convention)
 	double** J2;     // [ND_MID][NE]
 	double** J3;     // [ND_MID][NE]
 	double** jnu_line;  // [ND_MID][NM][NE] — line emissivity (unscaled)
@@ -48,8 +58,11 @@ struct RadField
 	double* log_inte;
 	double* n_e;
 	double* heating;
-	double* line_heat; // Pdest line photons deposited locally as heat [erg cm^-3 s^-1]
+	double* line_heat; // line-destruction diagnostic; never injected as external heat
 	double* cooling;
+	// Allocated only for requested diagnostics; carried through worker IPC.
+	std::vector<IonFractions<9>> oxygen;
+	std::vector<IonFractions<27>> iron;
 
 	IllumSpec illum;
 

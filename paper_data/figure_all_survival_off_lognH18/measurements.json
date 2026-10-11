@@ -1,0 +1,72 @@
+{
+  "baseline": "5b7fe321",
+  "run": "fe48cbde",
+  "final_iteration": 19,
+  "scope": "All bound-bound survival factors P=1; full temperature, ion populations, opacities and radiation recomputed from normal initialization.",
+  "wall_seconds": 879.2662367910089,
+  "all_emitting_lines_have_P1": true,
+  "emitting_line_count": 8079,
+  "max_dlogT_dex": 0.000494232958840016,
+  "max_relative_dJ": 0.000933412552097116,
+  "max_local_residual": 0.000929109037958596,
+  "abs_volume_residual_over_Fin": 0.000628825550924126,
+  "Fout_over_Fin": 1.00061591809269,
+  "boundary_energy_error_percent": 0.06159180926899044,
+  "max_identity_error": 2.52918515180455e-07,
+  "last_three_convergence_rows": [
+    [
+      17.0,
+      0.00109690601442425,
+      0.00224117123616216,
+      0.000989184566056034,
+      0.00130863849596143,
+      1.00129605355512,
+      1.70065978844099e-07
+    ],
+    [
+      18.0,
+      0.000747068207085914,
+      0.00145150854675857,
+      0.000938022575527053,
+      0.000890043153371228,
+      1.00087727817699,
+      1.56662832099883e-07
+    ],
+    [
+      19.0,
+      0.000494232958840016,
+      0.000933412552097116,
+      0.000929109037958596,
+      0.000628825550924126,
+      1.00061591809269,
+      1.58398735321692e-07
+    ]
+  ],
+  "oviii_full_spectrum_peak": {
+    "standard_energy_keV": 0.6545200999999999,
+    "all_P1_energy_keV": 0.6545200999999999,
+    "standard_absolute_EF_E": 2.764590890079685e+19,
+    "all_P1_absolute_EF_E": 2.9724491479634944e+19,
+    "absolute_peak_change_percent": 7.5185901331613625
+  },
+  "temperature_K": {
+    "standard_surface": 10552531.0,
+    "all_P1_surface": 10540585.0,
+    "standard_bottom": 986098.0625,
+    "all_P1_bottom": 810566.25
+  },
+  "input_sha256": {
+    "input/DAO_all_P1.dat": "5df638f3a5efeb1365574a6e38e200069ba4ceb5fc21d361b263f8bd65a27732",
+    "input/DAO_standard.dat": "5cd10f0b8ccee69bd39b419775071b353dfd0eac39d7de7891722f7862812030",
+    "input/iron_ions_all_P1.dat": "7a88977fdeb0a67d9ccebd28ead2cd53a60347fa22af31e31c772daf977cf3eb",
+    "input/oxygen_ions_all_P1.dat": "db16223f49d333de07fbc96901887c7952b2801fdfa43d02be87088e78682de2",
+    "input/params.json": "85fe3d5014de6058eb626da3c5775413bdcc50ce78ce5eb8c63bb64affd062dd",
+    "input/profile_all_P1.dat": "c9ade6eac6bb329649ecb3fa81b50ffa796669f1a4aae76992eb30d0a626d45d",
+    "input/profile_standard.dat": "4f861a54bbe8e2d6b6028507286f465d09d3f0d602336d493d6dc818bf5e9cc4",
+    "input/reflionx_flux_cgs.dat": "5952bce59d5be09573f2a4768e3f4f05a69944fb55af6ac98768c80800978fab",
+    "input/thermal_budget_all_P1.dat": "ccaf7377b7aeb01d236f359aa18ad4d1a611b0278e47cd4c652d840e90645c43",
+    "input/thermal_budget_standard.dat": "f04196594723355112f01a9a889f93d6286658a5d5e5d95349cb87224e9e20f0",
+    "input/thermal_history.dat": "db77cb98e16e0cb0a7f7cf02903fd071f67f964dd081e32779608f169080a338",
+    "input/xillverCp_angle_average.dat": "2d26c762683ca5631be3734c24d0213c7e7ffea4d193420db701c462d529686d"
+  }
+}

@@ -5,8 +5,8 @@ Two cutoffpl runs with identical physics (Gamma=2, E_cut=300 keV, nH=10^15,
 log xi=2, incidence cos=0.70 -> snapped GL node 0.797). Only the Compton
 kernel differs:
 
-  a1f9c7b5  : directional kernel (angsca=true)
-  1e89bf78  : angle-averaged kernel (angsca=false), v2
+  60d8ae0b  : directional kernel (angsca=true)
+  5fd8ac78  : angle-averaged kernel (angsca=false)
 
 Two-panel figure:
 2x2 small multiples, one cell per viewing GL node (mu = 0.183, 0.526,
@@ -28,8 +28,8 @@ import matplotlib.pyplot as plt
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-HASH_DIR = "a1f9c7b5"   # directional reference
-HASH_AVG = "1e89bf78"   # angle-averaged (v2)
+HASH_DIR = "60d8ae0b"   # directional reference
+HASH_AVG = "5fd8ac78"   # angle-averaged
 
 SPEC_YLIM      = (1e4, 1e14)         # raw I_E range for cutoffpl, log\xi=2
 SPEC_XLIM_keV  = (0.05, 500.0)
@@ -97,12 +97,12 @@ def read_emergent(em_file):
 
 def total_flux(E, F):
     m = np.isfinite(F) & (F > 0)
-    return float(np.trapz(F[m], E[m])) if m.any() else 1.0
+    return float(np.trapezoid(F[m], E[m])) if m.any() else 1.0
 
 
 def band_int(E_eV, F, E_lo_keV, E_hi_keV):
     m = (E_eV >= E_lo_keV * 1e3) & (E_eV <= E_hi_keV * 1e3) & np.isfinite(F) & (F > 0)
-    return float(np.trapz(F[m], E_eV[m])) if m.any() else 0.0
+    return float(np.trapezoid(F[m], E_eV[m])) if m.any() else 0.0
 
 
 def main():

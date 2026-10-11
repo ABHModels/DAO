@@ -4,11 +4,13 @@
 // ============================================================
 // Total source function for the RT equation:
 //
-//   S = jnu/(kabs+ksct) + ksct/(kabs+ksct) * S_compton
+//   S = jnu/(kabs+ksct) + (1.21*n_h)*sigma_T/(kabs+ksct) * S_compton
 //
 // Angle-dependent (KernelCache):
 //   S_compton(x,μ) = x² ∫∫ K(x,μ;x₁,μ₁) I(x₁,μ₁)/x₁² dμ₁ dx₁
 //
+// n_h is the hydrogen density [cm^-3]; scattering uses the 1.21*n_h
+// total-electron approximation, independently of Cloudy free-electron density.
 // All flat arrays are [ND][NM][NE] or [ND][NE].
 // ============================================================
 

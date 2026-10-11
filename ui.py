@@ -57,7 +57,7 @@ CORONA_MODELS = {
     },
     "blackbody": {
         "label": "Blackbody",
-        "desc": "B(E) = (2E³/h²c²) / [exp(E/kT) − 1]",
+        "desc": "B(E) = (2E³/h³c²) / [exp(E/kT) − 1]",
         "params": [
             {"name": "kT_bb", "label": "kT<sub>bb</sub>", "desc": "Temperature [keV]", "default": 0.05, "min": 0.001, "max": 50, "step": 0.001, "scale": "log"},
         ],
@@ -65,10 +65,10 @@ CORONA_MODELS = {
 }
 
 SLAB_PARAMS = [
-    {"name": "nh",        "label": "log n<sub>H</sub>",  "desc": "Hydrogen density [cm⁻³]",      "default": 15.0,   "min": 10,  "max": 22,   "step": 0.1,    "scale": "log"},
-    {"name": "zeta",      "label": "log ξ",              "desc": "Ionisation parameter",          "default": 3.0,    "min": 0,   "max": 6,    "step": 0.1,    "scale": "log"},
-    {"name": "frac",      "label": "f<sub>cor</sub>",    "desc": "J<sub>corona</sub> / J<sub>disk</sub>; ≤ 0 → corona only (no disk)", "default": -1, "min": -1, "max": 100, "step": 0.01},
-    {"name": "incidence", "label": "cos θ",              "desc": "Incidence angle cosine",        "default": 0.7071, "min": 0.01,"max": 1,    "step": 0.0001},
+    {"name": "nh",        "label": "log n<sub>H</sub>",  "desc": "Log₁₀ hydrogen density [cm⁻³]", "default": 15.0,   "min": 10,  "max": 22,   "step": 0.1},
+    {"name": "zeta",      "label": "log ξ",              "desc": "Log₁₀ ionisation parameter",     "default": 3.0,    "min": 0,   "max": 6,    "step": 0.1},
+    {"name": "frac",      "label": "f<sub>cor</sub>",    "desc": "Corona/disk amplitude ratio; ≤ 0 → corona only (no disk)", "default": -1, "min": -1, "max": 100, "step": 0.01},
+    {"name": "incidence", "label": "cos θ",              "desc": "Incidence angle cosine",        "default": 0.7071067811865476, "min": 0.01,"max": 1,    "step": 0.0001},
     {"name": "Afe",       "label": "A<sub>Fe</sub>",     "desc": "Iron abundance [solar]",        "default": 1.0,    "min": 0.1, "max": 10,   "step": 0.1},
 ]
 
@@ -522,6 +522,10 @@ HTML = r"""
 
   <div class="card">
       <h2><span class="section-number">02</span> Slab parameters</h2>
+      <div class="toggle-row" id="isotropicRow">
+        <label for="isotropic">Isotropic illumination (<code>-incidence -2</code>)</label>
+        <label class="toggle"><input type="checkbox" id="isotropic" onchange="optionsChanged()"><span class="slider"></span></label>
+      </div>
       <div id="slabParams"></div>
       <div class="toggle-row" style="margin-top:6px">
         <label for="angsca">Angle-dependent scattering (<code>-angsca</code>)</label>
@@ -533,21 +537,46 @@ HTML = r"""
     <div class="card">
       <h2><span class="section-number">03</span> Disk emission</h2>
       <div id="diskParams"></div>
+      <div class="field-desc" id="diskHint"></div>
 
     </div>
 
   <div class="card full">
     <h2><span class="section-number">04</span> Solver options</h2>
+    <div class="field-desc" id="solverSummary"></div>
+    <div class="toggle-row">
+      <label for="logDepth">Logarithmic depth grid (<code>-log_depth</code>)</label>
+      <label class="toggle"><input type="checkbox" id="logDepth" checked onchange="optionsChanged()"><span class="slider"></span></label>
+    </div>
+    <div class="field-desc">On = logarithmic; off = tanh spacing.</div>
+    <div class="toggle-row">
+      <label for="saveO">Save oxygen ion fractions (<code>-O</code>)</label>
+      <label class="toggle"><input type="checkbox" id="saveO" onchange="optionsChanged()"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <label for="saveFe">Save iron ion fractions (<code>-Fe</code>)</label>
+      <label class="toggle"><input type="checkbox" id="saveFe" onchange="optionsChanged()"><span class="slider"></span></label>
+    </div>
+    <div class="field-desc">Ion fractions are saved only from the final converged production solution.</div>
+    <div class="toggle-row">
+      <label for="verbose">Detailed console output (<code>-verbose</code>)</label>
+      <label class="toggle"><input type="checkbox" id="verbose" onchange="optionsChanged()"><span class="slider"></span></label>
+    </div>
     <details class="adv">
-      <summary>Advanced · compPS benchmark</summary>
+      <summary>Advanced · transfer benchmarks</summary>
       <div class="body">
         <div class="toggle-row">
           <label for="testRt">Enable test mode</label>
-          <label class="toggle"><input type="checkbox" id="testRt" aria-label="Enable compPS test mode" onchange="toggleTest()"><span class="slider"></span></label>
+          <label class="toggle"><input type="checkbox" id="testRt" aria-label="Enable transfer test mode" onchange="toggleTest()"><span class="slider"></span></label>
         </div>
-        <div class="field-desc">Isothermal pure-scattering slab vs Xspec compPS (Poutanen &amp; Svensson 1996),
-          illuminated by a bottom blackbody seed. kT<sub>e</sub> is the slab temperature; the corona is set to
-          <code>blackbody</code> automatically to supply the seed.</div>
+        <div id="testModeRow" hidden>
+          <label for="testMode">Test configuration</label>
+          <select id="testMode" onchange="toggleTest()">
+            <option value="compps">compPS · bottom blackbody</option>
+            <option value="test_avg">test_avg · top corona illumination</option>
+          </select>
+        </div>
+        <div class="field-desc" id="testHint"></div>
         <div id="testParams" style="display:none"></div>
       </div>
     </details>
@@ -584,7 +613,7 @@ HTML = r"""
           <text x="298" y="207">n<tspan baseline-shift="sub" font-size="8">H</tspan> · ξ · A<tspan baseline-shift="sub" font-size="8">Fe</tspan></text>
         </svg>
         <div class="geometry-readout"><span id="geometryAngle">θ = 45.0°</span><span id="geometryDisk"></span></div>
-        <figcaption>Plane-parallel geometry · θ = arccos μ.<br>Outgoing directions are schematic. The solver snaps μ to its angular quadrature.</figcaption>
+        <figcaption>Plane-parallel geometry; directions are schematic.<br>A single incident beam is snapped to the nearest angular quadrature node.</figcaption>
       </figure>
     <div class="derived-caption">Derived quantities</div>
     <div class="derived" id="derivedBlock"></div>
@@ -650,6 +679,24 @@ const TEST   = [
   {"name":"tau","label":"τ<sub>slab</sub>","desc":"Slab vertical Thomson optical depth","default":0.5,"min":0.01,"max":5,"step":0.01},
 ];
 const DEFAULTS = {nh:15,zeta:3,frac:-1,incidence:0.7071067811865476,Afe:1,kT_disk:0.35,kTe_slab:60,tau:0.5};
+const OPTION_DEFAULTS = {angsca:true, testRt:false, logDepth:true, isotropic:false,
+                         saveO:false, saveFe:false, verbose:false};
+function getOptions() {
+  return Object.fromEntries(Object.keys(OPTION_DEFAULTS).map(id => [id, document.getElementById(id).checked]));
+}
+function restoreOptions(state) {
+  for (const [id, fallback] of Object.entries(OPTION_DEFAULTS))
+    document.getElementById(id).checked = state[id] ?? fallback;
+  document.getElementById('testMode').value = state.testMode === 'test_avg' ? 'test_avg' : 'compps';
+  if (vals.incidence === -2) {
+    document.getElementById('isotropic').checked = true;
+    vals.incidence = DEFAULTS.incidence;
+  }
+}
+function isCompps() {
+  return document.getElementById('testRt').checked && document.getElementById('testMode').value === 'compps';
+}
+function optionsChanged() { updateCmd(); updateDerived(); persist(); }
 const TIPS = {
   Ecut:"≈ 2–3 kT_e",
   E_low_cut:"Suppresses the IR divergence of a bare power law",
@@ -666,7 +713,7 @@ let vals = {};
 
 // ── helpers ───────────────────────────────
 function paramByName(name) {
-  for (const k in MODELS) for (const p of MODELS[k].params) if (p.name === name) return p;
+  for (const p of MODELS[corona].params) if (p.name === name) return p;
   for (const p of SLAB) if (p.name === name) return p;
   for (const p of DISK) if (p.name === name) return p;
   for (const p of TEST) if (p.name === name) return p;
@@ -689,7 +736,9 @@ function buildField(p, container) {
     rmin = Math.log10(p.min); rmax = Math.log10(p.max);
     rstep = (rmax - rmin) / 200; rval = Math.log10(p.default);
   }
+  const value = vals[p.name] ?? p.default;
   const d = document.createElement('div');
+  d.id = 'row_' + p.name;
   d.innerHTML = `
     <div class="field">
       <label for="${id}"${tip}>${p.label}</label>
@@ -702,10 +751,12 @@ function buildField(p, container) {
     </div>
     <div class="field-desc">${p.desc}</div>`;
   container.appendChild(d);
-  vals[p.name] = p.default;
+  vals[p.name] = value;
+  setFieldValue(p.name, value);
 }
 
 function setFieldValue(name, v) {
+  vals[name] = v;
   const id = 'f_' + name;
   const r = document.getElementById(id);
   const box = document.getElementById(id + '_v');
@@ -748,7 +799,6 @@ function buildModels() {
   const grid = document.getElementById('modelGrid');
   grid.innerHTML = '';
   document.getElementById('modelDescription').innerHTML = MODELS[corona].desc;
-  const testOn = document.getElementById('testRt') && document.getElementById('testRt').checked;
   Object.entries(MODELS).forEach(([key, m]) => {
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -758,7 +808,7 @@ function buildModels() {
     btn.tabIndex = isActive ? 0 : -1;
     btn.className = 'model-btn' + (isActive ? ' active' : '');
     btn.dataset.key = key;
-    if (testOn && key !== 'blackbody') btn.disabled = true;
+    if (isCompps() && key !== 'blackbody') btn.disabled = true;
     btn.textContent = m.label;
     btn.title = stripHtml(m.desc);
     btn.onclick = () => selectModel(key);
@@ -783,6 +833,7 @@ function focusModel(key) {
 }
 
 function selectModel(key) {
+  if (isCompps() && key !== 'blackbody') return;
   corona = key;
   Object.keys(MODELS).forEach(k => MODELS[k].params.forEach(p => delete vals[p.name]));
   buildModels();
@@ -802,16 +853,33 @@ function updateDerived() {
   const nh = vals.nh ?? 15, zeta = vals.zeta ?? 3;
   const xi = Math.pow(10, zeta);
   const nH = Math.pow(10, nh);
-  const J = xi * nH / Math.pow(4 * Math.PI, 2);
+  const frac = document.getElementById('testRt').checked ? -1 : (vals.frac ?? -1);
+  const Finc = xi * nH / (4 * Math.PI) * (frac > 0 ? frac / (1 + frac) : 1);
+  const sourceLabel = isCompps() ? 'J<sub>seed</sub> [erg cm⁻² s⁻¹ sr⁻¹]' : 'F<sub>inc</sub> [erg cm⁻² s⁻¹]';
+  const sourceValue = isCompps() ? xi * nH / Math.pow(4 * Math.PI, 2) : Finc;
+  const sourceDescription = isCompps() ? 'Prescribed bottom-seed mean intensity for the compPS benchmark' : 'Incident normal flux from the corona (reflionx normalization)';
   document.getElementById('derivedBlock').innerHTML = `
     <div class="item"><div class="dlabel">ξ [erg cm s⁻¹]</div><div class="dval">${xi.toExponential(2)}</div></div>
     <div class="item"><div class="dlabel">n<sub>H</sub> [cm⁻³]</div><div class="dval">${nH.toExponential(2)}</div></div>
-    <div class="item" title="J = ξ·n_H/(4π)² — mean intensity that normalises the corona+disk illumination"><div class="dlabel">J [erg cm⁻² s⁻¹]</div><div class="dval">${J.toExponential(2)}</div></div>
+    <div class="item" title="${sourceDescription}"><div class="dlabel">${sourceLabel}</div><div class="dval">${sourceValue.toExponential(2)}</div></div>
   `;
 }
 
 // Diagram uses the requested incidence cosine; outgoing rays are illustrative.
 function updateGeometry() {
+  const compps = isCompps();
+  const isotropic = !compps && document.getElementById('isotropic').checked;
+  for (const id of ['coronaSource', 'angleArc', 'angleLabel'])
+    document.getElementById(id).style.display = compps || isotropic ? 'none' : '';
+  if (compps || isotropic) {
+    document.getElementById('incidentRay').setAttribute('d', compps
+      ? 'M120 242L155 180 M210 242L210 180 M300 242L265 180'
+      : 'M60 45L150 172 M160 25L190 172 M260 25L230 172 M360 45L270 172');
+    document.getElementById('geometryAngle').textContent = compps ? 'Isotropic blackbody from below' : 'Isotropic incidence · downward hemisphere';
+    document.getElementById('geometryDisk').textContent = compps ? `kTbb = ${fmtNum(vals.kT_bb)} keV` :
+      (!document.getElementById('testRt').checked && (vals.frac ?? -1) > 0 ? `kTdisk = ${fmtNum(vals.kT_disk)} keV` : 'Disk illumination off');
+    return;
+  }
   const mu = Math.min(1, Math.max(0.01, vals.incidence ?? DEFAULTS.incidence));
   const theta = Math.acos(mu), sinTheta = Math.sin(theta);
   const x = 210 - 150 * sinTheta, y = 172 - 150 * mu;
@@ -824,22 +892,53 @@ function updateGeometry() {
   document.getElementById('angleLabel').setAttribute('x', 204 - 57 * Math.sin(theta / 2));
   document.getElementById('angleLabel').setAttribute('y', 172 - 57 * Math.cos(theta / 2));
   document.getElementById('geometryAngle').textContent = `θ = ${(theta * 180 / Math.PI).toFixed(1)}° · μ = ${mu.toFixed(3)}`;
-  const diskOn = (vals.frac ?? DEFAULTS.frac) > 0;
+  const diskOn = !document.getElementById('testRt').checked && (vals.frac ?? DEFAULTS.frac) > 0;
   document.getElementById('geometryDisk').textContent = diskOn
     ? `kTdisk = ${fmtNum(vals.kT_disk ?? DEFAULTS.kT_disk)} keV`
     : 'Disk illumination off';
 }
 
 // ── Test mode toggle ──────────────────────
+function updateAvailability() {
+  const testOn = document.getElementById('testRt').checked;
+  const compps = isCompps();
+  const isotropic = document.getElementById('isotropic').checked;
+  const diskOn = !testOn && (vals.frac ?? -1) > 0;
+  const hasCoronaTe = MODELS[corona].params.some(p => p.name === 'kT_e');
+  document.getElementById('solverSummary').textContent = testOn
+    ? 'Isothermal transfer test · 48 depth cells · no Cloudy calls.'
+    : 'Reflionx flux normalization · RT energy-balance solver · 48 depth cells.';
+  function enable(name, enabled) {
+    for (const suffix of ['', '_v']) {
+      const field = document.getElementById('f_' + name + suffix);
+      if (field) field.disabled = !enabled;
+    }
+    const row = document.getElementById('row_' + name);
+    if (row) row.style.opacity = enabled ? '1' : '.45';
+  }
+  enable('incidence', !compps && !isotropic);
+  enable('frac', !testOn); enable('Afe', !testOn); enable('kT_disk', diskOn);
+  document.getElementById('isotropic').disabled = compps;
+  document.getElementById('saveO').disabled = testOn;
+  document.getElementById('saveFe').disabled = testOn;
+  document.getElementById('testParams').style.display = testOn ? 'block' : 'none';
+  document.getElementById('testModeRow').hidden = !testOn;
+  document.getElementById('row_tau').hidden = !compps;
+  document.getElementById('row_kTe_slab').hidden = testOn && !compps && hasCoronaTe;
+  document.getElementById('diskHint').textContent = testOn
+    ? 'Test modes set their own illumination; this disk temperature is unused.'
+    : (diskOn ? 'Blackbody illumination from the lower surface.' : 'Enable disk illumination with frac > 0 to use this temperature.');
+  document.getElementById('testHint').textContent = compps
+    ? 'Isothermal pure-scattering slab with a bottom blackbody seed. The top incidence, frac, and iron abundance are unused.'
+    : 'Isothermal pure-scattering slab with top coronal illumination and fixed Thomson depth 5. The same -kT_e sets the slab temperature and, when applicable, the corona temperature.';
+}
 function toggleTest() {
-  const on = document.getElementById('testRt').checked;
-  document.getElementById('testParams').style.display = on ? 'block' : 'none';
-  if (on && corona !== 'blackbody') {
+  if (isCompps() && corona !== 'blackbody') {
     selectModel('blackbody');
-    showToast('Test mode uses a blackbody seed — corona set to blackbody.', 'info');
+    showToast('compPS uses a bottom blackbody seed.', 'info');
   }
   buildModels();
-  updateCmd(); persist();
+  optionsChanged();
 }
 
 function cloudyWorkerCount(value = document.getElementById('cloudyWorkers').value) {
@@ -861,6 +960,7 @@ function escapeHtml(value) {
 }
 function updateCmd() {
   const testOn = document.getElementById('testRt').checked;
+  updateAvailability();
   document.getElementById('cloudyWorkers').disabled = testOn;
   document.getElementById('cloudyWorkersHint').innerHTML = testOn
     ? 'Cloudy workers are unused in test mode, which bypasses Cloudy.'
@@ -870,16 +970,30 @@ function updateCmd() {
   MODELS[corona].params.forEach(p => {
     parts.push('-' + p.name + ' ' + fmtNum(vals[p.name] ?? p.default));
   });
-  [SLAB, DISK].forEach(group => group.forEach(p => {
+  SLAB.forEach(p => {
+    if (testOn && ['frac', 'Afe'].includes(p.name)) return;
+    if (p.name === 'incidence') {
+      if (isCompps()) return;
+      if (document.getElementById('isotropic').checked) { parts.push('-incidence -2'); return; }
+    }
     const v = vals[p.name] ?? p.default;
     if (v !== DEFAULTS[p.name]) parts.push('-' + p.name + ' ' + fmtNum(v));
-  }));
+  });
+  if (!testOn && (vals.frac ?? -1) > 0) DISK.forEach(p => {
+    const v = vals[p.name] ?? p.default;
+    if (v !== DEFAULTS[p.name]) parts.push('-' + p.name + ' ' + fmtNum(v));
+  });
   if (!document.getElementById('angsca').checked) parts.push('-angsca 0');
-  if (document.getElementById('testRt').checked) {
-    parts.push('-test_rt compps');
+  if (!document.getElementById('logDepth').checked) parts.push('-log_depth 0');
+  if (!testOn && document.getElementById('saveO').checked) parts.push('-O');
+  if (!testOn && document.getElementById('saveFe').checked) parts.push('-Fe');
+  if (document.getElementById('verbose').checked) parts.push('-verbose');
+  if (testOn) {
+    parts.push('-test_rt ' + document.getElementById('testMode').value);
     TEST.forEach(p => {
-      const v = vals[p.name] ?? p.default;
-      parts.push('-' + (p.flag || p.name) + ' ' + fmtNum(v));
+      if (p.name === 'tau' && !isCompps()) return;
+      if (p.name === 'kTe_slab' && MODELS[corona].params.some(p => p.name === 'kT_e')) return;
+      parts.push('-' + (p.flag || p.name) + ' ' + fmtNum(vals[p.name] ?? p.default));
     });
   }
   const label = document.getElementById('runLabel').value;
@@ -910,8 +1024,7 @@ function resetAll() {
   corona = DEFAULT_CORONA;
   vals = {};
   document.getElementById('cloudyWorkers').value = 4;
-  document.getElementById('angsca').checked = true;
-  document.getElementById('testRt').checked = false;
+  restoreOptions({});
   buildModels();
   buildCoronaParams();
   ['slabParams','diskParams','testParams'].forEach(id => document.getElementById(id).innerHTML = '');
@@ -937,8 +1050,7 @@ function persist() {
   try {
     localStorage.setItem(SKEY, JSON.stringify({
       corona, vals, label: document.getElementById('runLabel').value, cloudyWorkers: cloudyWorkerCount(),
-      angsca: document.getElementById('angsca').checked,
-      testRt: document.getElementById('testRt').checked,
+      ...getOptions(), testMode: document.getElementById('testMode').value,
       queue,
     }));
   } catch(e){}
@@ -949,8 +1061,7 @@ let queue = [];
 function getCmd() { return document.getElementById('cmdText').textContent; }
 function getSnapshot() {
   return { corona, vals: {...vals}, label: document.getElementById('runLabel').value, cloudyWorkers: cloudyWorkerCount(),
-           testRt: document.getElementById('testRt').checked,
-           angsca: document.getElementById('angsca').checked };
+           ...getOptions(), testMode: document.getElementById('testMode').value };
 }
 function cmdSummary(cmd) {
   const m = cmd.match(/-corona\s+(\S+)/);
@@ -972,8 +1083,8 @@ function loadFromQueue(idx) {
   vals = {...snap.vals};
   document.getElementById('runLabel').value = snap.label ?? '';
   document.getElementById('cloudyWorkers').value = cloudyWorkerCount(snap.cloudyWorkers ?? 4);
-  document.getElementById('testRt').checked = snap.testRt;
-  if (snap.angsca !== undefined) document.getElementById('angsca').checked = snap.angsca;
+  restoreOptions(snap);
+  if (isCompps()) corona = 'blackbody';
   document.getElementById('testParams').style.display = snap.testRt ? 'block' : 'none';
   buildModels();
   const cp = document.getElementById('coronaParams'); cp.innerHTML = '';
@@ -1042,14 +1153,14 @@ function rehydrate() {
     document.getElementById('runLabel').value = s.label ?? '';
     if (Array.isArray(s.queue)) queue = s.queue;
     document.getElementById('cloudyWorkers').value = cloudyWorkerCount(s.cloudyWorkers ?? 4);
-    document.getElementById('angsca').checked = s.angsca !== false;
-    document.getElementById('testRt').checked = !!s.testRt;
+    restoreOptions(s);
     return true;
   } catch(e){ return false; }
 }
 
 function init() {
   const restored = rehydrate();
+  if (isCompps()) corona = 'blackbody';
   buildModels();
   const cp = document.getElementById('coronaParams'); cp.innerHTML = '';
   MODELS[corona].params.forEach(p => { buildField(p, cp); if (restored) setFieldValue(p.name, vals[p.name] ?? p.default); });
@@ -1143,7 +1254,8 @@ DOCS_HTML = r"""
     <p class="lead">
       The corona model defines the illuminating X-ray continuum incident on the slab.
       Select with <span class="p-flag">-corona &lt;model&gt;</span>.
-      Each model requires specific parameters listed below.
+      Each model requires specific parameters listed below. Values shown for required
+      spectral parameters are UI presets; the command line requires explicit values.
     </p>
     <div class="formula-box">
       <div><span class="flabel">powerlaw</span>
@@ -1157,7 +1269,7 @@ DOCS_HTML = r"""
         Comptonisation model — Titarchuk (1994).
         Wien-law seed photons, plasma temperature kT<sub>e</sub>, optical depth τ<sub>p</sub>.</div>
       <div><span class="flabel">blackbody</span>
-        B(E) = (2E<sup>3</sup> / h<sup>2</sup>c<sup>2</sup>) · 1 / [exp(E / kT) − 1]</div>
+        B(E) = (2E<sup>3</sup> / h<sup>3</sup>c<sup>2</sup>) · 1 / [exp(E / kT) − 1]</div>
     </div>
     <table>
       <tr><th>Flag</th><th>Type</th><th>Default</th><th>Models</th><th>Description</th></tr>
@@ -1224,18 +1336,18 @@ DOCS_HTML = r"""
         <td class="p-desc">Ionisation parameter exponent. ζ = log<sub>10</sub>(ξ); ξ = 10<sup>ζ</sup> erg cm s<sup>−1</sup>.
           Controls the ionisation state of the slab. Low ξ → neutral (cold reflection);
           high ξ → highly ionised (Compton-dominated).
-          <div class="p-note">ξ = (4π)² J / n<sub>H</sub> (Tarter+ 1969 ionisation parameter).</div></td>
+          <div class="p-note">ξ = 4π F<sub>inc</sub> / n<sub>H</sub> for corona-only illumination (reflionx normalization).</div></td>
       </tr>
       <tr>
         <td class="p-flag">-frac</td><td class="p-type">float</td><td class="p-default">-1</td>
-        <td class="p-desc">frac = J<sub>corona</sub> / J<sub>disk</sub> sets the ratio of energy-integrated incident mean intensities.
+        <td class="p-desc">frac sets the corona/disk spectral amplitude ratio: the stored corona spectrum is a normal flux, while the disk spectrum is a mean intensity.
           frac ≤ 0 (the default, −1) illuminates with the corona only — no thermal disk component.</td>
       </tr>
       <tr>
         <td class="p-flag">-incidence</td><td class="p-type">float</td><td class="p-default">0.7071</td>
         <td class="p-desc">Cosine of the incidence angle cos θ (snapped to nearest Gauss-Legendre
           quadrature node at runtime). Default corresponds to θ = 45°.
-          <div class="p-note">Use <code>-incidence -2</code> on the command line for isotropic illumination at every μ &lt; 0. Other values are snapped to a downward node.</div></td>
+          <div class="p-note">Enable isotropic illumination in the configurator, or use <code>-incidence -2</code> for isotropic illumination at every μ &lt; 0. Other values are snapped to a downward node.</div></td>
       </tr>
       <tr>
         <td class="p-flag">-Afe</td><td class="p-type">float</td><td class="p-default">1.0</td>
@@ -1246,8 +1358,9 @@ DOCS_HTML = r"""
     <div class="note-box">
       <strong>Derived quantities:</strong><br>
       ξ = 10<sup>ζ</sup>, &nbsp; n<sub>H</sub> = 10<sup>nh</sup>, &nbsp;
-      J = ξ · n<sub>H</sub> / (4π)² &nbsp;
-      (the mean intensity that normalises the corona + disk spectra).
+      F<sub>inc</sub> = ξ · n<sub>H</sub> / (4π) for corona-only illumination.
+      With frac &gt; 0, the coronal flux is multiplied by frac/(1+frac).
+      Reflionx flux normalization is fixed; there is no normalization switch.
     </div>
   </div>
 
@@ -1258,7 +1371,7 @@ DOCS_HTML = r"""
       <tr><th>Flag</th><th>Type</th><th>Default</th><th>Description</th></tr>
       <tr>
         <td class="p-flag">-kT_disk</td><td class="p-type">float</td><td class="p-default">0.35</td>
-        <td class="p-desc">Effective temperature of the disk blackbody that illuminates the slab from below [keV].</td>
+        <td class="p-desc">Effective temperature of the disk blackbody that illuminates the slab from below [keV]. Active only in production with <code>-frac &gt; 0</code>.</td>
       </tr>
     </table>
   </div>
@@ -1272,9 +1385,21 @@ DOCS_HTML = r"""
         <td class="p-flag">-angsca</td><td class="p-type">bool</td><td class="p-default">true</td>
         <td class="p-desc">Compton scattering kernel: <code>true</code>/<code>1</code>/<code>yes</code> →
           angle-dependent kernel (<code>KernelCache</code>); <code>false</code>/<code>0</code>/<code>no</code> →
-          angle-averaged kernel (<code>avgKernelCache</code>).</td>
+          angle-averaged kernel (<code>avgKernelCache</code>). Both choices use the same RT energy-balance temperature iteration in production.</td>
       </tr>
     </table>
+  </div>
+
+  <div class="section" id="grids-output">
+    <h2><span class="tick" aria-hidden="true"></span>Depth grid and output</h2>
+    <table>
+      <tr><th>Flag</th><th>Default</th><th>Description</th></tr>
+      <tr><td class="p-flag">-log_depth</td><td>true</td><td class="p-desc">Logarithmic spacing when enabled; tanh spacing when disabled. Both use 48 cells.</td></tr>
+      <tr><td class="p-flag">-O / -Fe</td><td>off</td><td class="p-desc">Save oxygen / iron ion fractions from the final converged production solution to <code>results/&lt;hash&gt;/O</code> or <code>Iron</code>. Disabled in test modes.</td></tr>
+      <tr><td class="p-flag">-verbose</td><td>off</td><td class="p-desc">Echo detailed diagnostics to the console. The run log is still saved when this is off.</td></tr>
+    </table>
+    <div class="note-box">Reflionx flux normalization and the production thermal-balance solver are fixed.
+      No <code>-reflionx_norm</code>, <code>-xillver_norm</code>, <code>-rt_thermal_balance</code>, or <code>-sc</code> switch is accepted.</div>
   </div>
 
   <div class="section" id="cloudy-execution">
@@ -1307,22 +1432,22 @@ DOCS_HTML = r"""
     <h2><span class="tick" aria-hidden="true"></span>Test Mode</h2>
     <p class="lead">
       Test mode bypasses Cloudy and uses a synthetic slab with analytic opacities.
-      Useful for validating the RT solver and Compton kernel. The only mode token is
-      <code>compps</code> — an isothermal pure-scattering slab illuminated by a bottom
-      blackbody seed, benchmarked against Xspec <code>compPS</code> (Poutanen &amp; Svensson 1996).
+      Both configurations use the same transfer solver as production.
+      <code>compps</code> uses a bottom blackbody seed for comparison with Xspec compPS;
+      <code>test_avg</code> uses the selected coronal spectrum at the top of a slab with fixed Thomson depth 5.
+      Either configuration supports both scattering kernels.
     </p>
     <table>
       <tr><th>Flag</th><th>Type</th><th>Default</th><th>Description</th></tr>
       <tr>
         <td class="p-flag">-test_rt &lt;mode&gt;</td><td class="p-type">flag + string</td><td class="p-default">off</td>
-        <td class="p-desc">Enable test mode (no Cloudy calls). The only mode token is
-          <code>compps</code> (compPS benchmark slab).
-          Pair with a <code>blackbody</code> corona for the seed.</td>
+        <td class="p-desc">Enable prescribed-temperature transfer with <code>compps</code> or <code>test_avg</code>.
+          The configurator selects a <code>blackbody</code> seed for compPS; test_avg retains the selected corona.</td>
       </tr>
       <tr>
         <td class="p-flag">-kT_e</td><td class="p-type">float</td><td class="p-default">60</td>
-        <td class="p-desc">Slab uniform temperature [keV] in <code>compps</code> test mode (re-uses the
-          corona <code>-kT_e</code> flag). Sets the mean fractional energy gain per scattering,
+        <td class="p-desc">Required slab uniform temperature [keV] in either test mode (UI preset: 60).
+          In test_avg, the same <code>-kT_e</code> also controls the corona when using nthcomp or comptt. Sets the mean fractional energy gain per scattering,
           ≈ 4kT/m<sub>e</sub>c<sup>2</sup> (thermal Doppler width ∝ √(2kT/m<sub>e</sub>c<sup>2</sup>)).</td>
       </tr>
       <tr>
@@ -1342,7 +1467,7 @@ DOCS_HTML = r"""
       2. Initialise grids (angle, depth, energy)<br>
       3. Compute corona + disk illumination spectra<br>
       4. Precompute Compton kernel + scattering cross-sections (cached on disk)<br>
-      5. Outer loop: parallel Cloudy cells (or serial with 1 worker) → gather j<sub>ν</sub>, κ<sub>abs</sub>, κ<sub>sct</sub> from all depths → line escape → RT solve → update J, ξ, T → check convergence<br>
+      5. Outer loop: temperature roots using fixed-temperature Cloudy calls → damp T and refresh atomic data → line escape → conservative cell-average RT → update J, ξ → check local residuals and both-face flux balance<br>
       6. Save results to <code>results/&lt;hash&gt;/</code> each iteration
     </div>
     <div class="note-box" style="background:rgba(145,82,55,.06);border-left-color:var(--cyan);">
@@ -1410,7 +1535,7 @@ DOCS_HTML = r"""
       <tr><td class="p-desc">Ionisation parameter ξ</td>
           <td class="p-desc">Tarter, Tucker &amp; Salpeter 1969, ApJ, 156, 943
             (<a href="https://ui.adsabs.harvard.edu/abs/1969ApJ...156..943T" target="_blank" rel="noopener">ADS</a>)</td></tr>
-      <tr><td class="p-desc">RT solver — Bézier short characteristics</td>
+      <tr><td class="p-desc">RT solver — constant-cell transfer</td>
           <td class="p-desc">Auer 2003
             (<a href="https://ui.adsabs.harvard.edu/abs/2003ASPC..288....3A" target="_blank" rel="noopener">ADS</a>) ·
             de la Cruz Rodríguez &amp; Piskunov 2013
@@ -1426,12 +1551,15 @@ DOCS_HTML = r"""
   <div class="section" id="license">
     <h2><span class="tick" aria-hidden="true"></span>License</h2>
     <p style="font-size:.82rem;color:var(--text);line-height:1.7;">
-      DAO source code is released under the <strong>MIT License</strong> (see the repository
-      <code>LICENSE</code> file). It <em>depends on, but does not bundle,</em> third-party software
-      that carries its own separate license, obtained independently:
-      <strong>Cloudy</strong> (<a href="https://opensource.org/licenses/Zlib" target="_blank" rel="noopener">zlib license</a>),
-      <strong>HEASoft / XSPEC</strong> (NASA HEASARC), and a C++ port of Jerzy Madej's publicly
-      available Compton-kernel Fortran code. See <code>README</code> for the full attribution.
+      DAO's original source code is released under the <strong>MIT License</strong>.
+      DAO uses an unmodified, separately installed <strong>Cloudy</strong>
+      (<a href="https://opensource.org/licenses/Zlib" target="_blank" rel="noopener">zlib license</a>)
+      for atomic properties and the <strong>XSPEC model library</strong>
+      (<code>libXSFunctions</code>, supplied with HEASoft) for the incident
+      <code>nthcomp</code> and <code>compTT</code> continua. Neither library is bundled.
+      The C++ adaptations of Jerzy Madej's Compton routines are included with
+      his permission as a co-author of the DAO paper.
+      See <code>LICENSE</code> and <code>README</code> for attribution and terms.
     </p>
   </div>
 
@@ -1502,11 +1630,13 @@ def _run_identity(name, meta, mtime, run_id=None):
 
     is_test = bool(meta.get("test_rt"))
     frac = meta.get("frac", -1)
+    is_compps = is_test and meta.get('test_mode') == 'compps'
     if is_test:
         head = f"{meta.get('test_mode', 'test')} test"
         toks = [f"{lab}={_fmt_id(meta[key])}"
                 for key, lab in [("kT_e", "kT_e"), ("tau_slab", "τ")]
-                if meta.get(key) not in (None, -1)]
+                if meta.get(key) not in (None, -1) and (key != 'tau_slab' or is_compps)]
+        if meta.get('test_mode') == 'test_avg': toks.append('τ=5')
     else:
         head = meta["corona"]
         toks = [f"{lab}={_fmt_id(meta[key])}"
@@ -1529,7 +1659,7 @@ def _run_identity(name, meta, mtime, run_id=None):
                    else "angle-averaged kernel", "kind": "kernel"})
     if not is_test:
         badges.append({"text": "corona only" if frac is None or frac <= 0
-                       else f"F_cor/F_disk = {_fmt_id(frac)}", "kind": "illum"})
+                       else f"frac = {_fmt_id(frac)}", "kind": "illum"})
 
     # RT energy range — the quantity campaigns typically vary
     e_lo, e_hi = meta.get("E_rt_lo"), meta.get("E_rt_hi")
@@ -1538,11 +1668,12 @@ def _run_identity(name, meta, mtime, run_id=None):
 
     groups = []
     if is_test:
-        groups.append({"title": "compPS slab", "items": [
+        groups.append({"title": "compPS slab" if is_compps else "top-illuminated test slab", "items": [
             {"label": lab, "value": _fmt_id(meta[key])}
             for key, lab in [("kT_e", "kT_e [keV]"), ("kT_bb", "kT_bb [keV]"),
                              ("tau_slab", "τ_slab")]
-            if meta.get(key) not in (None, -1)] + ert_items})
+            if meta.get(key) not in (None, -1) and (key != 'tau_slab' or is_compps)] +
+            ([] if is_compps else [{"label": "τ_slab (fixed)", "value": "5"}]) + ert_items})
     else:
         groups.append({"title": f"corona · {meta['corona']}", "items": [
             {"label": lab + (" [keV]" if key in KEV_KEYS else ""),
@@ -1563,7 +1694,31 @@ def _run_identity(name, meta, mtime, run_id=None):
 
 
 def _run_convergence(run_path):
-    """Max relative temperature change between the last two profile files."""
+    """Use the RT solver's status; retain temperature checks for legacy runs."""
+    status_path = os.path.join(run_path, 'thermal_status.json')
+    try:
+        with open(os.path.join(run_path, 'params.json')) as f:
+            meta = json.load(f)
+    except (OSError, ValueError):
+        meta = {}
+    if (os.path.exists(status_path) or meta.get('rt_thermal_balance')
+            or meta.get('solver') == 'rt_energy_balance_v1'):
+        result = {'method': 'rt_energy_balance', 'status': 'none',
+                  'dT': None, 'n_iter': 0, 'reason': ''}
+        try:
+            with open(status_path) as f:
+                saved = json.load(f)
+            state = saved['state']
+            n = saved['iteration']
+            if state not in ('running', 'converged', 'failed', 'stopped'):
+                return result
+            if not isinstance(n, int) or isinstance(n, bool) or n < 0:
+                return result
+            result.update(status='evolving' if state == 'running' else state,
+                          n_iter=n, reason=str(saved.get('reason', '')))
+        except (OSError, ValueError, KeyError, TypeError):
+            pass  # Missing or partially written status is never convergence.
+        return result
     try:
         files = sorted((f for f in os.listdir(run_path)
                         if re.fullmatch(r"profile_iter\d+\.dat", f)),
@@ -2033,6 +2188,12 @@ const BADGE_CLS = { label:'b-label', test:'b-test', prod:'b-prod', kernel:'b-ker
 function convBadge(run) {
   const c = run.convergence || {};
   const n = c.n_iter || (run.iters ? run.iters.length : 0);
+  if (c.method === 'rt_energy_balance') {
+    const text = {converged:'RT energy balance converged', evolving:'RT energy balance evolving',
+                  failed:'calculation failed', stopped:'calculation stopped', none:'awaiting solver status'};
+    const cls = c.status === 'converged' ? 'b-ok' : 'b-warn';
+    return `<span class="rc-badge ${cls}" title="${esc(c.reason || '')}">${esc(text[c.status] || text.none)} · ${n} iter</span>`;
+  }
   if (c.status === 'converged')
     return `<span class="rc-badge b-ok">temperature converged · max ΔT/T = ${esc(c.dT.toExponential(1))} · ${n} iter</span>`;
   if (c.status === 'evolving')
@@ -2160,16 +2321,13 @@ async function loadData() {
 
   const run = allRuns.find(r => r.id === rid);
   runStamp = ((run && run.title) || rid) + ' · iter ' + iter;
-  const mu_inc = Math.abs((run && run.meta && run.meta.incidence) || 0.7071);
-
-  plotEmergent(d.emergent, mu_inc, d.fe_lines || []);
+  plotEmergent(d.emergent, d.fe_lines || []);
   plotMeanOutgoing(d.emergent);
   plotProfile(d.profile);
 }
 
 let showFeLines = true;
 let lastEmData = null;
-let lastMuInc = 0.7071;
 let lastFeLines = [];
 
 function toggleFeLines() {
@@ -2177,7 +2335,7 @@ function toggleFeLines() {
   const btn = document.getElementById('feToggle');
   btn.textContent = showFeLines ? 'Fe lines: ON' : 'Fe lines: OFF';
   btn.className = 'pill ' + (showFeLines ? 'pill-fe' : 'off');
-  plotEmergent(lastEmData, lastMuInc, lastFeLines);
+  plotEmergent(lastEmData, lastFeLines);
 }
 
 function autoLogRange(traces) {
@@ -2187,8 +2345,8 @@ function autoLogRange(traces) {
   return [Math.log10(peak * 1e-6), Math.log10(peak * 5)];
 }
 
-function plotEmergent(em, mu_inc, fe_lines) {
-  lastEmData = em; lastMuInc = mu_inc; lastFeLines = fe_lines;
+function plotEmergent(em, fe_lines) {
+  lastEmData = em; lastFeLines = fe_lines;
   const div = document.getElementById('plotEmergent');
   if (!em) { div.innerHTML = '<div class="status">No emergent data.</div>'; return; }
 
@@ -2196,9 +2354,10 @@ function plotEmergent(em, mu_inc, fe_lines) {
   const E_keV = E_eV.map(e => e / 1e3);
   const traces = [];
 
-  traces.push({
-    x: E_keV, y: E_eV.map((e, i) => e * 2.0 * em.I_corona[i] / mu_inc),
-    name: 'E × 2J_cor/μ_inc', mode: 'lines',
+  const incoming = em.mu_vals.filter(mu => mu < 0).map(mu => em.angles[mu.toFixed(4)]);
+  if (incoming.length) traces.push({
+    x: E_keV, y: E_eV.map((e, i) => e * Math.max(...incoming.map(ray => ray[i]))),
+    name: 'E × I_inc (upper boundary)', mode: 'lines',
     line: { color: DIM_HEX, width: 1.5, dash: 'dash' }
   });
   traces.push({
@@ -3049,6 +3208,12 @@ const BADGE_CLS = { label:'b-label', test:'b-test', prod:'b-prod', kernel:'b-ker
 function convBadge(run) {
   const c = run.convergence || {};
   const n = c.n_iter || (run.iters ? run.iters.length : 0);
+  if (c.method === 'rt_energy_balance') {
+    const text = {converged:'RT energy balance converged', evolving:'RT energy balance evolving',
+                  failed:'calculation failed', stopped:'calculation stopped', none:'awaiting solver status'};
+    const cls = c.status === 'converged' ? 'b-ok' : 'b-warn';
+    return `<span class="rc-badge ${cls}" title="${esc(c.reason || '')}">${esc(text[c.status] || text.none)} · ${n} iter</span>`;
+  }
   if (c.status === 'converged')
     return `<span class="rc-badge b-ok">temperature converged · max ΔT/T = ${esc(c.dT.toExponential(1))} · ${n} iter</span>`;
   if (c.status === 'evolving')

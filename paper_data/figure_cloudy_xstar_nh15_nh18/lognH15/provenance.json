@@ -1,0 +1,30 @@
+{
+  "Cloudy_input": "inputs/cloudy/cloudy.in",
+  "XSTAR_input": "inputs/xstar/run.sh",
+  "Cloudy_spectrum_sha256": "073f83b9b4330a8730e2f34ae801b10f0f2a3714b2fc1e81d1aea8467b2b23d1",
+  "XSTAR_spectrum_sha256": "3ca804d23ca4a5d7e89390605219d4390b3fb0dce7098ce496a742627ac9cbea",
+  "Cloudy_temperature_front_back_K": [
+    2466800.0,
+    2464700.0
+  ],
+  "XSTAR_temperature_front_back_K": [
+    2361620.0,
+    2361620.0
+  ],
+  "incident_flux_1_1000_Ryd_Cloudy": 7.958044976094464e+16,
+  "incident_flux_1_1000_Ryd_XSTAR": 7.95952018021583e+16,
+  "reflection_definition": "Cloudy native inward gas continuum + inward lines, reflected incident continuum excluded; XSTAR native emit_inward; each divided by native incident spectrum",
+  "ratio_definition": "XSTAR/Cloudy at identical native energy-bin centres; reflected oxygen zoom uses endpoint-normalized reflectances; other panels use native quantities; no smoothing",
+  "reflected_oxygen_zoom_normalization": {
+    "definition": "R(E) / ((R(0.55 keV)+R(0.75 keV))/2), independently for each model",
+    "Cloudy_divisor": 6.264998595818715e-05,
+    "XSTAR_divisor": 6.417309687812179e-05,
+    "endpoint_interpolation": "Linear; native samples retained in spectra and ratios"
+  },
+  "transmitted_oxygen_zoom": "Native transmittance, no additional normalization",
+  "temperature_annotations": "back-face temperature on transmission panel; illuminated-face temperature on reflection panel",
+  "XSTAR_niter": 10.0,
+  "parameters": "XSTAR vturbi=200 km/s; Cloudy turbulence=200 km/s; nH=1e15, NH=1e21, logxi=3",
+  "original_results_directory": "results/cloudy_xstar_nthcomp_nh15_NH21_xi3_daoabund_20261010",
+  "XSTAR_execution_note": "Installed XSTAR executable"
+}

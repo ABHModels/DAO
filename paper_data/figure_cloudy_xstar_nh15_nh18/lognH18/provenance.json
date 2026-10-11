@@ -1,0 +1,31 @@
+{
+  "Cloudy_input": "inputs/cloudy/cloudy.in",
+  "XSTAR_input": "inputs/xstar/run.sh",
+  "Cloudy_spectrum_sha256": "bf41c3f1dc1f464bef29d7cd4bd8ce2d4666fd89a06eb91a01d10724e94ed65c",
+  "XSTAR_spectrum_sha256": "a7354cf3b8d2b01b046f9498c09363d9bd0ec244d30321fc8b2abf29b9c0d720",
+  "Cloudy_temperature_front_back_K": [
+    11299000.0,
+    11206000.0
+  ],
+  "XSTAR_temperature_front_back_K": [
+    4460530.0,
+    4460530.0
+  ],
+  "incident_flux_1_1000_Ryd_Cloudy": 7.958044976094465e+19,
+  "incident_flux_1_1000_Ryd_XSTAR": 7.959508401416918e+19,
+  "reflection_definition": "Cloudy native inward gas continuum + inward lines, reflected incident continuum excluded; XSTAR native emit_inward; each divided by native incident spectrum",
+  "ratio_definition": "XSTAR/Cloudy at identical native energy-bin centres; reflected oxygen zoom uses endpoint-normalized reflectances; other panels use native quantities; no smoothing",
+  "reflected_oxygen_zoom_normalization": {
+    "definition": "R(E) / ((R(0.55 keV)+R(0.75 keV))/2), independently for each model",
+    "Cloudy_divisor": 0.00016436061519923935,
+    "XSTAR_divisor": 0.00011425066061438623,
+    "endpoint_interpolation": "Linear; native samples retained in spectra and ratios"
+  },
+  "transmitted_oxygen_zoom": "Native transmittance, no additional normalization",
+  "temperature_annotations": "back-face temperature on transmission panel; illuminated-face temperature on reflection panel",
+  "XSTAR_maximum_thermal_imbalance_percent": 7.507661156439998,
+  "XSTAR_niter": 99.0,
+  "parameters": "XSTAR vturbi=200 km/s; Cloudy turbulence=200 km/s; nH=1e18, NH=1e21, logxi=3",
+  "original_results_directory": "results/cloudy_xstar_nthcomp_nh18_NH21_xi3_daoabund_v200_20261011",
+  "XSTAR_execution_note": "Independent XSTAR 2.59j driver with tinf initialized to 0.099d0 before first use; installed libraries and atomic database unchanged. Executable and modified source deliberately excluded from paper_data. Final |H-C|/(H+C) about 7.5%, accepted for comparison; not exact thermal equilibrium."
+}

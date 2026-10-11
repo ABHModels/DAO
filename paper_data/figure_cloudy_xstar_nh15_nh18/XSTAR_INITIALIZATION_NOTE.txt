@@ -1,0 +1,31 @@
+XSTAR initialization fix used for the nH=1e18 comparison
+
+Version: XSTAR 2.59j from HEASoft 6.37.1.
+All line numbers below refer to this specific source version.
+
+File: ftools/xstar/src/xstar/xstar.f90
+The original file declares tinf at line 232 but does not initialize it.
+It is passed to an output routine at line 509 and used in the depth-loop
+temperature condition at line 650. In our startup diagnostic, its undefined
+value caused the depth loop to be skipped and the subsequent output to crash.
+
+Only change: insert the following line after original line 419 (t=1.),
+before original line 420 (xpx=1000.):
+      tinf=0.099d0 ! Temperature floor in 10^4 K; matches xstarsub.f
+This is line 420 in the modified copy; later line numbers shift by one.
+The legacy file ftools/xstar/utils/xstarsub.f initializes tinf=0.099 at line 575.
+The value corresponds to a lower temperature limit of 990 K, not an adopted
+gas temperature. The equilibrium temperature is still calculated by XSTAR.
+
+We compiled the copied driver separately with the installed HEASoft hmake
+and libraries. The installed executable, installed source, and atomic data
+were unchanged. No other source changes were made.
+
+Validation: at nH=1e15 cm^-3, the new executable reproduces the saved original
+incident, transmitted, inward-emission, and outward-emission spectra exactly.
+At nH=1e18 cm^-3 with niter=99, it exits normally with T=4.46053e6 K and a
+maximum |H-C|/(H+C) of 7.51%. This residual was accepted for the comparison;
+the initialization fix does not resolve the remaining thermal imbalance.
+
+Only this explanatory note is included in paper_data. The modified XSTAR
+executable, source, and build artifacts are not distributed in this directory.
