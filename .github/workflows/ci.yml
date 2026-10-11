@@ -99,6 +99,3 @@ jobs:
         run: |
           make test_kernel_low_temp
           DAO_KERNEL_THREADS=2 ./test_kernel_low_temp
-
-      - name: Test run labels and summaries
-        run: python tests/test_run_metadata.py

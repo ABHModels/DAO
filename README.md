@@ -78,7 +78,8 @@ Keep the selected configuration files unchanged during a run. The environment
 variable applies to programs started from this terminal; existing processes
 retain their own environment. In each new terminal, set `DAO_CLOUDY_ROOT`,
 initialize HEASoft, and export `CLOUDY_DATA_PATH` again from the DAO directory.
-See [resolution/README.md](resolution/README.md) for custom meshes.
+Custom logarithmic meshes can be generated with
+`python3 resolution/make_log_resolution.py --resolution 300 --output config/continuum_mesh.ini`.
 
 ## 4. Compile DAO
 
@@ -168,7 +169,8 @@ Open **http://127.0.0.1:5200**. Python is optional for command-line model runs.
 
 ## Further reading
 
-- [Paper figures, benchmark data, and plotting instructions](paper_data/README.md)
+- Paper figures, benchmark data, and plotting materials are maintained locally
+  and are not included in this repository.
 - [Release notes](CHANGELOG.md)
 
 ## Citation and license
