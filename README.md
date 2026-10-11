@@ -171,7 +171,6 @@ Open **http://127.0.0.1:5200**. Python is optional for command-line model runs.
 
 - Paper figures, benchmark data, and plotting materials are maintained locally
   and are not included in this repository.
-- [Release notes](CHANGELOG.md)
 
 ## Citation and license
 

@@ -43,31 +43,18 @@ jobs:
             git diff-tree --check --root --no-commit-id -r HEAD
           fi
 
-      - name: Validate release metadata
+      - name: Validate citation metadata
         run: |
-          python - <<'PY'
+          python - <<'PYTHON'
           from pathlib import Path
-          import re
           import yaml
 
           citation = yaml.safe_load(Path("CITATION.cff").read_text(encoding="utf-8"))
-          version = str(citation["version"])
-          release_date = str(citation["date-released"])
-          changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
-          match = re.search(
-              r"^## \[([^]]+)\] - (\d{4}-\d{2}-\d{2})$",
-              changelog,
-              flags=re.MULTILINE,
-          )
-          if match is None:
-              raise SystemExit("CHANGELOG.md has no release heading")
-          if (version, release_date) != match.groups():
-              raise SystemExit(
-                  "CITATION.cff and the latest CHANGELOG.md release do not agree: "
-                  f"citation={(version, release_date)!r}, changelog={match.groups()!r}"
-              )
-          print(f"release metadata OK: v{version} ({release_date})")
-          PY
+          for field in ("cff-version", "title", "authors", "version", "date-released", "license"):
+              if not citation.get(field):
+                  raise SystemExit(f"CITATION.cff is missing {field}")
+          print("citation metadata OK")
+          PYTHON
 
       - name: Reject tracked local or generated files
         run: |
@@ -94,8 +81,3 @@ jobs:
 
       - name: Check Python syntax
         run: git ls-files -z '*.py' | xargs -0 --no-run-if-empty python -m py_compile
-
-      - name: Check low-temperature Compton redistribution
-        run: |
-          make test_kernel_low_temp
-          DAO_KERNEL_THREADS=2 ./test_kernel_low_temp

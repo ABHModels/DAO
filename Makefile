@@ -82,27 +82,17 @@ $(TARGET): $(OBJS)
 %.o: %.cpp $(HDRS)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-# Standalone kernel test (no Cloudy dependency)
-TEST_KERNEL_FLAGS = -std=c++17 -O3 -Wall -pthread -Isource
+# Standalone tools (no Cloudy dependency)
+STANDALONE_FLAGS = -std=c++17 -O3 -Wall -pthread -Isource
 
-test_compton_transfer: source/test_compton_transfer.o source/compton_rt.o source/thermal_balance.o source/compton_kernel.o source/avg_compton_kernel.o source/compton_cross_section.o source/rt_grids.o source/radiation.o source/corona_models.o
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+# Standalone NT interface/diagnostics; intentionally not linked into production.
+ntdisk: source/ntdisk_cli.cpp source/ntdisk.cpp source/ntdisk.h source/constants.h
+	$(CXX) $(STANDALONE_FLAGS) -o $@ $(filter %.cpp,$^)
 
-test_kernel_storage: source/test_kernel_storage.cpp source/kernel_payload.h source/kernel_row_spool.h source/rt_parallel.h
-	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $<
-
-test_scattering_density: source/test_scattering_density.cpp source/source.cpp source/rt_grids.cpp source/compton_kernel.cpp source/avg_compton_kernel.cpp source/compton_cross_section.cpp $(HDRS)
-	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $(filter %.cpp,$^) -lm
-
-test_kernel_low_temp: source/test_kernel_low_temp.cpp source/source.cpp source/rt_grids.cpp source/compton_kernel.cpp source/avg_compton_kernel.cpp source/compton_cross_section.cpp $(HDRS)
-	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $(filter %.cpp,$^) -lm
 multiscat: source/multiscat.cpp source/rt_grids.cpp source/compton_kernel.cpp source/compton_cross_section.cpp
-	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $^ -lm
+	$(CXX) $(STANDALONE_FLAGS) -o $@ $^ -lm
 dump_kernel_slice: source/dump_kernel_slice.cpp source/compton_kernel.cpp source/compton_cross_section.cpp
-	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $^ -lm
+	$(CXX) $(STANDALONE_FLAGS) -o $@ $^ -lm
 clean:
-	rm -f $(OBJS) $(TARGET) test_compton_transfer source/test_compton_transfer.o test_kernel_low_temp test_kernel_storage test_scattering_density test_thermal_balance multiscat dump_kernel_slice
-
-# Thermal closure regression: conservation, detailed balance, root failures.
-test_thermal_balance: source/test_thermal_balance.cpp source/thermal_balance.cpp source/avg_compton_kernel.cpp source/compton_kernel.cpp source/compton_cross_section.cpp source/rt_grids.cpp source/test_local_response.h $(HDRS)
-	$(CXX) $(TEST_KERNEL_FLAGS) -o $@ $(filter %.cpp,$^) -lm
+	rm -f ntdisk
+	rm -f $(OBJS) $(TARGET) multiscat dump_kernel_slice

@@ -576,7 +576,7 @@ void KernelCache::init(int n_ene, const double* ene_eV,
 	{
 		dao_log::error("\n  WARNING: Loaded un-normalized kernel %s\n"
 			"           Normalized kernel %s not found.\n"
-			"           Please run: ./normalize_kernel\n",
+			"           Regenerate the cache to obtain a normalized kernel.\n",
 			raw_file, norm_file);
 		return;
 	}
