@@ -223,7 +223,7 @@ python3 ui.py
 
 Open **http://127.0.0.1:5200**. Python is optional for command-line model runs.
 
-## Known Issues 
+## Known Issues
 When ionization is very low, the thermal equilibirum is unstable at lowest depth. A fixed version is testing, we will publish when it is stable.
 
 ## Citation and license
