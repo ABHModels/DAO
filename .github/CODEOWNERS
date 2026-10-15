@@ -1,0 +1,10 @@
+# Default ownership. Replace the individual owner with visible ABHModels teams
+# when additional maintainers receive write access.
+* @Astroyimin
+
+# High-risk scientific and repository-governance areas.
+/source/ @Astroyimin
+/maindaocl.cpp @Astroyimin
+/Makefile @Astroyimin
+/.github/ @Astroyimin
+/CITATION.cff @Astroyimin

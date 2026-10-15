@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fast-checks:
+    name: Fast checks
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
+
+      - name: Install metadata validator
+        run: python -m pip install --disable-pip-version-check "PyYAML>=6.0,<7"
+
+      - name: Check changed-file whitespace
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ -n "$BASE_SHA" ]; then
+            git diff --check "$BASE_SHA"...HEAD
+          else
+            git diff-tree --check --root --no-commit-id -r HEAD
+          fi
+
+      - name: Validate citation metadata
+        run: |
+          python - <<'PYTHON'
+          from pathlib import Path
+          import yaml
+
+          citation = yaml.safe_load(Path("CITATION.cff").read_text(encoding="utf-8"))
+          for field in ("cff-version", "title", "authors", "version", "date-released", "license"):
+              if not citation.get(field):
+                  raise SystemExit(f"CITATION.cff is missing {field}")
+          print("citation metadata OK")
+          PYTHON
+
+      - name: Reject tracked local or generated files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          tracked = subprocess.check_output(
+              ["git", "ls-files"], text=True
+          ).splitlines()
+          forbidden = []
+          for name in tracked:
+              path = Path(name)
+              if name.endswith(".local.md"):
+                  forbidden.append(name)
+              if path.parts and path.parts[0] in {"results", "kernel", "comp_cs"}:
+                  forbidden.append(name)
+              if path.name in {"run.log", ".DS_Store"}:
+                  forbidden.append(name)
+          if forbidden:
+              raise SystemExit("forbidden tracked files:\n" + "\n".join(sorted(set(forbidden))))
+          print("tracked-file policy OK")
+          PY
+
+      - name: Check Python syntax
+        run: git ls-files -z '*.py' | xargs -0 --no-run-if-empty python -m py_compile

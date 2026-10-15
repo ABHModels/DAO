@@ -1,0 +1,47 @@
+*.o
+*.o.tmp
+*.a
+*.so
+*.dylib
+maindaocl
+/ntdisk
+/test/
+run_test1.sh
+/run_test.sh
+/multiscat
+/dump_kernel_slice
+/notes/
+/paper_data/
+/tests/
+/cloudy_energy_grid.dat
+*.log
+run.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+
+# Archives
+*.tar.gz
+*.zip
+
+
+# Paper Draft
+draft/
+
+# Temporary SEDs for independent Cloudy workers
+/dao-cloudy-*-cell*.sed
+/results/
+/kernel/
+/comp_cs/
+*.local.md

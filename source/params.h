@@ -1,0 +1,68 @@
+#ifndef PARAMS_H
+#define PARAMS_H
+
+#include <string>
+
+// Model parameters
+struct ModelParams
+{
+	// --- Slab physical parameters ---
+	double nh;         // log hydrogen column density [cm^-3]
+	double zeta;       // ionization parameter exponent: xi = 10^zeta [erg cm s^-1]
+	double frac;       // disk/corona boundary-flux ratio in the normalization band; <=0: corona only
+	double incidence;  // cosine of incidence angle; -2 selects isotropic top illumination
+	int    i_incidence; // index into mu_gl[], or -1 for isotropic top illumination
+
+	// --- Corona model selection and parameters ---
+	char   corona[32]; // corona model name: powerlaw, cutoffpl, nthcomp, comptt, blackbody
+	double Gamma;      // photon index (powerlaw, cutoffpl, nthcomp)
+	double E_cut;      // high-energy cutoff [keV] (cutoffpl)
+	double E_lo_cut;   // low-energy exponential cutoff [keV] (powerlaw, cutoffpl); set by -E_low_cut
+	double kT_e;       // electron temperature [keV] (nthcomp, comptt)
+	double kT_bb;      // seed photon temperature [keV] (nthcomp, comptt, blackbody)
+	double taup;       // plasma optical depth (comptt)
+
+	// --- Disk parameters ---
+	double kT_disk;    // disk blackbody temperature [eV]
+
+	// --- RT solver ---
+	static constexpr double thermal_column_tolerance = 1e-2; // both-face energy closure and absolute volume residual
+	double E_rt_lo;    // RT energy range lower bound [eV]
+	double E_rt_hi;    // RT energy range upper bound [eV]
+	int    maxiter;    // maximum Lambda iterations
+	int    max_outer_iterations = 100; // total outer-iteration cap, including saved iterations
+	int    resume_iteration = 0; // >0: reload this iteration from the same physics run
+	bool   resume_check = false; // read-only validation; do not run Cloudy or the kernel
+
+	// --- Test mode ---
+	bool   test_rt;    // if true, skip Cloudy, use synthetic atmosphere
+	char   test_mode[16]; // required: "compps" (compPS benchmark slab) or "test_avg"
+	double tau_slab;   // total vertical Thomson optical depth (compps test mode)
+
+	// --- Abundances ---
+	double Afe;        // iron abundance: log10(Fe/Fe_solar), 0 = solar
+
+	// --- Angle dependent or not ---
+	bool angsca;
+
+	// --- Run management (auto-computed from params) ---
+	char run_hash[12];   // 8-char hex hash of all physics params
+	char run_dir[256];   // "results/<hash>/"
+	std::string label;  // optional run description; excluded from the physics hash
+	bool verbose = false; // echo run.log diagnostics; excluded from the physics hash
+	bool save_oxygen = false; // -O: final converged ionic fractions; output only
+	bool save_iron = false;   // -Fe: final converged ionic fractions; output only
+
+	// --- kernel type ---
+	int ktype; // 0: approximation QED kernel 1: Exactly
+};
+
+// Set defaults and parse command-line overrides
+ModelParams read_params(int argc, char *argv[]);
+
+struct RTGrids;  // forward declaration
+
+// Snap beam incidence to nearest GL node, or select isotropic mode for -2.
+void snap_incidence(ModelParams& par, const RTGrids& g);
+
+#endif // PARAMS_H

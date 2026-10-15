@@ -1,0 +1,172 @@
+#include "source.h"
+#include "rt_grids.h"
+#include "constants.h"
+#include "rt_parallel.h"
+#include <cstring>
+#include <cmath>
+#include <vector>
+
+// ============================================================
+// Flat-array indexing: [nd][nm][ne] -> (nd*NM + nm)*NE + ne
+// ============================================================
+static int s_NM, s_NE;
+
+static inline long sidx3(int nd, int nm, int ne)
+{
+	return (long(nd) * s_NM + nm) * s_NE + ne;
+}
+
+// ============================================================
+// compute_source_function
+//
+// S(nd,nm,ne) = (jnu[nd][ne] + jnu_line[nd][nm][ne]) / ktot
+//             + (1.21*n_h) * sigma_T / ktot * S_compton(nd,nm,ne)
+//
+// where ktot = kabs + ksct, and
+//   S_compton = x² ∫∫ K(x,μ;x₁,μ₁) I(x₁,μ₁)/x₁² dμ₁ dx₁
+// ============================================================
+void compute_source_function(
+	int ND, int NM, int NE,
+	const double* intensity,
+	const double* x_grid,
+	const double* wmu,
+	const KernelCache& kcache,
+	const double* T_K,
+	const double* const* jnu,
+	const double* const* kabs,
+	const double* const* ksct,
+	const double n_h,
+	double* source)
+{
+	s_NM = NM;
+	s_NE = NE;
+
+	memset(source, 0, long(ND) * NM * NE * sizeof(double));
+
+	rt_parallel_depths(ND, [&](int nd) {
+		int iT = 0;
+		iT = kcache.find_T(T_K[nd]);
+
+		std::vector<double> balance(NE);
+		for (int ne = 0; ne < NE; ++ne)
+		{
+			// The same exponential is used for every angular pair. Evaluate it
+			// once without changing its operands or the subsequent products.
+			for (int ne1=kcache.lo(iT,ne); ne1<=kcache.hi(iT,ne) && ne1<ne; ++ne1)
+				balance[ne1]=exp(-(kcache.x_grid[ne]-kcache.x_grid[ne1])/kcache.theta[iT]);
+		for (int nm = 0; nm < NM; ++nm)
+		{
+			double ktot = kabs[nd][ne] + ksct[nd][ne];
+			// --- Thermal term: (jnu_cont + jnu_line) / ktot ---
+			double S_th = jnu[nd][ne]/ ktot;
+
+			// --- Compton scattering term ---
+			double S_sct = 0.0;
+
+			int ne1_lo = kcache.lo(iT, ne);
+			int ne1_hi = kcache.hi(iT, ne);
+
+			if ((ne1_hi >= ne1_lo))
+			{
+				double x = x_grid[ne];
+
+				double trapz  = 0.0;
+
+				for (int ne1 = ne1_lo; ne1 <= ne1_hi; ++ne1)
+				{
+					double x1 = x_grid[ne1];
+					double inte_mu = 0.0;
+					for (int nm1 = 0; nm1 < NM; ++nm1)
+						inte_mu += (ne1<ne
+						          ? kcache.K_lower_with_balance(iT,ne,nm,ne1,nm1,balance[ne1])
+						          : kcache.K(iT, ne, nm, ne1, nm1))
+						         * intensity[sidx3(nd, nm1, ne1)]
+						         * wmu[nm1];
+
+					const double weight = NE<2 ? 0.0 :
+						(ne1==0 ? 0.5*(x_grid[1]-x_grid[0]) :
+						 ne1==NE-1 ? 0.5*(x_grid[NE-1]-x_grid[NE-2]) :
+						 0.5*(x_grid[ne1+1]-x_grid[ne1-1]));
+					trapz += weight*inte_mu/(x1*x1);
+				}
+
+				S_sct = trapz * x * x;
+			}
+			source[sidx3(nd, nm, ne)] = S_th + phys::reference_electrons_per_hydrogen * n_h * phys::sigma_T / ktot * S_sct;
+		}
+		}
+	});
+}
+
+// ============================================================
+// avgcompute_source_function — angle-mean source function
+//
+// Same as compute_source_function but the Compton term uses the
+// mean intensity J (meani) and the angle-mean kernel K̄(iT, ne, ne1):
+//   S_compton = x² ∫ K̄(x; x₁) J(x₁) / x₁² dx₁
+// (no angular integral; energy trapezoid identical to the directional
+//  version). The result is written to every angle slot.
+// ============================================================
+void avgcompute_source_function(
+	int ND, int NM, int NE,
+	const double* meani,
+	const double* x_grid,
+	const avgKernelCache& kcache,
+	const double* T_K,
+	const double* const* jnu,
+	const double* const* kabs,
+	const double* const* ksct,
+	const double n_h,
+	double* source)
+{
+	s_NM = NM;
+	s_NE = NE;
+
+	memset(source, 0, long(ND) * NM * NE * sizeof(double));
+
+	rt_parallel_depths(ND, [&](int nd) {
+		int iT = 0;
+		iT = kcache.find_T(T_K[nd]);
+
+		for (int ne = 0; ne < NE; ++ne)
+		{
+			double ktot = kabs[nd][ne] + ksct[nd][ne];
+			// --- Thermal term ---
+			double S_th = jnu[nd][ne] / ktot;
+
+			// --- Compton scattering term (angle-mean) ---
+			double S_sct = 0.0;
+
+			int ne1_lo = kcache.lo(iT, ne);
+			int ne1_hi = kcache.hi(iT, ne);
+
+			if ((ne1_hi >= ne1_lo))
+			{
+				double x = x_grid[ne];
+
+				double trapz  = 0.0;
+
+				for (int ne1 = ne1_lo; ne1 <= ne1_hi; ++ne1)
+				{
+					double x1 = x_grid[ne1];
+
+					// Angle-mean kernel × mean intensity (no angular sum).
+					double inte = kcache.K(iT, ne, ne1) * meani[long(nd) * NE + ne1];
+
+					const double weight = NE<2 ? 0.0 :
+						(ne1==0 ? 0.5*(x_grid[1]-x_grid[0]) :
+						 ne1==NE-1 ? 0.5*(x_grid[NE-1]-x_grid[NE-2]) :
+						 0.5*(x_grid[ne1+1]-x_grid[ne1-1]));
+					trapz += weight*inte/(x1*x1);
+				}
+
+				S_sct = trapz * x * x;
+			}
+
+			// Source function is identical for every angle.
+			double S_val = S_th + phys::reference_electrons_per_hydrogen * n_h * phys::sigma_T / ktot * S_sct;
+			for (int nm = 0; nm < NM; ++nm)
+				source[sidx3(nd, nm, ne)] = S_val;
+		}
+	});
+}
